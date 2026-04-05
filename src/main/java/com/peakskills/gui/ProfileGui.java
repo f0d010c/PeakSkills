@@ -1,5 +1,7 @@
 package com.peakskills.gui;
 
+import com.peakskills.pet.PetAbility;
+import com.peakskills.pet.PetAbilityRegistry;
 import com.peakskills.player.PlayerData;
 import com.peakskills.player.PlayerDataManager;
 import com.peakskills.skill.Skill;
@@ -149,10 +151,27 @@ public class ProfileGui {
 
     private static Map<Stat, Double> computeStatTotals(PlayerData data) {
         Map<Stat, Double> totals = new EnumMap<>(Stat.class);
+
+        // Skill contributions
         for (var src : StatRegistry.SOURCES) {
             int level = data.getLevel(src.skill());
             totals.merge(src.stat(), src.compute(level), Double::sum);
         }
+
+        // Collection bonuses
+        data.getCollections().computeStatBonuses()
+            .forEach((stat, value) -> totals.merge(stat, value, Double::sum));
+
+        // Active pet stat bonuses
+        data.getPetRoster().getActivePet().ifPresent(pet ->
+            PetAbilityRegistry.getAbilities(pet.getType()).stream()
+                .filter(a -> a.type == PetAbility.Type.STAT_BONUS)
+                .forEach(a -> totals.merge(a.stat, a.compute(pet.getLevel(), pet.getRarity()), Double::sum))
+        );
+
+        // Include vanilla base max health (20) so the displayed value matches the actual health bar
+        totals.merge(Stat.HEALTH, 20.0, Double::sum);
+
         return totals;
     }
 

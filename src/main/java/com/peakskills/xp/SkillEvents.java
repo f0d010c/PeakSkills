@@ -38,6 +38,9 @@ public class SkillEvents {
     // Tracks how many ticks each player has been sprinting/swimming
     private static final Map<UUID, Integer> agilityTicks = new HashMap<>();
 
+    // Pre-counted sugar-cane blocks above the broken block (captured in BEFORE, consumed in AFTER)
+    private static final Map<UUID, Integer> pendingCaneExtra = new HashMap<>();
+
     // Player-placed block positions are persisted via PlacedBlocksState (PersistentState).
     // Retrieved per-call from the server instance — always up-to-date and restart-safe.
 
@@ -52,6 +55,22 @@ public class SkillEvents {
     // BLOCK BREAKING — Mining, Woodcutting, Excavating, Farming
     // -------------------------------------------------------------------------
     private static void registerBlockBreak() {
+
+        // Count sugar-cane blocks above BEFORE they auto-break, so AFTER can award XP for all of them.
+        PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, be) -> {
+            if (state.getBlock() == net.minecraft.block.Blocks.SUGAR_CANE
+                    && player instanceof ServerPlayerEntity sp) {
+                int extra = 0;
+                BlockPos scan = pos.up();
+                while (world.getBlockState(scan).getBlock() == net.minecraft.block.Blocks.SUGAR_CANE) {
+                    extra++;
+                    scan = scan.up();
+                }
+                if (extra > 0) pendingCaneExtra.put(sp.getUuid(), extra);
+            }
+            return true; // never cancel
+        });
+
         PlayerBlockBreakEvents.AFTER.register(
             (World world, PlayerEntity player, BlockPos pos, net.minecraft.block.BlockState state,
              net.minecraft.block.entity.BlockEntity be) -> {
@@ -76,6 +95,18 @@ public class SkillEvents {
 
                 xp = applyBlockAbilityBonus(serverPlayer, skill, xp, world.getRandom());
                 XpManager.addXp(serverPlayer, skill, xp);
+
+                // ── Extra sugar-cane blocks that auto-broke above ──────────────
+                if (state.getBlock() == net.minecraft.block.Blocks.SUGAR_CANE) {
+                    Integer extra = pendingCaneExtra.remove(serverPlayer.getUuid());
+                    if (extra != null && extra > 0) {
+                        for (int i = 0; i < extra; i++) {
+                            long extraXp = applyBlockAbilityBonus(serverPlayer, Skill.FARMING,
+                                blockXp(state), world.getRandom());
+                            XpManager.addXp(serverPlayer, Skill.FARMING, extraXp);
+                        }
+                    }
+                }
 
                 // ── Collections ───────────────────────────────────────────────
                 CollectionRegistry.fromBlock(state).ifPresent(colType -> {
