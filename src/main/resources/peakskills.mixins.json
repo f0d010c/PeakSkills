@@ -1,0 +1,24 @@
+{
+  "required": true,
+  "package": "com.peakskills.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "BlockPlaceMixin",
+    "FishingMixin",
+    "DefenseMixin",
+    "CraftingMixin",
+    "CookingMixin",
+    "SmithingMixin",
+    "EnchantingMixin",
+    "AlchemyMixin",
+    "BrewingMixin",
+    "GearRestrictionMixin",
+    "TradingMixin",
+    "TradingDiscountMixin",
+    "SmithingTableMixin"
+  ],
+  "client": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
