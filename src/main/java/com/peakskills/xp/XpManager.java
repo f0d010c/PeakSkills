@@ -64,20 +64,17 @@ public class XpManager {
     }
 
     private static void sendStatBar(ServerPlayerEntity player) {
-        float  hp     = player.getHealth();
-        float  maxHp  = player.getMaxHealth();
-        int    armor  = (int) player.getAttributeValue(EntityAttributes.ARMOR);
-        double str    = player.getAttributeValue(EntityAttributes.ATTACK_DAMAGE);
+        float hp    = player.getHealth();
+        float maxHp = player.getMaxHealth();
+        int   armor = (int) player.getAttributeValue(EntityAttributes.ARMOR);
 
         Text bar = Text.literal("❤ ").formatted(Formatting.RED)
             .append(Text.literal(fmt1(hp) + " / " + fmt1(maxHp) + "   ")
                 .formatted(Formatting.GREEN))
             .append(Text.literal("❋ ").formatted(Formatting.WHITE))
-            .append(Text.literal(armor + "   ").formatted(Formatting.GREEN))
-            .append(Text.literal("⚔ ").formatted(Formatting.RED))
-            .append(Text.literal(fmt1(str)).formatted(Formatting.GREEN));
+            .append(Text.literal(String.valueOf(armor)).formatted(Formatting.GREEN));
 
-        player.sendMessage(bar, true); // true = action bar (above hotbar)
+        player.sendMessage(bar, true);
     }
 
     private static String fmt1(double v) {
