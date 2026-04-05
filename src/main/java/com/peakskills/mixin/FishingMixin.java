@@ -9,6 +9,7 @@ import com.peakskills.player.PlayerDataManager;
 import com.peakskills.skill.Skill;
 import com.peakskills.stat.Stat;
 import com.peakskills.xp.XpManager;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.projectile.FishingBobberEntity;
 import net.minecraft.item.ItemStack;
@@ -17,8 +18,10 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -31,12 +34,26 @@ import java.util.WeakHashMap;
 @Mixin(FishingBobberEntity.class)
 public class FishingMixin {
 
+    // The entity currently on the hook (null when a fish was caught via vanilla loot generation).
+    // When hookedEntity != null, the player is reeling in a ground item or mob — not real fishing.
+    @Shadow @Nullable private Entity hookedEntity;
+
+    // Track bobbers that had no hooked entity at cast time (i.e. genuine fish catches).
+    private static final Set<UUID> validFishCasts =
+        Collections.synchronizedSet(Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>()));
+
     // Track which bobber UUIDs have already dispensed custom loot.
-    // WeakHashMap wrapping a Set — entries are GC'd once the bobber entity is gone.
-    // UUID is a value type, so we use a Set<UUID> backed by a map keyed on UUID.
-    // Using a simple concurrent-safe set via synchronizedSet.
     private static final Set<UUID> usedBobbers =
         Collections.synchronizedSet(Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>()));
+
+    /** Capture whether this reel is a real fish catch before use() runs. */
+    @Inject(method = "use", at = @At("HEAD"))
+    private void onReelHead(ItemStack usedItem, CallbackInfoReturnable<Integer> cir) {
+        if (hookedEntity == null) {
+            FishingBobberEntity self = (FishingBobberEntity)(Object) this;
+            validFishCasts.add(self.getUuid());
+        }
+    }
 
     @Inject(method = "use", at = @At("RETURN"))
     private void onReel(ItemStack usedItem, CallbackInfoReturnable<Integer> cir) {
@@ -44,10 +61,12 @@ public class FishingMixin {
         if (count <= 0) return;
 
         FishingBobberEntity self = (FishingBobberEntity)(Object) this;
-
-        // Each bobber should only give custom loot once — prevents the duplication
-        // glitch where reeling a nearby dropped ItemEntity re-triggers this mixin.
         UUID bobberUuid = self.getUuid();
+
+        // Skip if the bobber had a hooked entity (reeling in a ground item or mob, not fishing)
+        if (!validFishCasts.remove(bobberUuid)) return;
+
+        // Each bobber should only give custom loot once
         if (!usedBobbers.add(bobberUuid)) return;
 
         if (!(self.getPlayerOwner() instanceof ServerPlayerEntity player)) return;
