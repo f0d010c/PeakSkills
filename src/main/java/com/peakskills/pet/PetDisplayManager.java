@@ -37,23 +37,24 @@ public class PetDisplayManager {
 
     public static void register() {
 
-        // Remove ALL ItemDisplayEntities on startup to clear orphans from any previous session.
-        // This covers entities spawned before the TAG was introduced, and handles crashes
-        // where SERVER_STOPPING never had a chance to clean up.
-        // ItemDisplayEntities are never spawned by vanilla — only by mods or commands.
-        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            // Clean up orphaned display entities when a player joins and their chunks load.
+            // Matches entities tagged by us OR carrying our specific combination of flags
+            // (covers pre-tag entities from older sessions).
             for (ServerWorld world : server.getWorlds()) {
                 List<Entity> orphans = new ArrayList<>();
                 for (Entity e : world.iterateEntities()) {
-                    if (e instanceof DisplayEntity.ItemDisplayEntity) orphans.add(e);
+                    if (!(e instanceof DisplayEntity.ItemDisplayEntity)) continue;
+                    boolean isOurs = e.getCommandTags().contains(TAG)
+                        || (e.isInvulnerable() && e.hasNoGravity() && e.isSilent());
+                    if (isOurs && !displays.containsValue(e.getUuid())) {
+                        orphans.add(e);
+                    }
                 }
                 orphans.forEach(e -> e.remove(Entity.RemovalReason.DISCARDED));
             }
+            restoreDisplay(handler.player);
         });
-
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
-            restoreDisplay(handler.player)
-        );
 
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
             killDisplay(handler.player.getUuid(), server)

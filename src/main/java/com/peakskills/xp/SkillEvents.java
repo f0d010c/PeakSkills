@@ -87,17 +87,24 @@ public class SkillEvents {
                 // ── Player-placed check (persistent across restarts) ──────
                 // If a player placed this block, consume the record and skip XP.
                 // Works cross-player: if A placed it, B breaking it gets no XP.
-                //
-                // Exception: CropBlock plants (wheat, carrots, potatoes, etc.) are
-                // planted as seeds (age 0) and only give XP when fully mature.
-                // blockXp() already returns 0 for immature crops, so the dupe is
-                // impossible — no need to track those positions.
-                // All other farming blocks (sugar cane, bamboo, cactus, pumpkin, etc.)
-                // have no age check and MUST go through the placement guard.
+                // Farming blocks are fully exempt: crops/herbs record the planted
+                // position via BlockItem.place which would wrongly block legitimate
+                // harvests. Instead, column-growers (sugar cane, bamboo, cactus) are
+                // handled below using a structural base-block check.
                 ServerWorld sw = (ServerWorld) world;
-                boolean exemptFromPlacedCheck = skill == Skill.FARMING
-                    && state.getBlock() instanceof CropBlock;
-                if (!exemptFromPlacedCheck && PlacedBlocksState.get(sw.getServer()).consumeIfPlaced(pos.asLong())) return;
+                if (skill != Skill.FARMING && PlacedBlocksState.get(sw.getServer()).consumeIfPlaced(pos.asLong())) return;
+                // ──────────────────────────────────────────────────────────
+
+                // ── Column-grower base check ──────────────────────────────
+                // Sugar cane, bamboo, and cactus placed by the player sit directly
+                // on soil/sand. Naturally-grown blocks always have the same block
+                // type below them. Skip XP for the player-placed base block only.
+                net.minecraft.block.Block b = state.getBlock();
+                if (b == net.minecraft.block.Blocks.SUGAR_CANE
+                        || b == net.minecraft.block.Blocks.BAMBOO
+                        || b == net.minecraft.block.Blocks.CACTUS) {
+                    if (world.getBlockState(pos.down()).getBlock() != b) return; // base block
+                }
                 // ──────────────────────────────────────────────────────────
 
                 xp = applyBlockAbilityBonus(serverPlayer, skill, xp, world.getRandom());

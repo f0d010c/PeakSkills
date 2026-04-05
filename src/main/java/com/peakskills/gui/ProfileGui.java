@@ -106,14 +106,10 @@ public class ProfileGui {
         // ── Stat summary items (left column: 9, 18, 27, 36) ─────────────────
         Map<Stat, Double> statTotals = computeStatTotals(data);
 
-        inv.setStack(9,  statItem(Items.APPLE, "Health & Sustain", Formatting.RED,
+        inv.setStack(9,  statItem(Items.APPLE, "Health", Formatting.RED,
             statTotals, Stat.HEALTH));
-        inv.setStack(18, statItem(Items.IRON_SWORD, "Offense", Formatting.YELLOW,
-            statTotals, Stat.STRENGTH, Stat.SWIFTNESS));
-        inv.setStack(27, statItem(Items.SHIELD, "Defense", Formatting.WHITE,
-            statTotals, Stat.DEFENSE, Stat.TOUGHNESS, Stat.KNOCKBACK_RESISTANCE));
-        inv.setStack(36, statItem(Items.RABBIT_FOOT, "Luck", Formatting.GREEN,
-            statTotals, Stat.LUCK));
+        inv.setStack(18, statItem(Items.SHIELD, "Defense", Formatting.WHITE,
+            statTotals, Stat.DEFENSE));
 
         // ── Skill icons ──────────────────────────────────────────────────────
         for (int i = 0; i < GATHERING.length; i++)
