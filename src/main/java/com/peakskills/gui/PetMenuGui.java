@@ -175,11 +175,19 @@ public class PetMenuGui {
                 }
                 data.getPetRoster().removePet(pet.getId());
                 StatManager.applyStats(player);
+
+                // Return the pet as an egg in the player's inventory
+                ItemStack egg = PetEggHandler.createEgg(pet.getType(), pet.getRarity());
+                if (!player.getInventory().insertStack(egg)) {
+                    // Inventory full — drop at player's feet
+                    player.dropItem(egg, false);
+                }
+
                 player.sendMessage(
-                    Text.literal("Removed ").formatted(Formatting.YELLOW)
-                        .append(Text.literal(pet.getRarity().displayName + " " + pet.getType().displayName)
+                    Text.literal("Returned ").formatted(Formatting.YELLOW)
+                        .append(Text.literal(pet.getRarity().displayName + " " + pet.getType().displayName + " Egg")
                             .formatted(pet.getRarity().color))
-                        .append(Text.literal(" from your roster.").formatted(Formatting.YELLOW)),
+                        .append(Text.literal(" to your inventory.").formatted(Formatting.YELLOW)),
                     false);
                 open(player, filter);
             });
