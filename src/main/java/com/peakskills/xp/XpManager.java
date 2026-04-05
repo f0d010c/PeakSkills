@@ -66,7 +66,7 @@ public class XpManager {
     private static void sendStatBar(ServerPlayerEntity player) {
         long hp    = Math.round(player.getHealth());
         long maxHp = Math.round(player.getMaxHealth());
-        long armor = Math.round(player.getAttributeValue(EntityAttributes.ARMOR));
+        long armor = Math.round(player.getAttributeValue(EntityAttributes.ARMOR) * 10.0);
 
         Text bar = Text.literal("❤ ").formatted(Formatting.RED)
             .append(Text.literal(hp + " / " + maxHp + "   ").formatted(Formatting.GREEN))
