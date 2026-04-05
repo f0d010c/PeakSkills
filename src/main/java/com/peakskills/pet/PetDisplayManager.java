@@ -27,12 +27,27 @@ public class PetDisplayManager {
 
     private static final Map<UUID, UUID> displays = new ConcurrentHashMap<>();
 
+    /** Command tag applied to every display entity so we can clean up orphans on startup. */
+    private static final String TAG = "peakskills_pet_display";
+
     /** Lateral distance from the player's center. */
     private static final double SIDE_DIST = 0.8;
     /** Height above the player's feet. */
     private static final double HEIGHT    = 0.5;
 
     public static void register() {
+
+        // Remove any orphaned display entities left over from a previous session
+        // (e.g. after a crash where SERVER_STOPPING never fired properly).
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            for (ServerWorld world : server.getWorlds()) {
+                List<Entity> orphans = new ArrayList<>();
+                for (Entity e : world.iterateEntities()) {
+                    if (e.getCommandTags().contains(TAG)) orphans.add(e);
+                }
+                orphans.forEach(e -> e.remove(Entity.RemovalReason.DISCARDED));
+            }
+        });
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
             restoreDisplay(handler.player)
@@ -56,13 +71,11 @@ public class PetDisplayManager {
                 Entity entity = sw.getEntity(displayId);
 
                 if (entity == null || entity.isRemoved()) {
-                    // Player changed dimension — clean up and re-spawn after the loop
                     displays.remove(playerUuid);
                     toRestore.add(player);
                     continue;
                 }
 
-                // Keep the entity on the player's right-hand side (world-space)
                 float yaw     = player.getYaw();
                 double rightX = Math.cos(Math.toRadians(yaw));
                 double rightZ = Math.sin(Math.toRadians(yaw));
@@ -73,12 +86,15 @@ public class PetDisplayManager {
                 );
             }
 
-            // Perform spawns/kills after iteration to avoid corrupting entity tracking state
             for (UUID uuid : toKill)               killDisplay(uuid, server);
             for (ServerPlayerEntity p : toRestore) restoreDisplay(p);
         });
 
-        ServerLifecycleEvents.SERVER_STOPPING.register(server -> displays.clear());
+        // Kill all display entities before the world is saved on shutdown,
+        // so they are not persisted and do not reappear as frozen duplicates.
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+            new ArrayList<>(displays.keySet()).forEach(uuid -> killDisplay(uuid, server));
+        });
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -102,10 +118,11 @@ public class PetDisplayManager {
 
         display.setItemStack(new ItemStack(petType.spawnEgg));
         display.setBillboardMode(DisplayEntity.BillboardMode.CENTER);
-        display.setTeleportDuration(3); // smoothly interpolate position updates over 3 ticks
+        display.setTeleportDuration(3);
         display.setInvulnerable(true);
         display.setNoGravity(true);
         display.setSilent(true);
+        display.addCommandTag(TAG); // mark for orphan cleanup on next startup
 
         sw.spawnEntity(display);
         displays.put(player.getUuid(), display.getUuid());
