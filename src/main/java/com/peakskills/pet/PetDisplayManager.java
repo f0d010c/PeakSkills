@@ -12,6 +12,8 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -41,26 +43,27 @@ public class PetDisplayManager {
         );
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {
+            List<UUID> toKill    = new ArrayList<>();
+            List<ServerPlayerEntity> toRestore = new ArrayList<>();
+
             for (UUID playerUuid : displays.keySet()) {
                 ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerUuid);
-                if (player == null) { killDisplay(playerUuid, server); continue; }
+                if (player == null) { toKill.add(playerUuid); continue; }
                 if (!(player.getEntityWorld() instanceof ServerWorld sw)) continue;
 
                 UUID displayId = displays.get(playerUuid);
-                Entity entity  = sw.getEntity(displayId);
+                if (displayId == null) continue;
+                Entity entity = sw.getEntity(displayId);
 
                 if (entity == null || entity.isRemoved()) {
-                    // Player changed dimension — remove old, re-spawn in new world
-                    for (ServerWorld w : server.getWorlds()) {
-                        Entity old = w.getEntity(displayId);
-                        if (old != null) { old.remove(Entity.RemovalReason.DISCARDED); break; }
-                    }
-                    restoreDisplay(player);
+                    // Player changed dimension — clean up and re-spawn after the loop
+                    displays.remove(playerUuid);
+                    toRestore.add(player);
                     continue;
                 }
 
                 // Keep the entity on the player's right-hand side (world-space)
-                float yaw    = player.getYaw();
+                float yaw     = player.getYaw();
                 double rightX = Math.cos(Math.toRadians(yaw));
                 double rightZ = Math.sin(Math.toRadians(yaw));
                 entity.setPos(
@@ -69,6 +72,10 @@ public class PetDisplayManager {
                     player.getZ() + rightZ * SIDE_DIST
                 );
             }
+
+            // Perform spawns/kills after iteration to avoid corrupting entity tracking state
+            for (UUID uuid : toKill)               killDisplay(uuid, server);
+            for (ServerPlayerEntity p : toRestore) restoreDisplay(p);
         });
 
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> displays.clear());
