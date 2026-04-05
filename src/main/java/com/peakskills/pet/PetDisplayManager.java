@@ -95,6 +95,7 @@ public class PetDisplayManager {
 
         display.setItemStack(new ItemStack(petType.spawnEgg));
         display.setBillboardMode(DisplayEntity.BillboardMode.CENTER);
+        display.setTeleportDuration(3); // smoothly interpolate position updates over 3 ticks
         display.setInvulnerable(true);
         display.setNoGravity(true);
         display.setSilent(true);
