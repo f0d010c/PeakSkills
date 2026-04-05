@@ -46,10 +46,11 @@ public class PetMenuGui {
         SimpleInventory inv = new SimpleInventory(54);
         populate(inv, data, filter);
 
-        Map<Integer, Runnable> handlers = buildClickHandlers(player, data, filter);
+        Map<Integer, Runnable> handlers       = buildClickHandlers(player, data, filter);
+        Map<Integer, Runnable> rightHandlers  = buildRightClickHandlers(player, data, filter);
 
         player.openHandledScreen(new SimpleNamedScreenHandlerFactory(
-            (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers),
+            (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers, rightHandlers),
             Text.literal("✦ Pet Roster").formatted(Formatting.LIGHT_PURPLE)
         ));
     }
@@ -157,6 +158,35 @@ public class PetMenuGui {
         return handlers;
     }
 
+    // ── Right-click: remove pet ───────────────────────────────────────────────
+
+    private static Map<Integer, Runnable> buildRightClickHandlers(ServerPlayerEntity player, PlayerData data, Category filter) {
+        Map<Integer, Runnable> handlers = new HashMap<>();
+
+        List<PetInstance> pets = data.getPetRoster().getPets().stream()
+            .filter(p -> matchesFilter(p, filter))
+            .toList();
+
+        for (int i = 0; i < pets.size() && i < PET_SLOTS.length; i++) {
+            final PetInstance pet = pets.get(i);
+            handlers.put(PET_SLOTS[i], () -> {
+                if (pet.isActive()) {
+                    PetDisplayManager.killDisplay(player.getUuid(), com.peakskills.player.PlayerDataManager.getServer());
+                }
+                data.getPetRoster().removePet(pet.getId());
+                StatManager.applyStats(player);
+                player.sendMessage(
+                    Text.literal("Removed ").formatted(Formatting.YELLOW)
+                        .append(Text.literal(pet.getRarity().displayName + " " + pet.getType().displayName)
+                            .formatted(pet.getRarity().color))
+                        .append(Text.literal(" from your roster.").formatted(Formatting.YELLOW)),
+                    false);
+                open(player, filter);
+            });
+        }
+        return handlers;
+    }
+
     // ── Pet icon ──────────────────────────────────────────────────────────────
 
     public static ItemStack petIcon(PetInstance pet) {
@@ -216,12 +246,13 @@ public class PetMenuGui {
 
         lore.add(separator());
         if (pet.canUpgrade()) {
-            lore.add(Text.literal("  Click to upgrade rarity").formatted(Formatting.GREEN));
+            lore.add(Text.literal("  Left-click to upgrade rarity").formatted(Formatting.GREEN));
         } else if (!active) {
-            lore.add(Text.literal("  Click to activate").formatted(Formatting.DARK_GRAY));
+            lore.add(Text.literal("  Left-click to activate").formatted(Formatting.DARK_GRAY));
         } else {
-            lore.add(Text.literal("  Click to deactivate").formatted(Formatting.DARK_GRAY));
+            lore.add(Text.literal("  Left-click to deactivate").formatted(Formatting.DARK_GRAY));
         }
+        lore.add(Text.literal("  Right-click to remove").formatted(Formatting.RED));
 
         stack.set(DataComponentTypes.LORE, new LoreComponent(lore));
         return stack;

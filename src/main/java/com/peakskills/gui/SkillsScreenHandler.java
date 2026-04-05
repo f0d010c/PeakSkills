@@ -13,17 +13,26 @@ import java.util.Map;
 public class SkillsScreenHandler extends GenericContainerScreenHandler {
 
     private final Map<Integer, Runnable> clickHandlers;
+    private final Map<Integer, Runnable> rightClickHandlers;
 
-    /** No-action constructor (existing GUIs that don't need clicks). */
+    /** No-action constructor. */
     public SkillsScreenHandler(int syncId, PlayerInventory playerInventory, Inventory inventory) {
-        this(syncId, playerInventory, inventory, Map.of());
+        this(syncId, playerInventory, inventory, Map.of(), Map.of());
     }
 
-    /** Clickable constructor — supply a slot→action map. */
+    /** Left-click only. */
     public SkillsScreenHandler(int syncId, PlayerInventory playerInventory, Inventory inventory,
                                 Map<Integer, Runnable> clickHandlers) {
+        this(syncId, playerInventory, inventory, clickHandlers, Map.of());
+    }
+
+    /** Left-click + right-click handlers. */
+    public SkillsScreenHandler(int syncId, PlayerInventory playerInventory, Inventory inventory,
+                                Map<Integer, Runnable> clickHandlers,
+                                Map<Integer, Runnable> rightClickHandlers) {
         super(ScreenHandlerType.GENERIC_9X6, syncId, playerInventory, inventory, 6);
-        this.clickHandlers = clickHandlers;
+        this.clickHandlers      = clickHandlers;
+        this.rightClickHandlers = rightClickHandlers;
     }
 
     @Override
@@ -34,12 +43,16 @@ public class SkillsScreenHandler extends GenericContainerScreenHandler {
     @Override
     public void onSlotClick(int slotIndex, int button, SlotActionType actionType, PlayerEntity player) {
         if (slotIndex >= 0 && slotIndex < 54) {
-            // Left-click only — fire action if registered
-            if (button == 0 && actionType == SlotActionType.PICKUP) {
-                Runnable action = clickHandlers.get(slotIndex);
-                if (action != null) action.run();
+            if (actionType == SlotActionType.PICKUP) {
+                if (button == 0) {
+                    Runnable action = clickHandlers.get(slotIndex);
+                    if (action != null) action.run();
+                } else if (button == 1) {
+                    Runnable action = rightClickHandlers.get(slotIndex);
+                    if (action != null) action.run();
+                }
             }
-            return; // Always block item movement in GUI slots
+            return;
         }
         super.onSlotClick(slotIndex, button, actionType, player);
     }
