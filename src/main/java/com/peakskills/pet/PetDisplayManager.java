@@ -37,13 +37,15 @@ public class PetDisplayManager {
 
     public static void register() {
 
-        // Remove any orphaned display entities left over from a previous session
-        // (e.g. after a crash where SERVER_STOPPING never fired properly).
+        // Remove ALL ItemDisplayEntities on startup to clear orphans from any previous session.
+        // This covers entities spawned before the TAG was introduced, and handles crashes
+        // where SERVER_STOPPING never had a chance to clean up.
+        // ItemDisplayEntities are never spawned by vanilla — only by mods or commands.
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             for (ServerWorld world : server.getWorlds()) {
                 List<Entity> orphans = new ArrayList<>();
                 for (Entity e : world.iterateEntities()) {
-                    if (e.getCommandTags().contains(TAG)) orphans.add(e);
+                    if (e instanceof DisplayEntity.ItemDisplayEntity) orphans.add(e);
                 }
                 orphans.forEach(e -> e.remove(Entity.RemovalReason.DISCARDED));
             }

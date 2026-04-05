@@ -87,10 +87,17 @@ public class SkillEvents {
                 // ── Player-placed check (persistent across restarts) ──────
                 // If a player placed this block, consume the record and skip XP.
                 // Works cross-player: if A placed it, B breaking it gets no XP.
-                // Skip this check for FARMING — crop positions are recorded when
-                // seeds are planted (BlockItem.place), which would wrongly block XP.
+                //
+                // Exception: CropBlock plants (wheat, carrots, potatoes, etc.) are
+                // planted as seeds (age 0) and only give XP when fully mature.
+                // blockXp() already returns 0 for immature crops, so the dupe is
+                // impossible — no need to track those positions.
+                // All other farming blocks (sugar cane, bamboo, cactus, pumpkin, etc.)
+                // have no age check and MUST go through the placement guard.
                 ServerWorld sw = (ServerWorld) world;
-                if (skill != Skill.FARMING && PlacedBlocksState.get(sw.getServer()).consumeIfPlaced(pos.asLong())) return;
+                boolean exemptFromPlacedCheck = skill == Skill.FARMING
+                    && state.getBlock() instanceof CropBlock;
+                if (!exemptFromPlacedCheck && PlacedBlocksState.get(sw.getServer()).consumeIfPlaced(pos.asLong())) return;
                 // ──────────────────────────────────────────────────────────
 
                 xp = applyBlockAbilityBonus(serverPlayer, skill, xp, world.getRandom());
