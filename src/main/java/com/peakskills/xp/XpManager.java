@@ -9,6 +9,7 @@ import com.peakskills.player.PlayerDataManager;
 import com.peakskills.skill.Skill;
 import com.peakskills.skill.SkillAbilityRegistry;
 import com.peakskills.skill.XPTable;
+import com.peakskills.stat.Stat;
 import com.peakskills.stat.SkillStatSource;
 import com.peakskills.stat.StatManager;
 import com.peakskills.stat.StatRegistry;
@@ -64,15 +65,19 @@ public class XpManager {
     }
 
     private static void sendStatBar(ServerPlayerEntity player) {
-        float hp    = player.getHealth();
-        float maxHp = player.getMaxHealth();
-        int   armor = (int) player.getAttributeValue(EntityAttributes.ARMOR);
+        float  hp     = player.getHealth();
+        float  maxHp  = player.getMaxHealth();
+        double armor  = player.getAttributeValue(EntityAttributes.ARMOR);
+
+        // Scale values the same way /profile does so the numbers always match
+        String hpStr  = fmt1(hp * Stat.HEALTH.getDisplayScale())
+                      + " / " + fmt1(maxHp * Stat.HEALTH.getDisplayScale());
+        String defStr = fmt1(armor * Stat.DEFENSE.getDisplayScale());
 
         Text bar = Text.literal("❤ ").formatted(Formatting.RED)
-            .append(Text.literal(fmt1(hp) + " / " + fmt1(maxHp) + "   ")
-                .formatted(Formatting.GREEN))
+            .append(Text.literal(hpStr + "   ").formatted(Formatting.GREEN))
             .append(Text.literal("❋ ").formatted(Formatting.WHITE))
-            .append(Text.literal(String.valueOf(armor)).formatted(Formatting.GREEN));
+            .append(Text.literal(defStr).formatted(Formatting.GREEN));
 
         player.sendMessage(bar, true);
     }
