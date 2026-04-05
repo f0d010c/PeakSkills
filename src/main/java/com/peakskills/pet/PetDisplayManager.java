@@ -18,49 +18,39 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Spawns and manages floating ItemDisplayEntity pets that orbit their owner.
- * One display entity per player — tracks across dimension changes.
+ * Manages a small floating ItemDisplayEntity for each player's active pet.
+ * The entity stays at a fixed position on the player's right side and follows them.
  */
 public class PetDisplayManager {
 
-    /** Maps player UUID → active display entity UUID. */
     private static final Map<UUID, UUID> displays = new ConcurrentHashMap<>();
 
-    /** Orbital radius in blocks. */
-    private static final double RADIUS = 1.2;
-    /** Ticks per full orbit (200 ticks = 10 seconds). */
-    private static final double TICKS_PER_ORBIT = 200.0;
-    /** Height above player's feet. */
-    private static final double HEIGHT = 0.9;
+    /** Lateral distance from the player's center. */
+    private static final double SIDE_DIST = 0.8;
+    /** Height above the player's feet. */
+    private static final double HEIGHT    = 0.5;
 
     public static void register() {
 
-        // Restore display after player data is loaded (JOIN fires after PlayerDataManager.JOIN)
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
             restoreDisplay(handler.player)
         );
 
-        // Remove display when player disconnects
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
             killDisplay(handler.player.getUuid(), server)
         );
 
-        // Each tick: orbit the display around the player
         ServerTickEvents.END_SERVER_TICK.register(server -> {
-            long tick = server.getTicks();
             for (UUID playerUuid : displays.keySet()) {
                 ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerUuid);
-                if (player == null) {
-                    killDisplay(playerUuid, server);
-                    continue;
-                }
+                if (player == null) { killDisplay(playerUuid, server); continue; }
                 if (!(player.getEntityWorld() instanceof ServerWorld sw)) continue;
 
                 UUID displayId = displays.get(playerUuid);
-                Entity entity = sw.getEntity(displayId);
+                Entity entity  = sw.getEntity(displayId);
 
                 if (entity == null || entity.isRemoved()) {
-                    // Player probably changed dimension — find the old entity, kill it, re-spawn
+                    // Player changed dimension — remove old, re-spawn in new world
                     for (ServerWorld w : server.getWorlds()) {
                         Entity old = w.getEntity(displayId);
                         if (old != null) { old.remove(Entity.RemovalReason.DISCARDED); break; }
@@ -69,39 +59,42 @@ public class PetDisplayManager {
                     continue;
                 }
 
-                // Smooth orbit
-                double angle = (tick * Math.PI * 2.0) / TICKS_PER_ORBIT;
+                // Keep the entity on the player's right-hand side (world-space)
+                float yaw    = player.getYaw();
+                double rightX = Math.cos(Math.toRadians(yaw));
+                double rightZ = Math.sin(Math.toRadians(yaw));
                 entity.setPos(
-                    player.getX() + Math.cos(angle) * RADIUS,
+                    player.getX() + rightX * SIDE_DIST,
                     player.getY() + HEIGHT,
-                    player.getZ() + Math.sin(angle) * RADIUS
+                    player.getZ() + rightZ * SIDE_DIST
                 );
             }
         });
 
-        // Clear the tracking map on server stop (entities are cleaned up with the world)
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> displays.clear());
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
 
-    /**
-     * Spawns (or replaces) the floating display for the given player's pet.
-     * Safe to call when there is already an existing display.
-     */
     public static void spawnDisplay(ServerPlayerEntity player, PetType petType) {
         if (!(player.getEntityWorld() instanceof ServerWorld sw)) return;
 
-        // Kill any existing display first
         killDisplay(player.getUuid(), sw.getServer());
 
         DisplayEntity.ItemDisplayEntity display =
             new DisplayEntity.ItemDisplayEntity(EntityType.ITEM_DISPLAY, sw);
 
-        display.setPos(player.getX() + RADIUS, player.getY() + HEIGHT, player.getZ());
-        display.setItemStack(new ItemStack(petType.icon));
+        float yaw    = player.getYaw();
+        double rightX = Math.cos(Math.toRadians(yaw));
+        double rightZ = Math.sin(Math.toRadians(yaw));
+        display.setPos(
+            player.getX() + rightX * SIDE_DIST,
+            player.getY() + HEIGHT,
+            player.getZ() + rightZ * SIDE_DIST
+        );
+
+        display.setItemStack(new ItemStack(petType.spawnEgg));
         display.setBillboardMode(DisplayEntity.BillboardMode.CENTER);
-        display.setGlowing(true);
         display.setInvulnerable(true);
         display.setNoGravity(true);
         display.setSilent(true);
@@ -110,9 +103,6 @@ public class PetDisplayManager {
         displays.put(player.getUuid(), display.getUuid());
     }
 
-    /**
-     * Kills the floating display for the given player.
-     */
     public static void killDisplay(UUID playerUuid, MinecraftServer server) {
         UUID displayId = displays.remove(playerUuid);
         if (displayId == null || server == null) return;
@@ -122,10 +112,6 @@ public class PetDisplayManager {
         }
     }
 
-    /**
-     * Re-spawns the display for a player based on their currently active pet.
-     * Called on join and after dimension changes.
-     */
     public static void restoreDisplay(ServerPlayerEntity player) {
         Optional<PetInstance> active =
             PlayerDataManager.get(player.getUuid()).getPetRoster().getActivePet();

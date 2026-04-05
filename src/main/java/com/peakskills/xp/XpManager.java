@@ -135,6 +135,14 @@ public class XpManager {
                 // Reapply stats so new ability values take effect immediately
                 StatManager.applyStats(player);
 
+                // Subtle pet level-up sound — soft XP ding, much quieter than skill level-up
+                player.networkHandler.sendPacket(new PlaySoundS2CPacket(
+                    RegistryEntry.of(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP),
+                    SoundCategory.PLAYERS,
+                    player.getX(), player.getY(), player.getZ(),
+                    0.4f, 1.6f, 0L
+                ));
+
                 // Chat message
                 player.sendMessage(
                     Text.literal("⬆ ").formatted(Formatting.GOLD)

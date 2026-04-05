@@ -13,36 +13,38 @@ import net.minecraft.item.Items;
 public enum PetType {
 
     // ── Gathering ──────────────────────────────────────────────────────────────
-    IRON_GOLEM ("Iron Golem", Skill.MINING,      Items.IRON_INGOT),    // lives underground, iron = mining
-    BAT        ("Bat",        Skill.SMITHING,     Items.COAL),          // cave ore → smithing
-    FOX        ("Fox",        Skill.WOODCUTTING,  Items.SWEET_BERRIES), // forest creature
-    RABBIT     ("Rabbit",     Skill.EXCAVATING,   Items.CARROT),        // burrow digger
-    BEE        ("Bee",        Skill.FARMING,      Items.HONEYCOMB),     // pollinator
-    AXOLOTL    ("Axolotl",   Skill.FISHING,      Items.TROPICAL_FISH), // water hunter
-    DOLPHIN    ("Dolphin",    Skill.FISHING,      Items.COD),           // second fishing pet
+    IRON_GOLEM ("Iron Golem", Skill.MINING,      Items.IRON_INGOT,    Items.IRON_GOLEM_SPAWN_EGG),
+    BAT        ("Bat",        Skill.SMITHING,     Items.COAL,          Items.BAT_SPAWN_EGG),
+    FOX        ("Fox",        Skill.WOODCUTTING,  Items.SWEET_BERRIES, Items.FOX_SPAWN_EGG),
+    RABBIT     ("Rabbit",     Skill.EXCAVATING,   Items.CARROT,        Items.RABBIT_SPAWN_EGG),
+    BEE        ("Bee",        Skill.FARMING,      Items.HONEYCOMB,     Items.BEE_SPAWN_EGG),
+    AXOLOTL    ("Axolotl",    Skill.FISHING,      Items.TROPICAL_FISH, Items.AXOLOTL_SPAWN_EGG),
+    DOLPHIN    ("Dolphin",    Skill.FISHING,      Items.COD,           Items.DOLPHIN_SPAWN_EGG),
 
     // ── Combat ────────────────────────────────────────────────────────────────
-    WOLF       ("Wolf",       Skill.SLAYING,      Items.BONE),          // apex predator
-    SPIDER     ("Spider",     Skill.RANGED,        Items.STRING),        // web = projectile traps
-    TURTLE     ("Turtle",     Skill.DEFENSE,       Items.TURTLE_SCUTE),  // living shield
+    WOLF       ("Wolf",       Skill.SLAYING,      Items.BONE,          Items.WOLF_SPAWN_EGG),
+    SPIDER     ("Spider",     Skill.RANGED,        Items.STRING,        Items.SPIDER_SPAWN_EGG),
+    TURTLE     ("Turtle",     Skill.DEFENSE,       Items.TURTLE_SCUTE,  Items.TURTLE_SPAWN_EGG),
 
     // ── Mastery ───────────────────────────────────────────────────────────────
-    ENDERMAN   ("Enderman",   Skill.ENCHANTING,   Items.ENDER_PEARL),   // mystical, arcane
-    MOOSHROOM  ("Mooshroom",  Skill.ALCHEMY,       Items.RED_MUSHROOM),  // mushroom = potions
-    CHICKEN    ("Chicken",    Skill.COOKING,       Items.EGG),           // farm animal, food source
-    SHEEP      ("Sheep",      Skill.CRAFTING,      Items.WHEAT),         // wool = crafting material
-    CAT        ("Cat",        Skill.AGILITY,       Items.COD),           // nimble and quick
-    HORSE      ("Horse",      Skill.AGILITY,       Items.WHEAT),         // second agility pet (speed)
-    ALLAY      ("Allay",      Skill.TAMING,        Items.ALLIUM),        // magical companion
-    PARROT     ("Parrot",     Skill.TRADING,       Items.COOKIE);        // merchant's bird
+    ENDERMAN   ("Enderman",   Skill.ENCHANTING,   Items.ENDER_PEARL,   Items.ENDERMAN_SPAWN_EGG),
+    MOOSHROOM  ("Mooshroom",  Skill.ALCHEMY,       Items.RED_MUSHROOM,  Items.MOOSHROOM_SPAWN_EGG),
+    CHICKEN    ("Chicken",    Skill.COOKING,       Items.EGG,           Items.CHICKEN_SPAWN_EGG),
+    SHEEP      ("Sheep",      Skill.CRAFTING,      Items.WHEAT,         Items.SHEEP_SPAWN_EGG),
+    CAT        ("Cat",        Skill.AGILITY,       Items.COD,           Items.CAT_SPAWN_EGG),
+    HORSE      ("Horse",      Skill.AGILITY,       Items.WHEAT,         Items.HORSE_SPAWN_EGG),
+    ALLAY      ("Allay",      Skill.TAMING,        Items.ALLIUM,        Items.ALLAY_SPAWN_EGG),
+    PARROT     ("Parrot",     Skill.TRADING,       Items.COOKIE,        Items.PARROT_SPAWN_EGG);
 
     public final String displayName;
-    public final Skill affinity;  // primary skill — gives large XP bonus when active during this skill
+    public final Skill affinity;
     public final Item  icon;
+    public final Item  spawnEgg;
 
-    PetType(String displayName, Skill affinity, Item icon) {
+    PetType(String displayName, Skill affinity, Item icon, Item spawnEgg) {
         this.displayName = displayName;
         this.affinity    = affinity;
         this.icon        = icon;
+        this.spawnEgg    = spawnEgg;
     }
 }
