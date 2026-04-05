@@ -9,19 +9,18 @@ import com.peakskills.player.PlayerDataManager;
 import com.peakskills.skill.Skill;
 import com.peakskills.stat.Stat;
 import com.peakskills.xp.XpManager;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.projectile.FishingBobberEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import org.jetbrains.annotations.Nullable;
+import net.minecraft.util.math.BlockPos;
 import java.util.List;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -29,31 +28,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
-import java.util.WeakHashMap;
 
 @Mixin(FishingBobberEntity.class)
 public class FishingMixin {
 
-    // The entity currently on the hook (null when a fish was caught via vanilla loot generation).
-    // When hookedEntity != null, the player is reeling in a ground item or mob — not real fishing.
-    @Shadow @Nullable private Entity hookedEntity;
-
-    // Track bobbers that had no hooked entity at cast time (i.e. genuine fish catches).
-    private static final Set<UUID> validFishCasts =
-        Collections.synchronizedSet(Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>()));
-
     // Track which bobber UUIDs have already dispensed custom loot.
     private static final Set<UUID> usedBobbers =
         Collections.synchronizedSet(Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>()));
-
-    /** Capture whether this reel is a real fish catch before use() runs. */
-    @Inject(method = "use", at = @At("HEAD"))
-    private void onReelHead(ItemStack usedItem, CallbackInfoReturnable<Integer> cir) {
-        if (hookedEntity == null) {
-            FishingBobberEntity self = (FishingBobberEntity)(Object) this;
-            validFishCasts.add(self.getUuid());
-        }
-    }
 
     @Inject(method = "use", at = @At("RETURN"))
     private void onReel(ItemStack usedItem, CallbackInfoReturnable<Integer> cir) {
@@ -61,18 +42,24 @@ public class FishingMixin {
         if (count <= 0) return;
 
         FishingBobberEntity self = (FishingBobberEntity)(Object) this;
-        UUID bobberUuid = self.getUuid();
 
-        // Skip if the bobber had a hooked entity (reeling in a ground item or mob, not fishing)
-        if (!validFishCasts.remove(bobberUuid)) return;
+        // Only award XP/loot when the bobber is actually in water.
+        // isTouchingWater() returns false when reeling in a ground item or casting on dry land.
+        if (!self.isTouchingWater()) {
+            // Also check the block at/below the bobber in case it's right at the surface
+            BlockPos pos = self.getBlockPos();
+            boolean waterBelow = self.getEntityWorld().getFluidState(pos).isIn(FluidTags.WATER)
+                || self.getEntityWorld().getFluidState(pos.down()).isIn(FluidTags.WATER);
+            if (!waterBelow) return;
+        }
 
         // Each bobber should only give custom loot once
+        UUID bobberUuid = self.getUuid();
         if (!usedBobbers.add(bobberUuid)) return;
 
         if (!(self.getPlayerOwner() instanceof ServerPlayerEntity player)) return;
         net.minecraft.server.MinecraftServer mcServer = PlayerDataManager.getServer();
         if (mcServer == null) return;
-        // Fishing only works in overworld/normal worlds; overworld is always safe fallback
         ServerWorld sw = mcServer.getOverworld();
 
         // ── Custom loot roll ──────────────────────────────────────────────────
