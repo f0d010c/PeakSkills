@@ -12,7 +12,7 @@ import com.peakskills.skill.XPTable;
 import com.peakskills.stat.StatManager;
 import com.peakskills.xp.XpManager;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.command.DefaultPermissions;
+import net.minecraft.server.PlayerConfigEntry;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -268,7 +268,13 @@ public class SkillsCommand {
     }
 
     private static boolean isOp(ServerCommandSource src) {
-        return src.getPermissions().hasPermission(DefaultPermissions.GAMEMASTERS);
+        try {
+            ServerPlayerEntity player = src.getPlayer();
+            PlayerConfigEntry entry = new PlayerConfigEntry(player.getGameProfile());
+            return src.getServer().getPlayerManager().getOpList().get(entry) != null;
+        } catch (Exception e) {
+            return true; // non-player source (console/server) always allowed
+        }
     }
 
     private static ServerPlayerEntity resolvePlayer(net.minecraft.server.MinecraftServer server, String name) {
