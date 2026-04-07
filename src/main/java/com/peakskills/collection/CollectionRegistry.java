@@ -80,6 +80,24 @@ public class CollectionRegistry {
             stat(Stat.LUCK, 2),             recipe("minecraft:emerald_block"), item(Items.EMERALD, 8),
             stat(Stat.LUCK, 3),             item(Items.EMERALD, 16),         stat(Stat.LUCK, 5));
 
+        reg(CollectionType.NETHER_QUARTZ,
+            new long[]{ 25, 75, 200, 400, 750, 1_500, 3_000, 7_500, 15_000 },
+            item(Items.QUARTZ, 16),         stat(Stat.LUCK, 1),             item(Items.QUARTZ, 32),
+            stat(Stat.TOUGHNESS, 1),        recipe("minecraft:quartz_block"), item(Items.QUARTZ_BLOCK, 8),
+            stat(Stat.LUCK, 2),             item(Items.QUARTZ, 64),          stat(Stat.TOUGHNESS, 3));
+
+        reg(CollectionType.OBSIDIAN,
+            new long[]{ 10, 30, 75, 150, 300, 750, 1_500, 3_000, 7_500 },
+            item(Items.OBSIDIAN, 4),        stat(Stat.DEFENSE, 1),          item(Items.OBSIDIAN, 8),
+            stat(Stat.TOUGHNESS, 1),        recipe("minecraft:enchanting_table"), item(Items.OBSIDIAN, 16),
+            stat(Stat.DEFENSE, 2),          item(Items.OBSIDIAN, 32),        stat(Stat.TOUGHNESS, 3));
+
+        reg(CollectionType.ANCIENT_DEBRIS,
+            new long[]{ 1, 3, 7, 15, 30, 75, 150, 300, 750 },
+            item(Items.ANCIENT_DEBRIS, 1),  stat(Stat.STRENGTH, 2),         item(Items.NETHERITE_SCRAP, 1),
+            stat(Stat.DEFENSE, 2),          item(Items.ANCIENT_DEBRIS, 4),   stat(Stat.STRENGTH, 3),
+            item(Items.NETHERITE_INGOT, 1), stat(Stat.DEFENSE, 3),           stat(Stat.STRENGTH, 5));
+
         // ── Woodcutting ───────────────────────────────────────────────────────
         reg(CollectionType.OAK_WOOD,
             new long[]{ 50, 150, 300, 600, 1_000, 2_500, 5_000, 10_000, 25_000 },
@@ -148,6 +166,12 @@ public class CollectionRegistry {
             stat(Stat.SWIFTNESS, 2),        item(Items.WARPED_STEM, 64),     stat(Stat.LUCK, 3));
 
         // ── Excavating ────────────────────────────────────────────────────────
+        reg(CollectionType.MUD,
+            new long[]{ 100, 250, 500, 1_000, 2_500, 5_000, 10_000, 25_000, 50_000 },
+            item(Items.MUD, 32),            stat(Stat.HEALTH, 1),           item(Items.MUD, 64),
+            stat(Stat.TOUGHNESS, 1),        recipe("minecraft:packed_mud"),  item(Items.PACKED_MUD, 16),
+            stat(Stat.HEALTH, 2),           item(Items.MUD_BRICKS, 16),      stat(Stat.TOUGHNESS, 3));
+
         reg(CollectionType.DIRT,
             new long[]{ 100, 250, 500, 1_000, 2_500, 5_000, 10_000, 25_000, 50_000 },
             item(Items.DIRT, 32),           stat(Stat.TOUGHNESS, 1),        item(Items.DIRT, 64),
@@ -159,6 +183,12 @@ public class CollectionRegistry {
             item(Items.SAND, 32),           stat(Stat.LUCK, 1),             item(Items.SAND, 64),
             stat(Stat.LUCK, 1),             recipe("minecraft:sandstone"),   item(Items.SANDSTONE, 32),
             stat(Stat.LUCK, 2),             item(Items.GLASS, 32),           stat(Stat.LUCK, 3));
+
+        reg(CollectionType.RED_SAND,
+            new long[]{ 100, 250, 500, 1_000, 2_500, 5_000, 10_000, 25_000, 50_000 },
+            item(Items.RED_SAND, 32),       stat(Stat.LUCK, 1),             item(Items.RED_SAND, 64),
+            stat(Stat.LUCK, 1),             recipe("minecraft:red_sandstone"), item(Items.RED_SANDSTONE, 32),
+            stat(Stat.LUCK, 2),             item(Items.RED_STAINED_GLASS, 16), stat(Stat.LUCK, 3));
 
         reg(CollectionType.GRAVEL,
             new long[]{ 100, 250, 500, 1_000, 2_500, 5_000, 10_000, 25_000, 50_000 },
@@ -179,6 +209,48 @@ public class CollectionRegistry {
             stat(Stat.TOUGHNESS, 2),        item(Items.SOUL_SAND, 64),       stat(Stat.SWIFTNESS, 3));
 
         // ── Farming ───────────────────────────────────────────────────────────
+        reg(CollectionType.BEETROOT,
+            new long[]{ 50, 150, 300, 600, 1_000, 2_500, 5_000, 10_000, 25_000 },
+            item(Items.BEETROOT, 16),       stat(Stat.HEALTH, 1),           item(Items.BEETROOT, 32),
+            stat(Stat.LUCK, 1),             recipe("minecraft:beetroot_soup"), item(Items.BEETROOT_SOUP, 4),
+            stat(Stat.HEALTH, 2),           item(Items.BEETROOT, 64),        stat(Stat.LUCK, 3));
+
+        reg(CollectionType.CACTUS,
+            new long[]{ 50, 150, 300, 600, 1_000, 2_500, 5_000, 10_000, 25_000 },
+            item(Items.CACTUS, 16),         stat(Stat.DEFENSE, 1),          item(Items.CACTUS, 32),
+            stat(Stat.TOUGHNESS, 1),        recipe("minecraft:green_dye"),   item(Items.GREEN_DYE, 16),
+            stat(Stat.DEFENSE, 2),          item(Items.CACTUS, 64),          stat(Stat.TOUGHNESS, 3));
+
+        reg(CollectionType.NETHER_WART,
+            new long[]{ 25, 75, 200, 400, 750, 1_500, 3_000, 7_500, 15_000 },
+            item(Items.NETHER_WART, 8),     stat(Stat.LUCK, 1),             item(Items.NETHER_WART, 16),
+            stat(Stat.HEALTH, 1),           recipe("minecraft:brewing_stand"), item(Items.NETHER_WART, 32),
+            stat(Stat.LUCK, 2),             item(Items.NETHER_BRICK, 16),    stat(Stat.HEALTH, 3));
+
+        reg(CollectionType.COCOA_BEANS,
+            new long[]{ 25, 75, 200, 400, 750, 1_500, 3_000, 7_500, 15_000 },
+            item(Items.COCOA_BEANS, 16),    stat(Stat.LUCK, 1),             item(Items.COCOA_BEANS, 32),
+            stat(Stat.LUCK, 1),             recipe("minecraft:cookie"),      item(Items.COOKIE, 16),
+            stat(Stat.LUCK, 2),             item(Items.BROWN_DYE, 16),       stat(Stat.LUCK, 4));
+
+        reg(CollectionType.SWEET_BERRY,
+            new long[]{ 25, 75, 150, 300, 600, 1_500, 3_000, 7_500, 15_000 },
+            item(Items.SWEET_BERRIES, 16),  stat(Stat.HEALTH, 1),           item(Items.SWEET_BERRIES, 32),
+            stat(Stat.HEALTH, 1),           item(Items.SWEET_BERRIES, 64),   stat(Stat.HEALTH, 2),
+            item(Items.SWEET_BERRIES, 64),  stat(Stat.HEALTH, 2),            stat(Stat.LUCK, 3));
+
+        reg(CollectionType.KELP,
+            new long[]{ 100, 300, 600, 1_200, 2_500, 5_000, 10_000, 25_000, 50_000 },
+            item(Items.KELP, 32),           stat(Stat.HEALTH, 1),           item(Items.DRIED_KELP, 32),
+            stat(Stat.SWIFTNESS, 1),        recipe("minecraft:dried_kelp_block"), item(Items.DRIED_KELP_BLOCK, 8),
+            stat(Stat.HEALTH, 2),           item(Items.KELP, 64),            stat(Stat.SWIFTNESS, 3));
+
+        reg(CollectionType.MUSHROOM,
+            new long[]{ 25, 75, 200, 400, 750, 1_500, 3_000, 7_500, 15_000 },
+            item(Items.RED_MUSHROOM, 8),    stat(Stat.HEALTH, 1),           item(Items.BROWN_MUSHROOM, 8),
+            stat(Stat.LUCK, 1),             recipe("minecraft:mushroom_stew"), item(Items.MUSHROOM_STEW, 4),
+            stat(Stat.HEALTH, 2),           item(Items.RED_MUSHROOM_BLOCK, 4), stat(Stat.LUCK, 3));
+
         reg(CollectionType.WHEAT,
             new long[]{ 50, 150, 300, 600, 1_000, 2_500, 5_000, 10_000, 25_000 },
             item(Items.WHEAT, 16),          stat(Stat.HEALTH, 1),           item(Items.BREAD, 8),
@@ -294,6 +366,36 @@ public class CollectionRegistry {
             item(Items.GOLD_NUGGET, 16),    stat(Stat.LUCK, 1),             item(Items.GOLD_INGOT, 4),
             stat(Stat.LUCK, 1),             recipe("minecraft:gold_block"),  item(Items.GOLD_INGOT, 8),
             stat(Stat.LUCK, 2),             item(Items.GOLD_INGOT, 16),      stat(Stat.LUCK, 4));
+
+        reg(CollectionType.WITCH,
+            new long[]{ 25, 75, 150, 300, 600, 1_500, 3_000, 7_500, 15_000 },
+            item(Items.GLASS_BOTTLE, 8),    stat(Stat.LUCK, 1),             item(Items.SUGAR, 8),
+            stat(Stat.HEALTH, 1),           recipe("minecraft:glass_bottle"), item(Items.GLOWSTONE_DUST, 8),
+            stat(Stat.LUCK, 2),             item(Items.SPIDER_EYE, 8),       stat(Stat.HEALTH, 3));
+
+        reg(CollectionType.PHANTOM,
+            new long[]{ 10, 30, 75, 150, 300, 750, 1_500, 3_000, 7_500 },
+            item(Items.PHANTOM_MEMBRANE, 2), stat(Stat.SWIFTNESS, 1),       item(Items.PHANTOM_MEMBRANE, 4),
+            stat(Stat.SWIFTNESS, 1),        recipe("minecraft:phantom_membrane"), item(Items.PHANTOM_MEMBRANE, 8),
+            stat(Stat.SWIFTNESS, 2),        item(Items.PHANTOM_MEMBRANE, 16), stat(Stat.TOUGHNESS, 3));
+
+        reg(CollectionType.SLIME,
+            new long[]{ 25, 75, 200, 400, 750, 1_500, 3_000, 7_500, 15_000 },
+            item(Items.SLIME_BALL, 8),      stat(Stat.HEALTH, 1),           item(Items.SLIME_BALL, 16),
+            stat(Stat.TOUGHNESS, 1),        recipe("minecraft:slime_block"), item(Items.SLIME_BLOCK, 4),
+            stat(Stat.HEALTH, 2),           item(Items.SLIME_BALL, 64),      stat(Stat.TOUGHNESS, 3));
+
+        reg(CollectionType.MAGMA_CUBE,
+            new long[]{ 10, 30, 75, 150, 300, 750, 1_500, 3_000, 7_500 },
+            item(Items.MAGMA_CREAM, 4),     stat(Stat.STRENGTH, 1),         item(Items.MAGMA_CREAM, 8),
+            stat(Stat.TOUGHNESS, 1),        recipe("minecraft:magma_block"), item(Items.MAGMA_BLOCK, 4),
+            stat(Stat.STRENGTH, 2),         item(Items.MAGMA_CREAM, 32),     stat(Stat.TOUGHNESS, 3));
+
+        reg(CollectionType.PILLAGER,
+            new long[]{ 25, 75, 150, 300, 600, 1_500, 3_000, 7_500, 15_000 },
+            item(Items.ARROW, 16),          stat(Stat.STRENGTH, 1),         item(Items.CROSSBOW, 1),
+            stat(Stat.LUCK, 1),             recipe("minecraft:crossbow"),    item(Items.ARROW, 64),
+            stat(Stat.STRENGTH, 2),         item(Items.TOTEM_OF_UNDYING, 1), stat(Stat.LUCK, 4));
     }
 
     // ── Block matching ────────────────────────────────────────────────────────
@@ -315,6 +417,14 @@ public class CollectionRegistry {
         if (state.isIn(BlockTags.LAPIS_ORES))    return Optional.of(CollectionType.LAPIS);
         if (state.isIn(BlockTags.REDSTONE_ORES)) return Optional.of(CollectionType.REDSTONE);
         if (state.isIn(BlockTags.EMERALD_ORES))  return Optional.of(CollectionType.EMERALD);
+
+        // Mining — new types
+        if (block == Blocks.NETHER_QUARTZ_ORE)
+            return Optional.of(CollectionType.NETHER_QUARTZ);
+        if (block == Blocks.ANCIENT_DEBRIS)
+            return Optional.of(CollectionType.ANCIENT_DEBRIS);
+        if (block == Blocks.OBSIDIAN || block == Blocks.CRYING_OBSIDIAN)
+            return Optional.of(CollectionType.OBSIDIAN);
 
         // Plain stone / cobblestone
         if (block == Blocks.COBBLESTONE    || block == Blocks.STONE
@@ -367,8 +477,12 @@ public class CollectionRegistry {
          || block == Blocks.ROOTED_DIRT   || block == Blocks.COARSE_DIRT)
             return Optional.of(CollectionType.DIRT);
 
-        if (block == Blocks.SAND || block == Blocks.RED_SAND)
+        if (block == Blocks.SAND)
             return Optional.of(CollectionType.SAND);
+        if (block == Blocks.RED_SAND)
+            return Optional.of(CollectionType.RED_SAND);
+        if (block == Blocks.MUD || block == Blocks.MUDDY_MANGROVE_ROOTS)
+            return Optional.of(CollectionType.MUD);
 
         if (block == Blocks.GRAVEL)
             return Optional.of(CollectionType.GRAVEL);
@@ -381,13 +495,29 @@ public class CollectionRegistry {
 
         // Farming — only mature crops / harvestable plants
         if (block instanceof CropBlock crop && crop.isMature(state)) {
-            if (block == Blocks.WHEAT)    return Optional.of(CollectionType.WHEAT);
-            if (block == Blocks.CARROTS)  return Optional.of(CollectionType.CARROT);
-            if (block == Blocks.POTATOES) return Optional.of(CollectionType.POTATO);
+            if (block == Blocks.WHEAT)     return Optional.of(CollectionType.WHEAT);
+            if (block == Blocks.CARROTS)   return Optional.of(CollectionType.CARROT);
+            if (block == Blocks.POTATOES)  return Optional.of(CollectionType.POTATO);
+            if (block == Blocks.BEETROOTS) return Optional.of(CollectionType.BEETROOT);
         }
-        if (block == Blocks.SUGAR_CANE)                  return Optional.of(CollectionType.SUGAR_CANE);
-        if (block == Blocks.PUMPKIN)                     return Optional.of(CollectionType.PUMPKIN);
-        if (block == Blocks.MELON)                       return Optional.of(CollectionType.MELON);
+        if (block == Blocks.SUGAR_CANE)    return Optional.of(CollectionType.SUGAR_CANE);
+        if (block == Blocks.CACTUS)        return Optional.of(CollectionType.CACTUS);
+        if (block == Blocks.PUMPKIN)       return Optional.of(CollectionType.PUMPKIN);
+        if (block == Blocks.MELON)         return Optional.of(CollectionType.MELON);
+        if (block == Blocks.NETHER_WART
+                && state.get(net.minecraft.block.NetherWartBlock.AGE) == 3)
+            return Optional.of(CollectionType.NETHER_WART);
+        if (block == Blocks.COCOA
+                && state.get(net.minecraft.block.CocoaBlock.AGE) == 2)
+            return Optional.of(CollectionType.COCOA_BEANS);
+        if (block == Blocks.SWEET_BERRY_BUSH
+                && state.get(net.minecraft.block.SweetBerryBushBlock.AGE) == 3)
+            return Optional.of(CollectionType.SWEET_BERRY);
+        if (block == Blocks.KELP || block == Blocks.KELP_PLANT)
+            return Optional.of(CollectionType.KELP);
+        if (block == Blocks.RED_MUSHROOM   || block == Blocks.BROWN_MUSHROOM
+         || block == Blocks.RED_MUSHROOM_BLOCK || block == Blocks.BROWN_MUSHROOM_BLOCK)
+            return Optional.of(CollectionType.MUSHROOM);
 
         return Optional.empty();
     }
@@ -425,6 +555,22 @@ public class CollectionRegistry {
 
         if (type == EntityType.ENDERMAN)
             return Optional.of(CollectionType.ENDERMAN);
+
+        if (type == EntityType.WITCH)
+            return Optional.of(CollectionType.WITCH);
+
+        if (type == EntityType.PHANTOM)
+            return Optional.of(CollectionType.PHANTOM);
+
+        if (type == EntityType.SLIME)
+            return Optional.of(CollectionType.SLIME);
+
+        if (type == EntityType.MAGMA_CUBE)
+            return Optional.of(CollectionType.MAGMA_CUBE);
+
+        if (type == EntityType.PILLAGER  || type == EntityType.VINDICATOR
+         || type == EntityType.RAVAGER   || type == EntityType.ILLUSIONER)
+            return Optional.of(CollectionType.PILLAGER);
 
         return Optional.empty();
     }

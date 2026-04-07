@@ -130,16 +130,16 @@ public class CollectionsGui {
     private static ItemStack categoryIcon(String cat, Item icon,
                                           Formatting color, CollectionData cd) {
         CollectionType[] items = typesForCategory(cat);
-        int maxed = 0;
-        for (CollectionType t : items)
-            if (cd.getUnlockedTier(t) >= CollectionRegistry.getTiers(t).size()) maxed++;
-
-        boolean anyProgress = false;
-        for (CollectionType t : items)
-            if (cd.getUnlockedTier(t) > 0) { anyProgress = true; break; }
+        int unlocked = 0; // any tier > 0
+        int maxed    = 0; // all tiers done
+        for (CollectionType t : items) {
+            int tier = cd.getUnlockedTier(t);
+            if (tier > 0) unlocked++;
+            if (tier >= CollectionRegistry.getTiers(t).size()) maxed++;
+        }
 
         ItemStack stack = new ItemStack(icon);
-        if (anyProgress) stack.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
+        if (unlocked > 0) stack.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
         stack.set(DataComponentTypes.CUSTOM_NAME,
             Text.literal(cat + " Collections").formatted(color, Formatting.BOLD));
 
@@ -151,9 +151,9 @@ public class CollectionsGui {
             lore.add(Text.literal(" ✦ Collections Maxed ✦").formatted(Formatting.GOLD, Formatting.BOLD));
         } else {
             lore.add(Text.literal(" Collections Unlocked: ").formatted(Formatting.GRAY)
-                .append(Text.literal(maxed + "/" + items.length).formatted(Formatting.YELLOW)));
-            float pct = items.length > 0 ? maxed * 100f / items.length : 0f;
-            lore.add(Text.literal(" " + bar(maxed, items.length, 20) + " ")
+                .append(Text.literal(unlocked + "/" + items.length).formatted(Formatting.YELLOW)));
+            float pct = items.length > 0 ? unlocked * 100f / items.length : 0f;
+            lore.add(Text.literal(" " + bar(unlocked, items.length, 20) + " ")
                     .formatted(Formatting.GREEN)
                 .append(Text.literal(String.format("%.1f%%", pct)).formatted(Formatting.WHITE)));
         }
