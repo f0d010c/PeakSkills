@@ -118,7 +118,7 @@ public class CollectionCategoryGui {
         if (unlocked > 0) stack.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
 
         stack.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal(type.displayName + " Collection").formatted(type.color, Formatting.BOLD));
+            Text.literal(type.displayName).formatted(type.color, Formatting.BOLD));
 
         List<Text> lore = new ArrayList<>();
         lore.add(CollectionsGui.sep());

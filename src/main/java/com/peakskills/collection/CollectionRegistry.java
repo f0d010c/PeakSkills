@@ -81,17 +81,71 @@ public class CollectionRegistry {
             stat(Stat.LUCK, 3),             item(Items.EMERALD, 16),         stat(Stat.LUCK, 5));
 
         // ── Woodcutting ───────────────────────────────────────────────────────
-        reg(CollectionType.WOOD,
+        reg(CollectionType.OAK_WOOD,
             new long[]{ 50, 150, 300, 600, 1_000, 2_500, 5_000, 10_000, 25_000 },
             item(Items.OAK_LOG, 32),        stat(Stat.STRENGTH, 1),         item(Items.OAK_LOG, 64),
             stat(Stat.STRENGTH, 1),         recipe("minecraft:stick"),       item(Items.OAK_PLANKS, 64),
             stat(Stat.STRENGTH, 2),         item(Items.WOODEN_AXE, 1),       stat(Stat.STRENGTH, 4));
 
-        reg(CollectionType.NETHER_WOOD,
+        reg(CollectionType.BIRCH_WOOD,
+            new long[]{ 50, 150, 300, 600, 1_000, 2_500, 5_000, 10_000, 25_000 },
+            item(Items.BIRCH_LOG, 32),      stat(Stat.STRENGTH, 1),         item(Items.BIRCH_LOG, 64),
+            stat(Stat.LUCK, 1),             recipe("minecraft:birch_planks"), item(Items.BIRCH_PLANKS, 64),
+            stat(Stat.STRENGTH, 2),         item(Items.BIRCH_LOG, 64),       stat(Stat.LUCK, 3));
+
+        reg(CollectionType.SPRUCE_WOOD,
+            new long[]{ 50, 150, 300, 600, 1_000, 2_500, 5_000, 10_000, 25_000 },
+            item(Items.SPRUCE_LOG, 32),     stat(Stat.STRENGTH, 1),         item(Items.SPRUCE_LOG, 64),
+            stat(Stat.TOUGHNESS, 1),        recipe("minecraft:spruce_planks"), item(Items.SPRUCE_PLANKS, 64),
+            stat(Stat.STRENGTH, 2),         item(Items.SPRUCE_LOG, 64),      stat(Stat.TOUGHNESS, 3));
+
+        reg(CollectionType.JUNGLE_WOOD,
             new long[]{ 25, 75, 200, 400, 750, 1_500, 3_000, 7_500, 15_000 },
-            item(Items.CRIMSON_STEM, 16),   stat(Stat.STRENGTH, 1),         item(Items.WARPED_STEM, 16),
+            item(Items.JUNGLE_LOG, 16),     stat(Stat.STRENGTH, 1),         item(Items.JUNGLE_LOG, 32),
+            stat(Stat.HEALTH, 1),           recipe("minecraft:jungle_planks"), item(Items.JUNGLE_PLANKS, 64),
+            stat(Stat.STRENGTH, 2),         item(Items.COCOA_BEANS, 16),     stat(Stat.HEALTH, 3));
+
+        reg(CollectionType.ACACIA_WOOD,
+            new long[]{ 25, 75, 200, 400, 750, 1_500, 3_000, 7_500, 15_000 },
+            item(Items.ACACIA_LOG, 16),     stat(Stat.STRENGTH, 1),         item(Items.ACACIA_LOG, 32),
+            stat(Stat.STRENGTH, 1),         recipe("minecraft:acacia_planks"), item(Items.ACACIA_PLANKS, 64),
+            stat(Stat.STRENGTH, 2),         item(Items.ACACIA_LOG, 64),      stat(Stat.STRENGTH, 4));
+
+        reg(CollectionType.DARK_OAK_WOOD,
+            new long[]{ 25, 75, 200, 400, 750, 1_500, 3_000, 7_500, 15_000 },
+            item(Items.DARK_OAK_LOG, 16),   stat(Stat.STRENGTH, 1),         item(Items.DARK_OAK_LOG, 32),
+            stat(Stat.DEFENSE, 1),          recipe("minecraft:dark_oak_planks"), item(Items.DARK_OAK_PLANKS, 64),
+            stat(Stat.STRENGTH, 2),         item(Items.DARK_OAK_LOG, 64),    stat(Stat.DEFENSE, 3));
+
+        reg(CollectionType.MANGROVE_WOOD,
+            new long[]{ 25, 75, 200, 400, 750, 1_500, 3_000, 7_500, 15_000 },
+            item(Items.MANGROVE_LOG, 16),   stat(Stat.HEALTH, 1),           item(Items.MANGROVE_LOG, 32),
+            stat(Stat.HEALTH, 1),           recipe("minecraft:mangrove_planks"), item(Items.MANGROVE_PLANKS, 64),
+            stat(Stat.HEALTH, 2),           item(Items.MANGROVE_LOG, 64),    stat(Stat.HEALTH, 4));
+
+        reg(CollectionType.CHERRY_WOOD,
+            new long[]{ 10, 30, 75, 150, 300, 750, 1_500, 3_000, 7_500 },
+            item(Items.CHERRY_LOG, 8),      stat(Stat.LUCK, 1),             item(Items.CHERRY_LOG, 16),
+            stat(Stat.HEALTH, 1),           recipe("minecraft:cherry_planks"), item(Items.CHERRY_PLANKS, 64),
+            stat(Stat.LUCK, 2),             item(Items.CHERRY_LOG, 32),      stat(Stat.HEALTH, 3));
+
+        reg(CollectionType.BAMBOO_WOOD,
+            new long[]{ 50, 150, 300, 600, 1_000, 2_500, 5_000, 10_000, 25_000 },
+            item(Items.BAMBOO_BLOCK, 32),   stat(Stat.SWIFTNESS, 1),        item(Items.BAMBOO_BLOCK, 64),
+            stat(Stat.SWIFTNESS, 1),        recipe("minecraft:bamboo_planks"), item(Items.BAMBOO_PLANKS, 64),
+            stat(Stat.SWIFTNESS, 2),        item(Items.BAMBOO_BLOCK, 64),    stat(Stat.LUCK, 3));
+
+        reg(CollectionType.CRIMSON_WOOD,
+            new long[]{ 25, 75, 200, 400, 750, 1_500, 3_000, 7_500, 15_000 },
+            item(Items.CRIMSON_STEM, 16),   stat(Stat.STRENGTH, 1),         item(Items.CRIMSON_STEM, 32),
             stat(Stat.TOUGHNESS, 1),        recipe("minecraft:crimson_planks"), item(Items.SHROOMLIGHT, 4),
             stat(Stat.STRENGTH, 2),         item(Items.CRIMSON_STEM, 64),    stat(Stat.TOUGHNESS, 3));
+
+        reg(CollectionType.WARPED_WOOD,
+            new long[]{ 25, 75, 200, 400, 750, 1_500, 3_000, 7_500, 15_000 },
+            item(Items.WARPED_STEM, 16),    stat(Stat.SWIFTNESS, 1),        item(Items.WARPED_STEM, 32),
+            stat(Stat.LUCK, 1),             recipe("minecraft:warped_planks"), item(Items.WARPED_PLANKS, 64),
+            stat(Stat.SWIFTNESS, 2),        item(Items.WARPED_STEM, 64),     stat(Stat.LUCK, 3));
 
         // ── Excavating ────────────────────────────────────────────────────────
         reg(CollectionType.DIRT,
@@ -271,13 +325,41 @@ public class CollectionRegistry {
          || block == Blocks.POLISHED_ANDESITE)
             return Optional.of(CollectionType.COBBLESTONE);
 
-        // Nether wood stems (before logs tag check)
+        // Nether wood (before general logs check)
         if (block == Blocks.CRIMSON_STEM   || block == Blocks.STRIPPED_CRIMSON_STEM
-         || block == Blocks.WARPED_STEM    || block == Blocks.STRIPPED_WARPED_STEM)
-            return Optional.of(CollectionType.NETHER_WOOD);
+         || block == Blocks.CRIMSON_HYPHAE || block == Blocks.STRIPPED_CRIMSON_HYPHAE)
+            return Optional.of(CollectionType.CRIMSON_WOOD);
+        if (block == Blocks.WARPED_STEM    || block == Blocks.STRIPPED_WARPED_STEM
+         || block == Blocks.WARPED_HYPHAE  || block == Blocks.STRIPPED_WARPED_HYPHAE)
+            return Optional.of(CollectionType.WARPED_WOOD);
 
-        // Logs
-        if (state.isIn(BlockTags.LOGS)) return Optional.of(CollectionType.WOOD);
+        // Individual overworld wood types
+        if (block == Blocks.OAK_LOG        || block == Blocks.OAK_WOOD
+         || block == Blocks.STRIPPED_OAK_LOG || block == Blocks.STRIPPED_OAK_WOOD)
+            return Optional.of(CollectionType.OAK_WOOD);
+        if (block == Blocks.BIRCH_LOG      || block == Blocks.BIRCH_WOOD
+         || block == Blocks.STRIPPED_BIRCH_LOG || block == Blocks.STRIPPED_BIRCH_WOOD)
+            return Optional.of(CollectionType.BIRCH_WOOD);
+        if (block == Blocks.SPRUCE_LOG     || block == Blocks.SPRUCE_WOOD
+         || block == Blocks.STRIPPED_SPRUCE_LOG || block == Blocks.STRIPPED_SPRUCE_WOOD)
+            return Optional.of(CollectionType.SPRUCE_WOOD);
+        if (block == Blocks.JUNGLE_LOG     || block == Blocks.JUNGLE_WOOD
+         || block == Blocks.STRIPPED_JUNGLE_LOG || block == Blocks.STRIPPED_JUNGLE_WOOD)
+            return Optional.of(CollectionType.JUNGLE_WOOD);
+        if (block == Blocks.ACACIA_LOG     || block == Blocks.ACACIA_WOOD
+         || block == Blocks.STRIPPED_ACACIA_LOG || block == Blocks.STRIPPED_ACACIA_WOOD)
+            return Optional.of(CollectionType.ACACIA_WOOD);
+        if (block == Blocks.DARK_OAK_LOG   || block == Blocks.DARK_OAK_WOOD
+         || block == Blocks.STRIPPED_DARK_OAK_LOG || block == Blocks.STRIPPED_DARK_OAK_WOOD)
+            return Optional.of(CollectionType.DARK_OAK_WOOD);
+        if (block == Blocks.MANGROVE_LOG   || block == Blocks.MANGROVE_WOOD
+         || block == Blocks.STRIPPED_MANGROVE_LOG || block == Blocks.STRIPPED_MANGROVE_WOOD)
+            return Optional.of(CollectionType.MANGROVE_WOOD);
+        if (block == Blocks.CHERRY_LOG     || block == Blocks.CHERRY_WOOD
+         || block == Blocks.STRIPPED_CHERRY_LOG || block == Blocks.STRIPPED_CHERRY_WOOD)
+            return Optional.of(CollectionType.CHERRY_WOOD);
+        if (block == Blocks.BAMBOO_BLOCK   || block == Blocks.STRIPPED_BAMBOO_BLOCK)
+            return Optional.of(CollectionType.BAMBOO_WOOD);
 
         // Excavating
         if (block == Blocks.DIRT          || block == Blocks.GRASS_BLOCK

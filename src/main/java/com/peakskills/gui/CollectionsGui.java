@@ -143,16 +143,20 @@ public class CollectionsGui {
         stack.set(DataComponentTypes.CUSTOM_NAME,
             Text.literal(cat + " Collections").formatted(color, Formatting.BOLD));
 
-        float pct = items.length > 0 ? maxed * 100f / items.length : 0f;
         List<Text> lore = new ArrayList<>();
         lore.add(sep());
         lore.add(Text.literal(" View your " + cat + " Collections!").formatted(Formatting.GRAY));
         lore.add(Text.empty());
-        lore.add(Text.literal(" Collections Maxed Out: ").formatted(Formatting.GRAY)
-            .append(Text.literal(String.format("%.1f%%", pct)).formatted(Formatting.GREEN)));
-        lore.add(Text.literal(" " + bar(maxed, items.length, 20) + " ")
-                .formatted(Formatting.GREEN)
-            .append(Text.literal(maxed + "/" + items.length).formatted(Formatting.YELLOW)));
+        if (maxed >= items.length && items.length > 0) {
+            lore.add(Text.literal(" ✦ Collections Maxed ✦").formatted(Formatting.GOLD, Formatting.BOLD));
+        } else {
+            lore.add(Text.literal(" Collections Unlocked: ").formatted(Formatting.GRAY)
+                .append(Text.literal(maxed + "/" + items.length).formatted(Formatting.YELLOW)));
+            float pct = items.length > 0 ? maxed * 100f / items.length : 0f;
+            lore.add(Text.literal(" " + bar(maxed, items.length, 20) + " ")
+                    .formatted(Formatting.GREEN)
+                .append(Text.literal(String.format("%.1f%%", pct)).formatted(Formatting.WHITE)));
+        }
         lore.add(Text.empty());
         lore.add(Text.literal(" Click to view!").formatted(Formatting.YELLOW));
         lore.add(sep());

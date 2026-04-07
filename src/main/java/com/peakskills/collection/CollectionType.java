@@ -22,8 +22,17 @@ public enum CollectionType {
     EMERALD     ("Emerald",      Items.EMERALD,       Formatting.GREEN,       "Mining"),
 
     // ── Woodcutting ───────────────────────────────────────────────────────────
-    WOOD        ("Wood",            Items.OAK_LOG,          Formatting.DARK_GREEN,  "Woodcutting"),
-    NETHER_WOOD ("Nether Wood",     Items.CRIMSON_STEM,     Formatting.DARK_RED,    "Woodcutting"),
+    OAK_WOOD      ("Oak",       Items.OAK_LOG,          Formatting.DARK_GREEN,   "Woodcutting"),
+    BIRCH_WOOD    ("Birch",     Items.BIRCH_LOG,        Formatting.YELLOW,       "Woodcutting"),
+    SPRUCE_WOOD   ("Spruce",    Items.SPRUCE_LOG,       Formatting.WHITE,        "Woodcutting"),
+    JUNGLE_WOOD   ("Jungle",    Items.JUNGLE_LOG,       Formatting.GREEN,        "Woodcutting"),
+    ACACIA_WOOD   ("Acacia",    Items.ACACIA_LOG,       Formatting.GOLD,         "Woodcutting"),
+    DARK_OAK_WOOD ("Dark Oak",  Items.DARK_OAK_LOG,     Formatting.DARK_GREEN,   "Woodcutting"),
+    MANGROVE_WOOD ("Mangrove",  Items.MANGROVE_LOG,     Formatting.RED,          "Woodcutting"),
+    CHERRY_WOOD   ("Cherry",    Items.CHERRY_LOG,       Formatting.LIGHT_PURPLE, "Woodcutting"),
+    BAMBOO_WOOD   ("Bamboo",    Items.BAMBOO_BLOCK,     Formatting.GREEN,        "Woodcutting"),
+    CRIMSON_WOOD  ("Crimson",   Items.CRIMSON_STEM,     Formatting.DARK_RED,     "Woodcutting"),
+    WARPED_WOOD   ("Warped",    Items.WARPED_STEM,      Formatting.DARK_AQUA,    "Woodcutting"),
 
     // ── Excavating ────────────────────────────────────────────────────────────
     DIRT        ("Dirt",            Items.DIRT,             Formatting.YELLOW,      "Excavating"),
