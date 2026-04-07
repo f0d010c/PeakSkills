@@ -1,6 +1,5 @@
 package com.peakskills.mixin;
 
-import com.peakskills.player.PlayerDataManager;
 import com.peakskills.skill.Skill;
 import com.peakskills.xp.XpManager;
 import net.minecraft.entity.damage.DamageSource;
@@ -17,7 +16,6 @@ public class DefenseMixin {
 
     @Inject(method = "damage", at = @At("TAIL"))
     private void onDamage(ServerWorld world, DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
-        // Only award XP if damage was actually applied
         if (!cir.getReturnValue()) return;
         if (amount <= 0) return;
 
@@ -34,13 +32,5 @@ public class DefenseMixin {
         // ~20 XP per damage point — calibrated so tanking ~10 damage/min for 40h reaches 99
         long xp = Math.max(1, Math.round(amount * 20));
         XpManager.addXp(player, Skill.DEFENSE, xp);
-
-        // Iron Will (lv50): 10% damage reduction — Titan (lv99): 20% damage reduction
-        // Implemented as retroactive healing equal to the reduction fraction of raw damage
-        int defLevel = PlayerDataManager.get(player.getUuid()).getLevel(Skill.DEFENSE);
-        float healFraction = defLevel >= 99 ? 0.20f : defLevel >= 50 ? 0.10f : 0f;
-        if (healFraction > 0) {
-            player.heal(amount * healFraction);
-        }
     }
 }
