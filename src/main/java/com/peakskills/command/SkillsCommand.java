@@ -12,7 +12,10 @@ import com.peakskills.skill.XPTable;
 import com.peakskills.stat.StatManager;
 import com.peakskills.xp.XpManager;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.command.permission.LeveledPermissionPredicate;
+import net.minecraft.command.permission.PermissionLevel;
 import net.minecraft.server.command.CommandManager;
+import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
@@ -52,9 +55,7 @@ public class SkillsCommand {
 
                     // /skills addxp <player> <skill> <amount>
                     .then(CommandManager.literal("addxp")
-                        .requires(src -> {
-                            return true; // TODO: restrict to OPs once correct 1.21.11 permission API is found
-                        })
+                        .requires(SkillsCommand::isOp)
                         .then(CommandManager.argument("player", StringArgumentType.word())
                             .then(CommandManager.argument("skill", StringArgumentType.word())
                                 .then(CommandManager.argument("amount", LongArgumentType.longArg(1))
@@ -76,9 +77,7 @@ public class SkillsCommand {
 
                     // /skills setlevel <player> <skill> <level>
                     .then(CommandManager.literal("setlevel")
-                        .requires(src -> {
-                            return true; // TODO: restrict to OPs once correct 1.21.11 permission API is found
-                        })
+                        .requires(SkillsCommand::isOp)
                         .then(CommandManager.argument("player", StringArgumentType.word())
                             .then(CommandManager.argument("skill", StringArgumentType.word())
                                 .then(CommandManager.argument("level", IntegerArgumentType.integer(1, Skill.MAX_LEVEL))
@@ -115,7 +114,7 @@ public class SkillsCommand {
 
                     // /skills reset <player> [skill]
                     .then(CommandManager.literal("reset")
-                        .requires(src -> true)
+                        .requires(SkillsCommand::isOp)
                         .then(CommandManager.argument("player", StringArgumentType.word())
                             // /skills reset <player> — reset ALL skills
                             .executes(ctx -> {
@@ -152,7 +151,7 @@ public class SkillsCommand {
 
                     // /skills removexp <player> <skill> <amount>
                     .then(CommandManager.literal("removexp")
-                        .requires(src -> true)
+                        .requires(SkillsCommand::isOp)
                         .then(CommandManager.argument("player", StringArgumentType.word())
                             .then(CommandManager.argument("skill", StringArgumentType.word())
                                 .then(CommandManager.argument("amount", LongArgumentType.longArg(1))
@@ -177,7 +176,7 @@ public class SkillsCommand {
                     )
                     // /skills backup [player]
                     .then(CommandManager.literal("backup")
-                        .requires(src -> true)
+                        .requires(SkillsCommand::isOp)
                         // /skills backup — back up ALL online players
                         .executes(ctx -> {
                             var source = ctx.getSource();
@@ -202,7 +201,7 @@ public class SkillsCommand {
 
                     // /skills restore <player>
                     .then(CommandManager.literal("restore")
-                        .requires(src -> true)
+                        .requires(SkillsCommand::isOp)
                         .then(CommandManager.argument("player", StringArgumentType.word())
                             .executes(ctx -> {
                                 String name = StringArgumentType.getString(ctx, "player");
@@ -267,6 +266,12 @@ public class SkillsCommand {
             src.sendError(Text.literal("Restore failed: " + e.getMessage()));
             return 0;
         }
+    }
+
+    private static boolean isOp(ServerCommandSource src) {
+        var perms = src.getPermissions();
+        return perms instanceof LeveledPermissionPredicate lpp
+            && lpp.getLevel().isAtLeast(PermissionLevel.GAMEMASTERS);
     }
 
     private static ServerPlayerEntity resolvePlayer(net.minecraft.server.MinecraftServer server, String name) {
