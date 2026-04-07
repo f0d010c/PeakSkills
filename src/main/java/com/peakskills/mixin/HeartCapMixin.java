@@ -17,9 +17,9 @@ import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 @Mixin(InGameHud.class)
 public class HeartCapMixin {
 
-    private static final int MAX_DISPLAY_HEARTS    = 20;   // 2 rows × 10 hearts
-    private static final float MAX_DISPLAY_HP      = 40.0f; // 20 hearts × 2 half-hearts
-    private static final int MAX_DISPLAY_ROWS      = 2;
+    private static final int MAX_DISPLAY_HEARTS = 20;   // 2 rows × 10 hearts
+    private static final float MAX_DISPLAY_HP   = 40.0f; // 20 hearts × 2 HP each
+    private static final int MAX_DISPLAY_ROWS   = 2;
 
     /** Cap the heart container count to 2 rows. */
     @Inject(method = "getHeartCount", at = @At("RETURN"), cancellable = true)
@@ -50,10 +50,9 @@ public class HeartCapMixin {
         int health    = args.get(7); // health in half-hearts
         int prevHealth = args.get(8);
 
-        args.set(4, MAX_DISPLAY_HEARTS);           // heartCount
-        args.set(5, MAX_DISPLAY_ROWS);             // rows
+        args.set(4, MAX_DISPLAY_ROWS);               // lines (rows of hearts)
         args.set(6, MAX_DISPLAY_HP);               // maxHealth
-        args.set(7, Math.round(health * scale));   // health (scaled)
-        args.set(8, Math.round(prevHealth * scale)); // prevHealth (scaled)
+        args.set(7, Math.round(health * scale));   // lastHealth (scaled)
+        args.set(8, Math.round(prevHealth * scale)); // health (scaled)
     }
 }

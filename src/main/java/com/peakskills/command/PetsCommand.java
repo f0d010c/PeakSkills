@@ -10,7 +10,9 @@ import com.peakskills.pet.PetType;
 import com.peakskills.pet.PetUpgradeHandler;
 import com.peakskills.player.PlayerDataManager;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.server.PlayerConfigEntry;
 import net.minecraft.server.command.CommandManager;
+import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
@@ -31,8 +33,9 @@ public class PetsCommand {
                         return 1;
                     })
 
-                    // /pets addxp <amount> — add XP to your active pet
+                    // /pets addxp <amount> — add XP to your active pet (admin only)
                     .then(CommandManager.literal("addxp")
+                        .requires(PetsCommand::isOp)
                         .then(CommandManager.argument("amount", LongArgumentType.longArg(1))
                             .executes(ctx -> {
                                 ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
@@ -56,8 +59,9 @@ public class PetsCommand {
                         )
                     )
 
-                    // /pets give <type> [rarity] — add a pet to your roster
+                    // /pets give <type> [rarity] — add a pet to your roster (admin only)
                     .then(CommandManager.literal("give")
+                        .requires(PetsCommand::isOp)
                         .then(CommandManager.argument("type", StringArgumentType.word())
                             .executes(ctx -> givePet(ctx.getSource().getPlayerOrThrow(),
                                 StringArgumentType.getString(ctx, "type"), "COMMON"))
@@ -124,6 +128,16 @@ public class PetsCommand {
                     )
             )
         );
+    }
+
+    private static boolean isOp(ServerCommandSource src) {
+        try {
+            ServerPlayerEntity player = src.getPlayer();
+            PlayerConfigEntry entry = new PlayerConfigEntry(player.getGameProfile());
+            return src.getServer().getPlayerManager().getOpList().get(entry) != null;
+        } catch (Exception e) {
+            return true;
+        }
     }
 
     private static int givePet(ServerPlayerEntity player, String typeName, String rarityName) {

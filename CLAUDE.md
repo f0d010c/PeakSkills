@@ -35,6 +35,9 @@ When adding a new collection, all 3 of these must be updated:
 - `computeStatTotals` in `ProfileGui` must match `StatManager` exactly: skill contributions + collection bonuses + pet bonuses + base health (20.0)
 - `SkillsScreenHandler` supports left-click, right-click, and middle-click (SlotActionType.CLONE) handlers
 
+## Development Mindset
+- When implementing something, check if the same logic applies elsewhere in the project — if it does, ask the user before doing it
+
 ## Permission API (1.21.11 specific)
 - `hasPermissionLevel(int)` does NOT exist on `ServerCommandSource` in 1.21.11
 - `DefaultPermissions.GAMEMASTERS` exists but `hasPermission()` does not enforce correctly
