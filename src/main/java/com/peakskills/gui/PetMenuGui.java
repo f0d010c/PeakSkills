@@ -46,11 +46,12 @@ public class PetMenuGui {
         SimpleInventory inv = new SimpleInventory(54);
         populate(inv, data, filter);
 
-        Map<Integer, Runnable> handlers       = buildClickHandlers(player, data, filter);
-        Map<Integer, Runnable> rightHandlers  = buildRightClickHandlers(player, data, filter);
+        Map<Integer, Runnable> handlers        = buildClickHandlers(player, data, filter);
+        Map<Integer, Runnable> rightHandlers   = buildRightClickHandlers(player, data, filter);
+        Map<Integer, Runnable> middleHandlers  = buildMiddleClickHandlers(player, data, filter);
 
         player.openHandledScreen(new SimpleNamedScreenHandlerFactory(
-            (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers, rightHandlers),
+            (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers, rightHandlers, middleHandlers),
             Text.literal("✦ Pet Roster").formatted(Formatting.LIGHT_PURPLE)
         ));
     }
@@ -90,8 +91,8 @@ public class PetMenuGui {
                 .append(Text.literal(pets.size() + " / " + PetRoster.MAX_SLOTS)
                     .formatted(Formatting.GRAY)));
         title.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-            Text.literal("  Click a pet to activate / deactivate it").formatted(Formatting.DARK_GRAY),
-            Text.literal("  Click a maxed pet to upgrade its rarity").formatted(Formatting.DARK_GRAY),
+            Text.literal("  Left-click a pet to activate / deactivate").formatted(Formatting.DARK_GRAY),
+            Text.literal("  Middle-click a maxed pet to upgrade rarity").formatted(Formatting.DARK_GRAY),
             Text.literal("  Active pet earns XP and grants bonuses").formatted(Formatting.DARK_GRAY)
         )));
         inv.setStack(8, title);
@@ -133,15 +134,11 @@ public class PetMenuGui {
             final int slot = PET_SLOTS[i];
             handlers.put(slot, () -> {
                 PetRoster roster = data.getPetRoster();
-                if (pet.canUpgrade()) {
-                    PetUpgradeHandler.tryUpgrade(player, pet.getId());
-                    open(player, filter);
-                } else if (pet.isActive()) {
+                if (pet.isActive()) {
                     roster.deactivate();
                     PetDisplayManager.killDisplay(player.getUuid(), com.peakskills.player.PlayerDataManager.getServer());
                     StatManager.applyStats(player);
                     player.sendMessage(Text.literal("Pet deactivated.").formatted(Formatting.YELLOW), false);
-                    open(player, filter);
                 } else {
                     roster.setActivePet(pet.getId());
                     PetDisplayManager.spawnDisplay(player, pet.getType());
@@ -151,8 +148,28 @@ public class PetMenuGui {
                             .append(Text.literal(pet.getRarity().displayName + " " + pet.getType().displayName)
                                 .formatted(pet.getRarity().color)),
                         false);
-                    open(player, filter);
                 }
+                open(player, filter);
+            });
+        }
+        return handlers;
+    }
+
+    // ── Middle-click: upgrade pet ─────────────────────────────────────────────
+
+    private static Map<Integer, Runnable> buildMiddleClickHandlers(ServerPlayerEntity player, PlayerData data, Category filter) {
+        Map<Integer, Runnable> handlers = new HashMap<>();
+
+        List<PetInstance> pets = data.getPetRoster().getPets().stream()
+            .filter(p -> matchesFilter(p, filter))
+            .toList();
+
+        for (int i = 0; i < pets.size() && i < PET_SLOTS.length; i++) {
+            final PetInstance pet = pets.get(i);
+            if (!pet.canUpgrade()) continue;
+            handlers.put(PET_SLOTS[i], () -> {
+                PetUpgradeHandler.tryUpgrade(player, pet.getId());
+                open(player, filter);
             });
         }
         return handlers;
@@ -253,12 +270,13 @@ public class PetMenuGui {
         }
 
         lore.add(separator());
-        if (pet.canUpgrade()) {
-            lore.add(Text.literal("  Left-click to upgrade rarity").formatted(Formatting.GREEN));
-        } else if (!active) {
+        if (!active) {
             lore.add(Text.literal("  Left-click to activate").formatted(Formatting.DARK_GRAY));
         } else {
             lore.add(Text.literal("  Left-click to deactivate").formatted(Formatting.DARK_GRAY));
+        }
+        if (pet.canUpgrade()) {
+            lore.add(Text.literal("  Middle-click to upgrade rarity").formatted(Formatting.GREEN));
         }
         lore.add(Text.literal("  Right-click to remove").formatted(Formatting.RED));
 

@@ -14,25 +14,35 @@ public class SkillsScreenHandler extends GenericContainerScreenHandler {
 
     private final Map<Integer, Runnable> clickHandlers;
     private final Map<Integer, Runnable> rightClickHandlers;
+    private final Map<Integer, Runnable> middleClickHandlers;
 
     /** No-action constructor. */
     public SkillsScreenHandler(int syncId, PlayerInventory playerInventory, Inventory inventory) {
-        this(syncId, playerInventory, inventory, Map.of(), Map.of());
+        this(syncId, playerInventory, inventory, Map.of(), Map.of(), Map.of());
     }
 
     /** Left-click only. */
     public SkillsScreenHandler(int syncId, PlayerInventory playerInventory, Inventory inventory,
                                 Map<Integer, Runnable> clickHandlers) {
-        this(syncId, playerInventory, inventory, clickHandlers, Map.of());
+        this(syncId, playerInventory, inventory, clickHandlers, Map.of(), Map.of());
     }
 
     /** Left-click + right-click handlers. */
     public SkillsScreenHandler(int syncId, PlayerInventory playerInventory, Inventory inventory,
                                 Map<Integer, Runnable> clickHandlers,
                                 Map<Integer, Runnable> rightClickHandlers) {
+        this(syncId, playerInventory, inventory, clickHandlers, rightClickHandlers, Map.of());
+    }
+
+    /** Left-click + right-click + middle-click handlers. */
+    public SkillsScreenHandler(int syncId, PlayerInventory playerInventory, Inventory inventory,
+                                Map<Integer, Runnable> clickHandlers,
+                                Map<Integer, Runnable> rightClickHandlers,
+                                Map<Integer, Runnable> middleClickHandlers) {
         super(ScreenHandlerType.GENERIC_9X6, syncId, playerInventory, inventory, 6);
-        this.clickHandlers      = clickHandlers;
-        this.rightClickHandlers = rightClickHandlers;
+        this.clickHandlers        = clickHandlers;
+        this.rightClickHandlers   = rightClickHandlers;
+        this.middleClickHandlers  = middleClickHandlers;
     }
 
     @Override
@@ -51,6 +61,9 @@ public class SkillsScreenHandler extends GenericContainerScreenHandler {
                     Runnable action = rightClickHandlers.get(slotIndex);
                     if (action != null) action.run();
                 }
+            } else if (actionType == SlotActionType.CLONE) {
+                Runnable action = middleClickHandlers.get(slotIndex);
+                if (action != null) action.run();
             }
             return;
         }

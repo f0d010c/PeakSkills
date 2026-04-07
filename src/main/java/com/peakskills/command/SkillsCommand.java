@@ -12,8 +12,7 @@ import com.peakskills.skill.XPTable;
 import com.peakskills.stat.StatManager;
 import com.peakskills.xp.XpManager;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.command.permission.LeveledPermissionPredicate;
-import net.minecraft.command.permission.PermissionLevel;
+import net.minecraft.command.DefaultPermissions;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -269,9 +268,7 @@ public class SkillsCommand {
     }
 
     private static boolean isOp(ServerCommandSource src) {
-        var perms = src.getPermissions();
-        return perms instanceof LeveledPermissionPredicate lpp
-            && lpp.getLevel().isAtLeast(PermissionLevel.GAMEMASTERS);
+        return src.getPermissions().hasPermission(DefaultPermissions.GAMEMASTERS);
     }
 
     private static ServerPlayerEntity resolvePlayer(net.minecraft.server.MinecraftServer server, String name) {
