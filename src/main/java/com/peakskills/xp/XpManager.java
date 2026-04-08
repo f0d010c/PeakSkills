@@ -266,6 +266,11 @@ public class XpManager {
                 false);
         }
 
+        // Replenish recipe unlock at Farming 30
+        if (skill == Skill.FARMING) {
+            com.peakskills.enchantment.ReplenishEnchantment.onFarmingLevelUp(player, from, to);
+        }
+
         // Milestone item reward
         grantMilestoneReward(player, skill, to);
 

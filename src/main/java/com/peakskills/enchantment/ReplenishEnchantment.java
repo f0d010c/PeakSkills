@@ -4,6 +4,7 @@ import com.peakskills.PeakSkills;
 import com.peakskills.player.PlayerDataManager;
 import com.peakskills.skill.Skill;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.block.*;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
@@ -12,11 +13,14 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.recipe.Recipe;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
@@ -35,6 +39,34 @@ public class ReplenishEnchantment {
 
     public static void register() {
         PlayerBlockBreakEvents.AFTER.register(ReplenishEnchantment::onBlockBreak);
+
+        // Unlock the recipe for players who already have Farming 30+ on join
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            ServerPlayerEntity player = handler.getPlayer();
+            if (PlayerDataManager.get(player.getUuid()).getLevel(Skill.FARMING) >= MIN_FARMING_LEVEL) {
+                unlockRecipe(player);
+            }
+        });
+    }
+
+    /** Called from XpManager when the Farming skill levels up. */
+    public static void onFarmingLevelUp(ServerPlayerEntity player, int from, int to) {
+        if (from < MIN_FARMING_LEVEL && to >= MIN_FARMING_LEVEL) {
+            unlockRecipe(player);
+            player.sendMessage(
+                Text.literal("  ✦ Recipe Unlocked: ").formatted(Formatting.GOLD)
+                    .append(Text.literal("Replenish I Book").formatted(Formatting.AQUA, Formatting.BOLD))
+                    .append(Text.literal(" — surround a Book with Wheat Seeds & Bone Meal.")
+                        .formatted(Formatting.GRAY)),
+                false);
+        }
+    }
+
+    private static void unlockRecipe(ServerPlayerEntity player) {
+        var recipeId = RegistryKey.of(RegistryKeys.RECIPE,
+            Identifier.of(PeakSkills.MOD_ID, "replenish_book"));
+        ((ServerWorld) player.getEntityWorld()).getServer().getRecipeManager().get(recipeId)
+            .ifPresent(r -> player.unlockRecipes(List.of(r)));
     }
 
     private static void onBlockBreak(World world, PlayerEntity player, BlockPos pos,
