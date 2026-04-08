@@ -6,6 +6,7 @@ import com.peakskills.skill.Skill;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.block.*;
+import net.minecraft.block.BlockState;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.ItemEntity;
@@ -81,17 +82,16 @@ public class ReplenishEnchantment {
         // Farming 30 required
         if (PlayerDataManager.get(serverPlayer.getUuid()).getLevel(Skill.FARMING) < MIN_FARMING_LEVEL) return;
 
-        // Must be a mature crop
+        // Must be a replantable crop (any age)
         Block block = state.getBlock();
-        if (!isMatureCrop(block, state)) return;
-
-        // Consume one seed from the drops before they're picked up
         Item seed = seedFor(block);
         if (seed == null) return;
+
+        // Consume one seed from the drops if available (mature crops drop seeds; immature may not)
         consumeSeedDrop(serverWorld, pos, seed);
 
-        // Replant at age 0
-        serverWorld.setBlockState(pos, block.getDefaultState());
+        // Replant at age 0 — preserve non-age properties (e.g. CocoaBlock FACING)
+        serverWorld.setBlockState(pos, resetAge(block, state));
     }
 
     private static boolean hasReplenish(ItemStack stack, ServerWorld world) {
@@ -116,6 +116,13 @@ public class ReplenishEnchantment {
         if (block == Blocks.NETHER_WART) return Items.NETHER_WART;
         if (block == Blocks.COCOA)      return Items.COCOA_BEANS;
         return null;
+    }
+
+    private static BlockState resetAge(Block block, BlockState state) {
+        if (block instanceof CropBlock)        return state.with(CropBlock.AGE, 0);
+        if (block == Blocks.NETHER_WART)       return state.with(NetherWartBlock.AGE, 0);
+        if (block == Blocks.COCOA)             return state.with(CocoaBlock.AGE, 0);
+        return block.getDefaultState();
     }
 
     private static void consumeSeedDrop(ServerWorld world, BlockPos pos, Item seed) {
