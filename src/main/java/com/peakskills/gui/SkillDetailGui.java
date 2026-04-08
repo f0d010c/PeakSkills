@@ -189,8 +189,9 @@ public class SkillDetailGui {
         }
 
         ItemStack stack = new ItemStack(icon);
-        // ── Level number in bottom-right corner (capped at 64 — MC limit) ─
-        stack.setCount(Math.min(level, 64));
+        // ── Level number in bottom-right corner ──────────────────────────
+        stack.set(DataComponentTypes.MAX_STACK_SIZE, Skill.MAX_LEVEL);
+        stack.setCount(level);
 
         // Glow current level and reached-special slots
         if (isCurrent || (reached && (isSpecial || isMilestone)))
