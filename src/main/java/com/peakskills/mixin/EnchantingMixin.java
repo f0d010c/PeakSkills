@@ -4,6 +4,7 @@ import com.peakskills.player.PlayerDataManager;
 import com.peakskills.skill.Skill;
 import com.peakskills.xp.XpManager;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.item.ItemStack;
@@ -56,7 +57,7 @@ public class EnchantingMixin {
         if (enchants.isEmpty()) return;
 
         ItemEnchantmentsComponent.Builder builder = new ItemEnchantmentsComponent.Builder(enchants);
-        RegistryEntry<?> upgradedEntry = null;
+        RegistryEntry<Enchantment> upgradedEntry = null;
         int newLevel = 0;
 
         for (var entry : enchants.getEnchantments()) {
