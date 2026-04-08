@@ -205,7 +205,7 @@ public class SkillEvents {
         if (b instanceof CropBlock crop) return crop.isMature(state) ? 45 : 0; // torchflower etc.
         // Column growers — fast/stackable, low effort
         if (b == net.minecraft.block.Blocks.SUGAR_CANE)    return 22;
-        if (b == net.minecraft.block.Blocks.BAMBOO)         return 18;
+        if (b == net.minecraft.block.Blocks.BAMBOO)         return 9;
         if (b == net.minecraft.block.Blocks.CACTUS)         return 15;
         if (b == net.minecraft.block.Blocks.KELP
          || b == net.minecraft.block.Blocks.KELP_PLANT)     return 18;
