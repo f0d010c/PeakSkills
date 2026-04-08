@@ -2,7 +2,6 @@ package com.peakskills.mixin;
 
 import net.minecraft.client.gui.hud.InGameHud;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -30,21 +29,21 @@ public class HeartCapMixin {
     @Redirect(
         method = "renderStatusBars",
         at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/entity/player/PlayerEntity;getMaxHealth()F")
+            target = "Lnet/minecraft/entity/LivingEntity;getMaxHealth()F")
     )
-    private float capMaxHealth(PlayerEntity player) {
-        return Math.min(player.getMaxHealth(), MAX_DISPLAY_HP);
+    private float capMaxHealth(LivingEntity entity) {
+        return Math.min(entity.getMaxHealth(), MAX_DISPLAY_HP);
     }
 
     /** Scale current health proportionally so hearts deplete correctly. */
     @Redirect(
         method = "renderStatusBars",
         at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/entity/player/PlayerEntity;getHealth()F")
+            target = "Lnet/minecraft/entity/LivingEntity;getHealth()F")
     )
-    private float scaleCurrentHealth(PlayerEntity player) {
-        float max = player.getMaxHealth();
-        if (max <= MAX_DISPLAY_HP) return player.getHealth();
-        return player.getHealth() * (MAX_DISPLAY_HP / max);
+    private float scaleCurrentHealth(LivingEntity entity) {
+        float max = entity.getMaxHealth();
+        if (max <= MAX_DISPLAY_HP) return entity.getHealth();
+        return entity.getHealth() * (MAX_DISPLAY_HP / max);
     }
 }

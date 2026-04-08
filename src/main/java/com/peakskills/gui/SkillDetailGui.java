@@ -90,9 +90,8 @@ public class SkillDetailGui {
         int playerLevel = data.getLevel(skill);
         int startLevel  = page * LEVELS_PER_PAGE + 1;
 
-        // ── Slot 0: skill icon used as back button ───────────────────────────
-        ItemStack back = new ItemStack(iconFor(skill));
-        if (playerLevel > 1) back.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
+        // ── Slot 0: barrier block as back button ─────────────────────────────
+        ItemStack back = new ItemStack(Items.BARRIER);
         back.set(DataComponentTypes.CUSTOM_NAME,
             Text.literal("← Back to Skills").formatted(nameColor(skill), Formatting.BOLD));
         back.set(DataComponentTypes.LORE, new LoreComponent(List.of(
