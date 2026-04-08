@@ -1,5 +1,5 @@
 {
-  "description": { "translate": "enchantment.peakskills.replenish" },
+  "description": { "text": "Replenish" },
   "supported_items": "#peakskills:replenish_tools",
   "primary_items": "#peakskills:replenish_tools",
   "weight": 10,
