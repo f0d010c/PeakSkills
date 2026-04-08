@@ -349,7 +349,7 @@ public class XpManager {
             };
             case ENCHANTING -> switch (level) {
                 case 25 -> new R(Items.LAPIS_LAZULI,         32);
-                case 50 -> new R(Items.ENCHANTED_BOOK,        1);
+                case 50 -> new R(Items.BOOKSHELF,             8);
                 case 75 -> new R(Items.EXPERIENCE_BOTTLE,    16);
                 default -> new R(Items.NETHER_STAR,           1);
             };
