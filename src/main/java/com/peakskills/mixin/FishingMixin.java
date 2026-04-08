@@ -109,10 +109,14 @@ public class FishingMixin {
     }
 
     private static CollectionType fishCollection(ItemStack stack) {
-        if (stack.isOf(Items.COD))           return CollectionType.COD;
-        if (stack.isOf(Items.SALMON))        return CollectionType.SALMON;
-        if (stack.isOf(Items.PUFFERFISH))    return CollectionType.PUFFERFISH;
-        if (stack.isOf(Items.TROPICAL_FISH)) return CollectionType.TROPICAL_FISH;
+        if (stack.isOf(Items.COD))               return CollectionType.COD;
+        if (stack.isOf(Items.SALMON))            return CollectionType.SALMON;
+        if (stack.isOf(Items.PUFFERFISH))        return CollectionType.PUFFERFISH;
+        if (stack.isOf(Items.TROPICAL_FISH))     return CollectionType.TROPICAL_FISH;
+        if (stack.isOf(Items.LILY_PAD))          return CollectionType.LILY_PAD;
+        if (stack.isOf(Items.INK_SAC))           return CollectionType.INK_SAC;
+        if (stack.isOf(Items.NAUTILUS_SHELL))    return CollectionType.NAUTILUS_SHELL;
+        if (stack.isOf(Items.PRISMARINE_SHARD))  return CollectionType.PRISMARINE;
         return null;
     }
 }

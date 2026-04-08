@@ -312,6 +312,30 @@ public class CollectionRegistry {
             stat(Stat.LUCK, 2),             item(Items.TROPICAL_FISH, 16),   stat(Stat.LUCK, 3),
             item(Items.TROPICAL_FISH, 32),  stat(Stat.LUCK, 4),              stat(Stat.SWIFTNESS, 2));
 
+        reg(CollectionType.LILY_PAD,
+            new long[]{ 50, 150, 300, 600, 1_000, 2_500, 5_000, 10_000, 25_000 },
+            item(Items.LILY_PAD, 16),       stat(Stat.LUCK, 1),             item(Items.LILY_PAD, 32),
+            stat(Stat.HEALTH, 1),           item(Items.LILY_PAD, 64),        stat(Stat.LUCK, 1),
+            item(Items.WATER_BUCKET, 1),    stat(Stat.HEALTH, 2),            stat(Stat.LUCK, 2));
+
+        reg(CollectionType.INK_SAC,
+            new long[]{ 25, 75, 150, 300, 600, 1_500, 3_000, 7_500, 15_000 },
+            item(Items.INK_SAC, 8),         stat(Stat.LUCK, 1),             item(Items.INK_SAC, 16),
+            stat(Stat.LUCK, 1),             recipe("minecraft:black_dye"),   item(Items.INK_SAC, 32),
+            stat(Stat.LUCK, 2),             item(Items.WRITABLE_BOOK, 2),    stat(Stat.LUCK, 3));
+
+        reg(CollectionType.NAUTILUS_SHELL,
+            new long[]{ 5, 15, 30, 75, 150, 300, 750, 1_500, 3_000 },
+            item(Items.NAUTILUS_SHELL, 2),  stat(Stat.LUCK, 1),             item(Items.NAUTILUS_SHELL, 4),
+            stat(Stat.TOUGHNESS, 1),        recipe("minecraft:conduit"),     item(Items.NAUTILUS_SHELL, 8),
+            stat(Stat.LUCK, 2),             item(Items.HEART_OF_THE_SEA, 1), stat(Stat.TOUGHNESS, 3));
+
+        reg(CollectionType.PRISMARINE,
+            new long[]{ 25, 75, 150, 300, 600, 1_500, 3_000, 7_500, 15_000 },
+            item(Items.PRISMARINE_SHARD, 8), stat(Stat.DEFENSE, 1),         item(Items.PRISMARINE_SHARD, 16),
+            stat(Stat.TOUGHNESS, 1),        recipe("minecraft:prismarine"),  item(Items.PRISMARINE_CRYSTALS, 8),
+            stat(Stat.DEFENSE, 2),          item(Items.PRISMARINE_BRICK_SLAB, 16), stat(Stat.TOUGHNESS, 3));
+
         // ── Combat ────────────────────────────────────────────────────────────
         reg(CollectionType.ZOMBIE,
             new long[]{ 50, 150, 300, 600, 1_000, 2_500, 5_000, 10_000, 25_000 },
@@ -468,8 +492,7 @@ public class CollectionRegistry {
         if (block == Blocks.CHERRY_LOG     || block == Blocks.CHERRY_WOOD
          || block == Blocks.STRIPPED_CHERRY_LOG || block == Blocks.STRIPPED_CHERRY_WOOD)
             return Optional.of(CollectionType.CHERRY_WOOD);
-        if (block == Blocks.BAMBOO_BLOCK   || block == Blocks.STRIPPED_BAMBOO_BLOCK)
-            return Optional.of(CollectionType.BAMBOO_WOOD);
+        // Bamboo block (crafted) — woodcutting context only; stalk handled in farming below
 
         // Excavating
         if (block == Blocks.DIRT          || block == Blocks.GRASS_BLOCK
@@ -513,6 +536,8 @@ public class CollectionRegistry {
         if (block == Blocks.SWEET_BERRY_BUSH
                 && state.get(net.minecraft.block.SweetBerryBushBlock.AGE) == 3)
             return Optional.of(CollectionType.SWEET_BERRY);
+        if (block == Blocks.BAMBOO)
+            return Optional.of(CollectionType.BAMBOO_WOOD);
         if (block == Blocks.KELP || block == Blocks.KELP_PLANT)
             return Optional.of(CollectionType.KELP);
         if (block == Blocks.RED_MUSHROOM   || block == Blocks.BROWN_MUSHROOM
@@ -523,7 +548,30 @@ public class CollectionRegistry {
     }
 
     /**
+     * Maps a picked-up item to a combat CollectionType.
+     * Called on item pickup so collection counts items obtained, not kills.
+     */
+    public static Optional<CollectionType> fromCombatDrop(Item item) {
+        if (item == Items.ROTTEN_FLESH)          return Optional.of(CollectionType.ZOMBIE);
+        if (item == Items.BONE)                  return Optional.of(CollectionType.SKELETON);
+        if (item == Items.STRING)                return Optional.of(CollectionType.SPIDER);
+        if (item == Items.GUNPOWDER)             return Optional.of(CollectionType.CREEPER);
+        if (item == Items.ENDER_PEARL)           return Optional.of(CollectionType.ENDERMAN);
+        if (item == Items.BLAZE_ROD)             return Optional.of(CollectionType.BLAZE);
+        if (item == Items.GHAST_TEAR)            return Optional.of(CollectionType.GHAST);
+        if (item == Items.WITHER_SKELETON_SKULL) return Optional.of(CollectionType.WITHER_SKELETON);
+        if (item == Items.GOLD_NUGGET)           return Optional.of(CollectionType.PIGLIN);
+        if (item == Items.GLASS_BOTTLE)          return Optional.of(CollectionType.WITCH);
+        if (item == Items.PHANTOM_MEMBRANE)      return Optional.of(CollectionType.PHANTOM);
+        if (item == Items.SLIME_BALL)            return Optional.of(CollectionType.SLIME);
+        if (item == Items.MAGMA_CREAM)           return Optional.of(CollectionType.MAGMA_CUBE);
+        if (item == Items.CROSSBOW)              return Optional.of(CollectionType.PILLAGER);
+        return Optional.empty();
+    }
+
+    /**
      * Maps a killed entity to a CollectionType, or empty if it belongs to no collection.
+     * @deprecated Use fromCombatDrop for item-based tracking instead.
      */
     public static Optional<CollectionType> fromEntity(LivingEntity entity) {
         EntityType<?> type = entity.getType();

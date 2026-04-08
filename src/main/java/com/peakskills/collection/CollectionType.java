@@ -33,7 +33,7 @@ public enum CollectionType {
     DARK_OAK_WOOD ("Dark Oak",  Items.DARK_OAK_LOG,     Formatting.DARK_GREEN,   "Woodcutting"),
     MANGROVE_WOOD ("Mangrove",  Items.MANGROVE_LOG,     Formatting.RED,          "Woodcutting"),
     CHERRY_WOOD   ("Cherry",    Items.CHERRY_LOG,       Formatting.LIGHT_PURPLE, "Woodcutting"),
-    BAMBOO_WOOD   ("Bamboo",    Items.BAMBOO_BLOCK,     Formatting.GREEN,        "Woodcutting"),
+    BAMBOO_WOOD   ("Bamboo",    Items.BAMBOO,            Formatting.GREEN,        "Farming"),
     CRIMSON_WOOD  ("Crimson",   Items.CRIMSON_STEM,     Formatting.DARK_RED,     "Woodcutting"),
     WARPED_WOOD   ("Warped",    Items.WARPED_STEM,      Formatting.DARK_AQUA,    "Woodcutting"),
 
@@ -62,10 +62,14 @@ public enum CollectionType {
     MUSHROOM     ("Mushroom",       Items.RED_MUSHROOM,     Formatting.RED,         "Farming"),
 
     // ── Fishing ───────────────────────────────────────────────────────────────
-    COD         ("Cod",             Items.COD,              Formatting.WHITE,       "Fishing"),
-    SALMON      ("Salmon",          Items.SALMON,           Formatting.RED,         "Fishing"),
-    PUFFERFISH  ("Pufferfish",      Items.PUFFERFISH,       Formatting.YELLOW,      "Fishing"),
-    TROPICAL_FISH("Tropical Fish",  Items.TROPICAL_FISH,    Formatting.GOLD,        "Fishing"),
+    COD           ("Cod",           Items.COD,              Formatting.WHITE,       "Fishing"),
+    SALMON        ("Salmon",        Items.SALMON,           Formatting.RED,         "Fishing"),
+    PUFFERFISH    ("Pufferfish",    Items.PUFFERFISH,       Formatting.YELLOW,      "Fishing"),
+    TROPICAL_FISH ("Tropical Fish", Items.TROPICAL_FISH,    Formatting.GOLD,        "Fishing"),
+    LILY_PAD      ("Lily Pad",      Items.LILY_PAD,         Formatting.GREEN,       "Fishing"),
+    INK_SAC       ("Ink Sac",       Items.INK_SAC,          Formatting.DARK_GRAY,   "Fishing"),
+    NAUTILUS_SHELL("Nautilus Shell",Items.NAUTILUS_SHELL,   Formatting.AQUA,        "Fishing"),
+    PRISMARINE    ("Prismarine",    Items.PRISMARINE_SHARD, Formatting.AQUA,        "Fishing"),
 
     // ── Combat ────────────────────────────────────────────────────────────────
     ZOMBIE          ("Zombie",          Items.ROTTEN_FLESH,          Formatting.DARK_GREEN,  "Combat"),

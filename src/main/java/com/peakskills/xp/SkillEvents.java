@@ -309,13 +309,6 @@ public class SkillEvents {
                 xp = applyFlatAbilityBonus(player, combatSkill, xp);
                 XpManager.addXp(player, combatSkill, xp);
 
-                // ── Collections ───────────────────────────────────────────────
-                CollectionRegistry.fromEntity(entity).ifPresent(colType -> {
-                    List<CollectionTier> newTiers = PlayerDataManager.get(player.getUuid())
-                        .getCollections().increment(colType, 1);
-                    CollectionRewardHandler.apply(player, colType, newTiers, PlayerDataManager.getServer());
-                });
-
                 PetEggHandler.tryDrop(entity, player);
             }
         );

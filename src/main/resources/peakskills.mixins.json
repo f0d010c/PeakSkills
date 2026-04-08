@@ -15,7 +15,8 @@
     "GearRestrictionMixin",
     "TradingMixin",
     "TradingDiscountMixin",
-    "SmithingTableMixin"
+    "SmithingTableMixin",
+    "ItemPickupMixin"
   ],
   "client": ["HeartCapMixin"],
   "injectors": {
