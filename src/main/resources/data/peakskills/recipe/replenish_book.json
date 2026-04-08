@@ -7,17 +7,16 @@
     "SBS"
   ],
   "key": {
-    "S": { "item": "minecraft:wheat_seeds" },
-    "B": { "item": "minecraft:bone_meal" },
-    "X": { "item": "minecraft:book" }
+    "S": "minecraft:wheat_seeds",
+    "B": "minecraft:bone_meal",
+    "X": "minecraft:book"
   },
   "result": {
     "id": "minecraft:enchanted_book",
     "count": 1,
     "components": {
       "minecraft:stored_enchantments": {
-        "levels": { "peakskills:replenish": 1 },
-        "show_in_tooltip": true
+        "levels": { "peakskills:replenish": 1 }
       }
     }
   }
