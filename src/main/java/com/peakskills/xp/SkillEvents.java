@@ -3,6 +3,7 @@ package com.peakskills.xp;
 import com.peakskills.collection.CollectionRegistry;
 import com.peakskills.collection.CollectionRewardHandler;
 import com.peakskills.collection.CollectionTier;
+import com.peakskills.combat.CombatDropTracker;
 import com.peakskills.gear.GearRequirements;
 import com.peakskills.pet.PetEggHandler;
 import com.peakskills.player.PlayerDataManager;
@@ -49,6 +50,7 @@ public class SkillEvents {
         registerToolRestriction();
         registerSlaying();
         registerAgility();
+        ServerTickEvents.END_SERVER_TICK.register(server -> CombatDropTracker.tick());
     }
 
     // -------------------------------------------------------------------------
@@ -309,6 +311,7 @@ public class SkillEvents {
                 xp = applyFlatAbilityBonus(player, combatSkill, xp);
                 XpManager.addXp(player, combatSkill, xp);
 
+                CombatDropTracker.recordKill(entity.getUuid(), player.getUuid());
                 PetEggHandler.tryDrop(entity, player);
             }
         );
