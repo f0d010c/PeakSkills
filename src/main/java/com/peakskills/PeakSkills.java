@@ -1,6 +1,7 @@
 package com.peakskills;
 
 import com.peakskills.command.CollectionsCommand;
+import com.peakskills.enchantment.ReplenishEnchantment;
 import com.peakskills.command.PetsCommand;
 import com.peakskills.command.ProfileCommand;
 import com.peakskills.command.SkillsCommand;
@@ -26,6 +27,7 @@ public class PeakSkills implements ModInitializer {
         PlayerDataFailsafe.register();
         XpManager.register();
         SkillEvents.register();
+        ReplenishEnchantment.register();
         PetEggHandler.register();
         PetDisplayManager.register();
         SkillsCommand.register();
