@@ -92,7 +92,7 @@ public class PetMenuGui {
                     .formatted(Formatting.GRAY)));
         title.set(DataComponentTypes.LORE, new LoreComponent(List.of(
             Text.literal("  Left-click a pet to activate / deactivate").formatted(Formatting.DARK_GRAY),
-            Text.literal("  Middle-click a maxed pet to upgrade rarity").formatted(Formatting.DARK_GRAY),
+            Text.literal("  Shift-click a maxed pet to upgrade rarity").formatted(Formatting.DARK_GRAY),
             Text.literal("  Active pet earns XP and grants bonuses").formatted(Formatting.DARK_GRAY)
         )));
         inv.setStack(8, title);
@@ -276,7 +276,7 @@ public class PetMenuGui {
             lore.add(Text.literal("  Left-click to deactivate").formatted(Formatting.DARK_GRAY));
         }
         if (pet.canUpgrade()) {
-            lore.add(Text.literal("  Middle-click to upgrade rarity").formatted(Formatting.GREEN));
+            lore.add(Text.literal("  Shift-click to upgrade rarity").formatted(Formatting.GREEN));
         }
         lore.add(Text.literal("  Right-click to remove").formatted(Formatting.RED));
 

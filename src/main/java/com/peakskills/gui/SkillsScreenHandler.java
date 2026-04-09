@@ -61,7 +61,7 @@ public class SkillsScreenHandler extends GenericContainerScreenHandler {
                     Runnable action = rightClickHandlers.get(slotIndex);
                     if (action != null) action.run();
                 }
-            } else if (actionType == SlotActionType.CLONE) {
+            } else if (actionType == SlotActionType.CLONE || actionType == SlotActionType.QUICK_MOVE) {
                 Runnable action = middleClickHandlers.get(slotIndex);
                 if (action != null) action.run();
             }
