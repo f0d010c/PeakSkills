@@ -33,7 +33,10 @@ When adding a new collection, all 3 of these must be updated:
 - `PetDisplayManager` defers entity spawn/kill to post-tick lists — never spawn/kill entities inside the tick loop
 - `sendStatBar` in `XpManager` runs every 40 ticks — shows ❤ health and ❋ defense (defense value × 10, all values Math.round)
 - `computeStatTotals` in `ProfileGui` must match `StatManager` exactly: skill contributions + collection bonuses + pet bonuses + base health (20.0)
-- `SkillsScreenHandler` supports left-click, right-click, and middle-click (SlotActionType.CLONE) handlers
+- `SkillsScreenHandler` supports left-click, right-click, and shift-click (SlotActionType.QUICK_MOVE) handlers — CLONE only fires in creative mode, never use it for survival features
+
+## Documentation
+- After every major update (new feature, system change, balance adjustment), update `README.md` to reflect it
 
 ## Development Mindset
 - When implementing something, check if the same logic applies elsewhere in the project — if it does, ask the user before doing it
