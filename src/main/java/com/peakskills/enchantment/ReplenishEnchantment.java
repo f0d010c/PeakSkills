@@ -82,8 +82,9 @@ public class ReplenishEnchantment {
         // Farming 30 required
         if (PlayerDataManager.get(serverPlayer.getUuid()).getLevel(Skill.FARMING) < MIN_FARMING_LEVEL) return;
 
-        // Must be a replantable crop (any age)
+        // Must be a fully mature replantable crop
         Block block = state.getBlock();
+        if (!isMatureCrop(block, state)) return;
         Item seed = seedFor(block);
         if (seed == null) return;
 
@@ -137,7 +138,7 @@ public class ReplenishEnchantment {
      * so the player can walk over them normally.
      */
     private static void magnetCollect(ServerWorld world, BlockPos pos, ServerPlayerEntity player) {
-        Box box = new Box(pos).expand(0.75);
+        Box box = new Box(pos).expand(2.0);
         world.getEntitiesByType(net.minecraft.entity.EntityType.ITEM, box, e -> !e.isRemoved())
             .forEach(entity -> {
                 ItemStack stack = entity.getStack();
@@ -151,7 +152,7 @@ public class ReplenishEnchantment {
     }
 
     private static void consumeSeedDrop(ServerWorld world, BlockPos pos, Item seed) {
-        Box box = new Box(pos).expand(1.0);
+        Box box = new Box(pos).expand(2.0);
         List<ItemEntity> nearby = world.getEntitiesByType(
             net.minecraft.entity.EntityType.ITEM, box,
             e -> e.getStack().isOf(seed));
