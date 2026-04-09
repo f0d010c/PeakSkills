@@ -125,10 +125,23 @@ public class SkillEvents {
                 }
 
                 // ── Collections ───────────────────────────────────────────────
+                // Defer to next tick so item entities from the break are fully
+                // registered, then count actual stack sizes instead of assuming 1.
                 CollectionRegistry.fromBlock(state).ifPresent(colType -> {
-                    List<CollectionTier> newTiers = PlayerDataManager.get(serverPlayer.getUuid())
-                        .getCollections().increment(colType, 1);
-                    CollectionRewardHandler.apply(serverPlayer, colType, newTiers, PlayerDataManager.getServer());
+                    final ServerWorld sw2 = (ServerWorld) world;
+                    final BlockPos scanPos = pos;
+                    sw2.getServer().execute(() -> {
+                        net.minecraft.util.math.Box box =
+                            new net.minecraft.util.math.Box(scanPos).expand(1.5);
+                        int count = sw2.getEntitiesByType(
+                                net.minecraft.entity.EntityType.ITEM, box,
+                                e -> e.getStack().isOf(colType.icon))
+                            .stream().mapToInt(e -> e.getStack().getCount()).sum();
+                        if (count <= 0) count = 1; // fallback for blocks that drop no item entity (e.g. instant-pickup)
+                        List<CollectionTier> newTiers = PlayerDataManager.get(serverPlayer.getUuid())
+                            .getCollections().increment(colType, count);
+                        CollectionRewardHandler.apply(serverPlayer, colType, newTiers, PlayerDataManager.getServer());
+                    });
                 });
             }
         );
