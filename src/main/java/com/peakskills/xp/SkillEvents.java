@@ -330,11 +330,14 @@ public class SkillEvents {
         );
     }
 
-    /** XP based on entity max HP — tougher mobs give more. */
+    /** XP based on entity max HP — tougher mobs give more. Bosses have flat overrides. */
     private static long mobXp(LivingEntity entity) {
+        // Boss overrides — flat values so they feel rewarding without being trivially farmable
+        if (entity instanceof net.minecraft.entity.boss.WitherEntity)        return 40_000;
+        if (entity instanceof net.minecraft.entity.boss.dragon.EnderDragonEntity) return 60_000;
+        if (entity instanceof net.minecraft.entity.mob.ElderGuardianEntity)   return 12_000;
+
         float maxHp = entity.getMaxHealth();
-        // Multiplier: 4.74 per HP unit (37.89 ÷ 8), calibrated for ~40h to level 99
-        // killing average ~8 mobs/min of ~20HP each.
         return Math.max(8, Math.round(maxHp * 4.74f));
     }
 
