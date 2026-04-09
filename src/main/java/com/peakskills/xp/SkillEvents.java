@@ -312,6 +312,19 @@ public class SkillEvents {
                 XpManager.addXp(player, combatSkill, xp);
 
                 CombatDropTracker.recordKill(entity.getUuid(), player.getUuid());
+
+                // Tag item entities that already spawned from this mob's loot so
+                // ItemPickupMixin can credit the killer. AFTER_DEATH fires after
+                // LivingEntity.drop(), so items are already present in the world.
+                if (entity.getEntityWorld() instanceof ServerWorld sw) {
+                    double x = entity.getX(), y = entity.getY(), z = entity.getZ();
+                    net.minecraft.util.math.Box box =
+                        new net.minecraft.util.math.Box(x - 6, y - 4, z - 6, x + 6, y + 4, z + 6);
+                    sw.getEntitiesByClass(net.minecraft.entity.ItemEntity.class, box,
+                        item -> CollectionRegistry.fromCombatDrop(item.getStack().getItem()).isPresent()
+                    ).forEach(item -> CombatDropTracker.tagItemEntity(item.getUuid(), player.getUuid()));
+                }
+
                 PetEggHandler.tryDrop(entity, player);
             }
         );

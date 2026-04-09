@@ -17,8 +17,16 @@ public class CombatDropTracker {
 
     private record Entry(UUID killerUuid, long expireAt) {}
 
-    /** mobUUID → killer entry */
+    /** mobUUID → killer entry (used internally to tag item drops) */
     private static final Map<UUID, Entry> KILLS = new ConcurrentHashMap<>();
+
+    /**
+     * itemEntityUUID → killer entry.
+     * Populated in AFTER_DEATH by scanning item entities near the corpse.
+     * ItemPickupMixin looks up items here — avoids relying on ItemEntity.getOwner()
+     * which is never set for mob loot drops.
+     */
+    private static final Map<UUID, Entry> ITEM_DROPS = new ConcurrentHashMap<>();
 
     /** Current server tick — updated each tick from PeakSkills tick event. */
     private static long currentTick = 0;
@@ -27,6 +35,7 @@ public class CombatDropTracker {
         currentTick++;
         if (currentTick % 40 == 0) {
             KILLS.entrySet().removeIf(e -> e.getValue().expireAt() <= currentTick);
+            ITEM_DROPS.entrySet().removeIf(e -> e.getValue().expireAt() <= currentTick);
         }
     }
 
@@ -35,13 +44,18 @@ public class CombatDropTracker {
         KILLS.put(mobUuid, new Entry(killerUuid, currentTick + EXPIRY_TICKS));
     }
 
+    /** Tags an item entity as belonging to a specific killer's combat drops. */
+    public static void tagItemEntity(UUID itemEntityUuid, UUID killerUuid) {
+        ITEM_DROPS.put(itemEntityUuid, new Entry(killerUuid, currentTick + EXPIRY_TICKS));
+    }
+
     /**
-     * Returns the killer UUID for a mob drop, if the mob was killed by a player recently.
-     * @param throwerUuid the UUID stored on the ItemEntity (the mob that dropped it)
+     * Returns the killer UUID credited for picking up this item entity.
+     * Returns null if the item wasn't tagged (i.e. not a combat drop from a recent kill).
      */
-    public static UUID getKiller(UUID throwerUuid) {
-        if (throwerUuid == null) return null;
-        Entry entry = KILLS.get(throwerUuid);
+    public static UUID getKillerForItem(UUID itemEntityUuid) {
+        if (itemEntityUuid == null) return null;
+        Entry entry = ITEM_DROPS.get(itemEntityUuid);
         if (entry == null || entry.expireAt() <= currentTick) return null;
         return entry.killerUuid();
     }

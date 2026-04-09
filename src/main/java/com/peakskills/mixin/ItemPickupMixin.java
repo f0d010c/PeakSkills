@@ -39,11 +39,10 @@ public class ItemPickupMixin {
             self.getStack().getItem());
         if (col.isEmpty()) return;
 
-        // Only count if this item was dropped by a mob this player killed
-        // getOwner() returns the entity that spawned the item (the mob)
-        net.minecraft.entity.Entity ownerEntity = self.getOwner();
-        UUID thrower = ownerEntity != null ? ownerEntity.getUuid() : null;
-        UUID killer = CombatDropTracker.getKiller(thrower);
+        // Only count if this item was tagged as a drop from a mob killed by this player.
+        // ItemEntity.getOwner() is null for mob loot drops, so we tag item entities
+        // by UUID in CombatDropTracker right after the mob dies (in AFTER_DEATH).
+        UUID killer = CombatDropTracker.getKillerForItem(self.getUuid());
         if (killer == null || !killer.equals(player.getUuid())) return;
 
         int count = self.getStack().getCount();
