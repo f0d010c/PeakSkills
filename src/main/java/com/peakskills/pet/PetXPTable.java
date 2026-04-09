@@ -10,10 +10,10 @@ public class PetXPTable {
     public static long xpForLevel(int level, PetRarity rarity) {
         if (level <= 1) return 0;
         double multiplier = rarityMultiplier(rarity);
-        // Quadratic: each level costs progressively more
+        // Gentle curve: exponent 1.3 keeps early levels cheap, late levels moderately expensive
         long total = 0;
         for (int i = 2; i <= level; i++) {
-            total += (long) (100 * Math.pow(i - 1, 1.5) * multiplier);
+            total += (long) (40 * Math.pow(i - 1, 1.3) * multiplier);
         }
         return total;
     }
@@ -36,10 +36,10 @@ public class PetXPTable {
     private static double rarityMultiplier(PetRarity rarity) {
         return switch (rarity) {
             case COMMON    -> 1.0;
-            case UNCOMMON  -> 1.5;
-            case RARE      -> 2.2;
-            case EPIC      -> 3.0;
-            case LEGENDARY -> 4.0;
+            case UNCOMMON  -> 1.2;
+            case RARE      -> 1.4;
+            case EPIC      -> 1.6;
+            case LEGENDARY -> 1.8;
         };
     }
 }
