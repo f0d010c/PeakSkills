@@ -28,8 +28,14 @@ import net.minecraft.util.math.Box;
 import net.minecraft.world.World;
 
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ReplenishEnchantment {
+
+    /** itemEntityUUID → playerUUID who broke the crop that spawned it. */
+    private static final Map<UUID, UUID> TAGGED_DROPS = new ConcurrentHashMap<>();
 
     public static final RegistryKey<Enchantment> REPLENISH = RegistryKey.of(
         RegistryKeys.ENCHANTMENT,
@@ -91,6 +97,13 @@ public class ReplenishEnchantment {
         // in the world's entity list before we query/collect them.
         BlockState replantState = resetAge(block, state);
         serverWorld.getServer().execute(() -> {
+            // Tag all crop item entities near the broken block as belonging to this player
+            UUID playerUuid = serverPlayer.getUuid();
+            Box tagBox = new Box(pos).expand(2.0);
+            serverWorld.getEntitiesByType(net.minecraft.entity.EntityType.ITEM, tagBox,
+                e -> isCropDrop(e.getStack().getItem()))
+                .forEach(e -> TAGGED_DROPS.put(e.getUuid(), playerUuid));
+
             // Consume seed from ground drops first, then player inventory as fallback
             if (consumeSeedDrop(serverWorld, pos, seed, serverPlayer)) {
                 serverWorld.setBlockState(pos, replantState);
@@ -142,11 +155,15 @@ public class ReplenishEnchantment {
      * unrelated items off the ground.
      */
     private static void magnetCollect(ServerWorld world, ServerPlayerEntity player) {
+        UUID playerUuid = player.getUuid();
         double x = player.getX(), y = player.getY(), z = player.getZ();
         Box box = new Box(x - 8, y - 2, z - 8, x + 8, y + 4, z + 8);
         world.getEntitiesByType(net.minecraft.entity.EntityType.ITEM, box,
-            e -> !e.isRemoved() && isCropDrop(e.getStack().getItem()))
+            e -> !e.isRemoved()
+                && isCropDrop(e.getStack().getItem())
+                && playerUuid.equals(TAGGED_DROPS.get(e.getUuid())))
             .forEach(entity -> {
+                TAGGED_DROPS.remove(entity.getUuid());
                 ItemStack stack = entity.getStack();
                 player.getInventory().insertStack(stack);
                 if (stack.isEmpty()) {
