@@ -82,9 +82,8 @@ public class ReplenishEnchantment {
         // Farming 30 required
         if (PlayerDataManager.get(serverPlayer.getUuid()).getLevel(Skill.FARMING) < MIN_FARMING_LEVEL) return;
 
-        // Must be a fully mature replantable crop
+        // Works on any age — replants immediately
         Block block = state.getBlock();
-        if (!isMatureCrop(block, state)) return;
         Item seed = seedFor(block);
         if (seed == null) return;
 
@@ -92,12 +91,10 @@ public class ReplenishEnchantment {
         // in the world's entity list before we query/collect them.
         BlockState replantState = resetAge(block, state);
         serverWorld.getServer().execute(() -> {
-            // Consume one seed from the drops before replanting
-            consumeSeedDrop(serverWorld, pos, seed);
-            // Replant at age 0 — preserve non-age properties (e.g. CocoaBlock FACING)
-            serverWorld.setBlockState(pos, replantState);
-            // Magnet: pull all nearby crop drops toward the player, scanned from
-            // the player's position so an entire farm row is covered in one sweep.
+            // Consume seed from ground drops first, then player inventory as fallback
+            if (consumeSeedDrop(serverWorld, pos, seed, serverPlayer)) {
+                serverWorld.setBlockState(pos, replantState);
+            }
             magnetCollect(serverWorld, serverPlayer);
         });
     }
@@ -170,18 +167,32 @@ public class ReplenishEnchantment {
             || item == Items.COCOA_BEANS;
     }
 
-    private static void consumeSeedDrop(ServerWorld world, BlockPos pos, Item seed) {
+    /**
+     * Consumes one seed for replanting.
+     * Priority: ground drops near the block first, then player inventory as fallback.
+     * Returns true if a seed was successfully consumed.
+     */
+    private static boolean consumeSeedDrop(ServerWorld world, BlockPos pos, Item seed, ServerPlayerEntity player) {
+        // 1. Try ground drops first (mature crop drops a seed itself)
         Box box = new Box(pos).expand(2.0);
         List<ItemEntity> nearby = world.getEntitiesByType(
             net.minecraft.entity.EntityType.ITEM, box,
             e -> e.getStack().isOf(seed));
-        if (nearby.isEmpty()) return;
-        ItemEntity entity = nearby.get(0);
-        ItemStack stack = entity.getStack();
-        if (stack.getCount() <= 1) {
-            entity.discard();
-        } else {
-            stack.decrement(1);
+        if (!nearby.isEmpty()) {
+            ItemEntity entity = nearby.get(0);
+            ItemStack stack = entity.getStack();
+            if (stack.getCount() <= 1) entity.discard();
+            else stack.decrement(1);
+            return true;
         }
+        // 2. Fallback: consume from player inventory (immature crops have no drop)
+        for (int i = 0; i < player.getInventory().size(); i++) {
+            ItemStack invStack = player.getInventory().getStack(i);
+            if (invStack.isOf(seed)) {
+                invStack.decrement(1);
+                return true;
+            }
+        }
+        return false;
     }
 }
