@@ -96,8 +96,9 @@ public class ReplenishEnchantment {
             consumeSeedDrop(serverWorld, pos, seed);
             // Replant at age 0 — preserve non-age properties (e.g. CocoaBlock FACING)
             serverWorld.setBlockState(pos, replantState);
-            // Magnet: pull remaining drops into the player's inventory
-            magnetCollect(serverWorld, pos, serverPlayer);
+            // Magnet: pull all nearby crop drops toward the player, scanned from
+            // the player's position so an entire farm row is covered in one sweep.
+            magnetCollect(serverWorld, serverPlayer);
         });
     }
 
@@ -137,18 +138,36 @@ public class ReplenishEnchantment {
      * the player's inventory. Any items that don't fit are left with pickup delay 0
      * so the player can walk over them normally.
      */
-    private static void magnetCollect(ServerWorld world, BlockPos pos, ServerPlayerEntity player) {
-        Box box = new Box(pos).expand(2.0);
-        world.getEntitiesByType(net.minecraft.entity.EntityType.ITEM, box, e -> !e.isRemoved())
+    /**
+     * Collects all crop drops within 8 blocks of the player directly into their inventory.
+     * Scanned from the player position so an entire farm row is covered in one sweep.
+     * Only pulls items that match a known crop drop (seeds, produce) to avoid vacuuming
+     * unrelated items off the ground.
+     */
+    private static void magnetCollect(ServerWorld world, ServerPlayerEntity player) {
+        double x = player.getX(), y = player.getY(), z = player.getZ();
+        Box box = new Box(x - 8, y - 2, z - 8, x + 8, y + 4, z + 8);
+        world.getEntitiesByType(net.minecraft.entity.EntityType.ITEM, box,
+            e -> !e.isRemoved() && isCropDrop(e.getStack().getItem()))
             .forEach(entity -> {
                 ItemStack stack = entity.getStack();
                 player.getInventory().insertStack(stack);
                 if (stack.isEmpty()) {
                     entity.discard();
                 } else {
-                    entity.setPickupDelay(0); // inventory full — let player walk over it
+                    entity.setPickupDelay(0);
                 }
             });
+    }
+
+    /** Returns true if this item is a known crop produce or seed. */
+    private static boolean isCropDrop(Item item) {
+        return item == Items.WHEAT          || item == Items.WHEAT_SEEDS
+            || item == Items.CARROT
+            || item == Items.POTATO
+            || item == Items.BEETROOT       || item == Items.BEETROOT_SEEDS
+            || item == Items.NETHER_WART
+            || item == Items.COCOA_BEANS;
     }
 
     private static void consumeSeedDrop(ServerWorld world, BlockPos pos, Item seed) {
