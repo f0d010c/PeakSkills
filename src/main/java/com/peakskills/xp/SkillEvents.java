@@ -333,9 +333,10 @@ public class SkillEvents {
     /** XP based on entity max HP — tougher mobs give more. Bosses have flat overrides. */
     private static long mobXp(LivingEntity entity) {
         // Boss overrides — flat values so they feel rewarding without being trivially farmable
-        if (entity instanceof net.minecraft.entity.boss.WitherEntity)        return 9_000;
+        if (entity instanceof net.minecraft.entity.boss.WitherEntity)             return 9_000;
         if (entity instanceof net.minecraft.entity.boss.dragon.EnderDragonEntity) return 9_000;
-        if (entity instanceof net.minecraft.entity.mob.ElderGuardianEntity)   return 9_000;
+        if (entity instanceof net.minecraft.entity.mob.ElderGuardianEntity)        return 9_000;
+        if (entity instanceof net.minecraft.entity.mob.WardenEntity)               return 12_000;
 
         float maxHp = entity.getMaxHealth();
         return Math.max(8, Math.round(maxHp * 4.74f));
