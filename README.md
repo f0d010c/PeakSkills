@@ -193,6 +193,17 @@ Earn XP by using an anvil or smithing table.
 
 ---
 
+---
+
+#### 🌱 Replenish (Enchantment)
+A custom enchantment for hoes and axes. When you harvest a crop, it is automatically replanted — one seed is consumed from the drop. Works on all cropblock types: Wheat, Carrots, Potatoes, Beetroot, Nether Wart, Cocoa Beans, and more.
+
+**Unlock**: Reach Farming level 30. The crafting recipe is unlocked in your recipe book automatically.
+
+**Recipe**: Craft using a **Book** (center), **Wheat Seeds** (corners), and **Bone Meal** (edges) in a 3×3 crafting grid. Produces an enchanted book with Replenish I, which can be applied at an anvil.
+
+---
+
 ### Combat Skills
 
 ---
@@ -434,7 +445,7 @@ Right-click a pet egg in your hand to hatch it. The pet is added to your roster 
 | Epic | 80 | 4 Netherite Ingots |
 | Legendary | 99 | — (max) |
 
-When a pet reaches its level cap, left-clicking it in the roster offers an upgrade to the next rarity. Upgrading resets the level to 1 but raises the cap and increases the XP multiplier.
+When a pet reaches its level cap, **shift-clicking** it in the roster upgrades it to the next rarity. Upgrading resets XP to 0 but raises the level cap.
 
 ### Pet XP
 
@@ -444,19 +455,19 @@ Active pets earn XP whenever their **affinity skill** earns XP:
 
 The Taming ability multiplies this further (2× at Beast Bond, 3× at Pet Whisperer).
 
-Each rarity has a different XP multiplier that reduces the amount of XP needed to level up:
+Each rarity has a different XP multiplier that increases XP requirements per level:
 
-| Rarity | XP Multiplier |
-|---|---|
-| Common | 1.0× |
-| Uncommon | 1.5× |
-| Rare | 2.2× |
-| Epic | 3.0× |
-| Legendary | 4.0× |
+| Rarity | XP Multiplier | Approx. XP to cap |
+|---|---|---|
+| Common | 1.0× | ~16,000 |
+| Uncommon | 1.2× | ~95,000 |
+| Rare | 1.4× | ~288,000 |
+| Epic | 1.6× | ~644,000 |
+| Legendary | 1.8× | ~1,190,000 |
 
 ### Removing Pets
 
-Right-click a pet in the roster to remove it. The pet is returned to your inventory as an egg — nothing is permanently lost.
+Right-click a pet in the roster to remove it. The pet is returned to your inventory as an egg with its XP preserved — re-hatching it restores the same level.
 
 ### All 18 Pets
 
@@ -511,11 +522,11 @@ Breaking blocks and killing mobs increments collection counters. Reaching collec
 
 **Excavating**: Dirt, Sand, Gravel, Clay, Soul Sand
 
-**Farming**: Wheat, Carrot, Potato, Sugar Cane, Pumpkin, Melon
+**Farming**: Wheat, Carrot, Potato, Sugar Cane, Pumpkin, Melon, Bamboo
 
-**Fishing**: Cod, Salmon, Pufferfish, Tropical Fish
+**Fishing**: Cod, Salmon, Pufferfish, Tropical Fish, Lily Pad, Ink Sac, Nautilus Shell, Prismarine
 
-**Combat**: Zombie, Skeleton, Spider, Creeper, Enderman, Blaze, Ghast, Wither Skeleton, Piglin
+**Combat**: Rotten Flesh, Bone, Spider Eye, Gunpowder, Ender Pearl, Blaze Rod, Ghast Tear, Wither Skeleton Skull, Gold Nugget (Piglin) — credit goes to the player who killed the mob, not whoever picks up the drop
 
 ---
 
@@ -573,10 +584,10 @@ For Health and Defense, `displayScale` is 10. The action bar shows rounded integ
 XP required for a pet to reach level `L` at a given rarity:
 
 ```
-xpForLevel(L) = 100 × (L - 1)^1.5 × rarityMultiplier
+xpForLevel(L) = 40 × (L - 1)^1.3 × rarityMultiplier
 ```
 
-Where `rarityMultiplier` is 1.0 (Common), 1.5 (Uncommon), 2.2 (Rare), 3.0 (Epic), or 4.0 (Legendary).
+Where `rarityMultiplier` is 1.0 (Common), 1.2 (Uncommon), 1.4 (Rare), 1.6 (Epic), or 1.8 (Legendary).
 
 ### Data Persistence
 
