@@ -22,25 +22,31 @@ import java.util.UUID;
  * Tracks combat collections by item pickup.
  * Only counts items dropped by mobs killed by this specific player,
  * using CombatDropTracker to map mob UUID → killer UUID.
+ *
+ * Targets ItemEntity.onPlayerCollision (the method called when a player
+ * touches and picks up an item) — onPickupItem does not exist in 1.21.11 Yarn.
  */
-@Mixin(PlayerEntity.class)
+@Mixin(ItemEntity.class)
 public class ItemPickupMixin {
 
-    @Inject(method = "onPickupItem", at = @At("TAIL"))
-    private void onItemPickup(ItemEntity itemEntity, int count, CallbackInfo ci) {
-        if (!(((Object) this) instanceof ServerPlayerEntity player)) return;
+    @Inject(method = "onPlayerCollision", at = @At("HEAD"))
+    private void onItemPickup(PlayerEntity playerEntity, CallbackInfo ci) {
+        if (!(playerEntity instanceof ServerPlayerEntity player)) return;
+
+        ItemEntity self = (ItemEntity)(Object) this;
 
         Optional<CollectionType> col = CollectionRegistry.fromCombatDrop(
-            itemEntity.getStack().getItem());
+            self.getStack().getItem());
         if (col.isEmpty()) return;
 
         // Only count if this item was dropped by a mob this player killed
-        // In 1.21.11, ItemEntity has no getThrower() — use getOwner() which returns the source Entity
-        net.minecraft.entity.Entity ownerEntity = itemEntity.getOwner();
+        // getOwner() returns the entity that spawned the item (the mob)
+        net.minecraft.entity.Entity ownerEntity = self.getOwner();
         UUID thrower = ownerEntity != null ? ownerEntity.getUuid() : null;
         UUID killer = CombatDropTracker.getKiller(thrower);
         if (killer == null || !killer.equals(player.getUuid())) return;
 
+        int count = self.getStack().getCount();
         List<CollectionTier> newTiers = PlayerDataManager.get(player.getUuid())
             .getCollections().increment(col.get(), count);
         CollectionRewardHandler.apply(player, col.get(), newTiers, PlayerDataManager.getServer());
