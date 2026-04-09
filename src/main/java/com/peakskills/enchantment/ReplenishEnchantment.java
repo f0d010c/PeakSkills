@@ -87,14 +87,17 @@ public class ReplenishEnchantment {
         Item seed = seedFor(block);
         if (seed == null) return;
 
-        // Consume one seed from the drops if available (mature crops drop seeds; immature may not)
-        consumeSeedDrop(serverWorld, pos, seed);
-
-        // Replant at age 0 — preserve non-age properties (e.g. CocoaBlock FACING)
-        serverWorld.setBlockState(pos, resetAge(block, state));
-
-        // Magnet: collect all item drops from this crop directly into the player's inventory
-        magnetCollect(serverWorld, pos, serverPlayer);
+        // Defer to next tick so item entities from the break are fully registered
+        // in the world's entity list before we query/collect them.
+        BlockState replantState = resetAge(block, state);
+        serverWorld.getServer().execute(() -> {
+            // Consume one seed from the drops before replanting
+            consumeSeedDrop(serverWorld, pos, seed);
+            // Replant at age 0 — preserve non-age properties (e.g. CocoaBlock FACING)
+            serverWorld.setBlockState(pos, replantState);
+            // Magnet: pull remaining drops into the player's inventory
+            magnetCollect(serverWorld, pos, serverPlayer);
+        });
     }
 
     private static boolean hasReplenish(ItemStack stack, ServerWorld world) {
