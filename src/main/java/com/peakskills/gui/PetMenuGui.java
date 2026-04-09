@@ -194,7 +194,7 @@ public class PetMenuGui {
                 StatManager.applyStats(player);
 
                 // Return the pet as an egg in the player's inventory
-                ItemStack egg = PetEggHandler.createEgg(pet.getType(), pet.getRarity());
+                ItemStack egg = PetEggHandler.createEgg(pet.getType(), pet.getRarity(), pet.getXp());
                 if (!player.getInventory().insertStack(egg)) {
                     // Inventory full — drop at player's feet
                     player.dropItem(egg, false);

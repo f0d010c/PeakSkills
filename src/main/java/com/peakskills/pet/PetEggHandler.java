@@ -104,11 +104,8 @@ public class PetEggHandler {
             return;
         }
 
-        PetInstance pet = new PetInstance(type);
-        // Upgrade to target rarity by setting it via reflection-free workaround
-        while (pet.getRarity() != rarity && pet.getRarity().next() != null) {
-            pet.forceUpgradeRarity();
-        }
+        long storedXp = nbt.getLong("petEggXp").orElse(0L);
+        PetInstance pet = new PetInstance(java.util.UUID.randomUUID(), type, rarity, storedXp);
 
         data.getPetRoster().addPet(pet);
 
@@ -127,13 +124,18 @@ public class PetEggHandler {
     // ── Item creation ─────────────────────────────────────────────────────────
 
     public static ItemStack createEgg(PetType type, PetRarity rarity) {
+        return createEgg(type, rarity, 0L);
+    }
+
+    public static ItemStack createEgg(PetType type, PetRarity rarity, long xp) {
         ItemStack stack = new ItemStack(Items.PAPER);
 
-        // Store type + rarity in NBT
+        // Store type + rarity (+ xp for re-hatching) in NBT
         NbtCompound nbt = new NbtCompound();
         nbt.putString("petEggType",   type.name());
         nbt.putString("petEggRarity", rarity.name());
         nbt.putBoolean("isPetEgg", true);
+        if (xp > 0) nbt.putLong("petEggXp", xp);
         stack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
 
         // Cosmetics
