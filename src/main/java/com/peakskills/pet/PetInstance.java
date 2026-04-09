@@ -26,7 +26,8 @@ public class PetInstance {
         this.id = id;
         this.type = type;
         this.rarity = rarity;
-        this.xp = xp;
+        long max = PetXPTable.xpForLevel(rarity.levelCap, rarity);
+        this.xp = Math.max(0, Math.min(xp, max));
         this.active = false;
     }
 

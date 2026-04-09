@@ -104,7 +104,9 @@ public class PetEggHandler {
             return;
         }
 
-        long storedXp = nbt.getLong("petEggXp").orElse(0L);
+        long rawXp  = nbt.getLong("petEggXp").orElse(0L);
+        long maxXp  = PetXPTable.xpForLevel(rarity.levelCap, rarity);
+        long storedXp = Math.max(0, Math.min(rawXp, maxXp));
         PetInstance pet = new PetInstance(java.util.UUID.randomUUID(), type, rarity, storedXp);
 
         data.getPetRoster().addPet(pet);

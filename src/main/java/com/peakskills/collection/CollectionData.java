@@ -28,7 +28,10 @@ public class CollectionData {
      * Returns the list of tiers that were newly unlocked (empty if none).
      */
     public List<CollectionTier> increment(CollectionType type, long amount) {
-        long newCount = counts.merge(type, amount, Long::sum);
+        long newCount = counts.merge(type, Math.max(0, amount), (a, b) -> {
+            long sum = a + b;
+            return (sum < 0) ? Long.MAX_VALUE : sum; // saturate on overflow
+        });
         int currentTier = getUnlockedTier(type);
         List<CollectionTier> tiers = CollectionRegistry.getTiers(type);
         List<CollectionTier> unlocked = new ArrayList<>();
