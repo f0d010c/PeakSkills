@@ -124,10 +124,13 @@ public class XpManager {
         // Feed active pet — apply Beast Bond / Pet Whisperer taming multiplier
         int tamingLevel = data.getLevel(Skill.TAMING);
         double petMult = SkillAbilityRegistry.getPetXpMultiplier(tamingLevel);
+        // Capture level before XP is added so multi-level gains show the full range
+        int petLevelBefore = data.getPetRoster().getActivePet()
+            .map(com.peakskills.pet.PetInstance::getLevel).orElse(0);
         boolean petUp = data.getPetRoster().feedXp(skill, amount, petMult);
         if (petUp) {
             data.getPetRoster().getActivePet().ifPresent(pet -> {
-                int petLevel = pet.getLevel();
+                int petLevelAfter = pet.getLevel();
                 // Reapply stats so new ability values take effect immediately
                 StatManager.applyStats(player);
 
@@ -139,13 +142,13 @@ public class XpManager {
                     0.4f, 1.6f, 0L
                 ));
 
-                // Chat message
+                // Chat message — shows full range if multiple levels were gained at once
                 player.sendMessage(
                     Text.literal("⬆ ").formatted(Formatting.GOLD)
                         .append(Text.literal(pet.getRarity().displayName + " " + pet.getType().displayName)
                             .formatted(pet.getRarity().color, Formatting.BOLD))
                         .append(Text.literal(" leveled up! ").formatted(Formatting.WHITE))
-                        .append(Text.literal("Level " + (petLevel - 1) + " → " + petLevel)
+                        .append(Text.literal("Level " + petLevelBefore + " → " + petLevelAfter)
                             .formatted(Formatting.GREEN)),
                     false);
 
@@ -154,7 +157,7 @@ public class XpManager {
                 if (!abilities.isEmpty()) {
                     for (PetAbility ability : abilities) {
                         player.sendMessage(
-                            Text.literal("  ✦ " + ability.displayLine(petLevel, pet.getRarity()))
+                            Text.literal("  ✦ " + ability.displayLine(petLevelAfter, pet.getRarity()))
                                 .formatted(Formatting.GREEN),
                             false);
                     }
@@ -162,7 +165,7 @@ public class XpManager {
 
                 // Action bar flash
                 player.sendMessage(
-                    Text.literal("⬆ " + pet.getType().displayName + " is now level " + petLevel + "!")
+                    Text.literal("⬆ " + pet.getType().displayName + " is now level " + petLevelAfter + "!")
                         .formatted(Formatting.LIGHT_PURPLE, Formatting.BOLD),
                     true);
             });
