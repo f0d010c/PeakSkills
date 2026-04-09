@@ -92,6 +92,9 @@ public class ReplenishEnchantment {
 
         // Replant at age 0 — preserve non-age properties (e.g. CocoaBlock FACING)
         serverWorld.setBlockState(pos, resetAge(block, state));
+
+        // Magnet: collect all item drops from this crop directly into the player's inventory
+        magnetCollect(serverWorld, pos, serverPlayer);
     }
 
     private static boolean hasReplenish(ItemStack stack, ServerWorld world) {
@@ -123,6 +126,25 @@ public class ReplenishEnchantment {
         if (block == Blocks.NETHER_WART)       return state.with(NetherWartBlock.AGE, 0);
         if (block == Blocks.COCOA)             return state.with(CocoaBlock.AGE, 0);
         return block.getDefaultState();
+    }
+
+    /**
+     * Pulls all item entities within 0.75 blocks of the broken crop directly into
+     * the player's inventory. Any items that don't fit are left with pickup delay 0
+     * so the player can walk over them normally.
+     */
+    private static void magnetCollect(ServerWorld world, BlockPos pos, ServerPlayerEntity player) {
+        Box box = new Box(pos).expand(0.75);
+        world.getEntitiesByType(net.minecraft.entity.EntityType.ITEM, box, e -> !e.isRemoved())
+            .forEach(entity -> {
+                ItemStack stack = entity.getStack();
+                player.getInventory().insertStack(stack);
+                if (stack.isEmpty()) {
+                    entity.discard();
+                } else {
+                    entity.setPickupDelay(0); // inventory full — let player walk over it
+                }
+            });
     }
 
     private static void consumeSeedDrop(ServerWorld world, BlockPos pos, Item seed) {
