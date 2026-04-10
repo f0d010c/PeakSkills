@@ -45,7 +45,8 @@ public class PeakRecipeResult {
             Text.literal("  • Auto-replants harvested crops").formatted(Formatting.GREEN),
             Text.literal("  • Magnet-collects crop drops nearby").formatted(Formatting.GREEN),
             Text.empty(),
-            Text.literal("  Requires Farming 30 to use").formatted(Formatting.DARK_GRAY)
+            Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").formatted(Formatting.DARK_GRAY),
+            Text.literal("  ⚠ Requires Farming 30").formatted(Formatting.GOLD, Formatting.BOLD)
         )));
 
         return stack;
