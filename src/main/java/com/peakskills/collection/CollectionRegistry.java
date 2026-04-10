@@ -569,60 +569,6 @@ public class CollectionRegistry {
         return Optional.empty();
     }
 
-    /**
-     * Maps a killed entity to a CollectionType, or empty if it belongs to no collection.
-     * @deprecated Use fromCombatDrop for item-based tracking instead.
-     */
-    public static Optional<CollectionType> fromEntity(LivingEntity entity) {
-        EntityType<?> type = entity.getType();
-        if (type == EntityType.ZOMBIE         || type == EntityType.ZOMBIE_VILLAGER
-         || type == EntityType.DROWNED        || type == EntityType.HUSK)
-            return Optional.of(CollectionType.ZOMBIE);
-
-        if (type == EntityType.SKELETON       || type == EntityType.STRAY)
-            return Optional.of(CollectionType.SKELETON);
-
-        if (type == EntityType.WITHER_SKELETON)
-            return Optional.of(CollectionType.WITHER_SKELETON);
-
-        if (type == EntityType.BLAZE)
-            return Optional.of(CollectionType.BLAZE);
-
-        if (type == EntityType.GHAST)
-            return Optional.of(CollectionType.GHAST);
-
-        if (type == EntityType.PIGLIN       || type == EntityType.PIGLIN_BRUTE
-         || type == EntityType.ZOMBIFIED_PIGLIN)
-            return Optional.of(CollectionType.PIGLIN);
-
-        if (type == EntityType.SPIDER         || type == EntityType.CAVE_SPIDER)
-            return Optional.of(CollectionType.SPIDER);
-
-        if (type == EntityType.CREEPER)
-            return Optional.of(CollectionType.CREEPER);
-
-        if (type == EntityType.ENDERMAN)
-            return Optional.of(CollectionType.ENDERMAN);
-
-        if (type == EntityType.WITCH)
-            return Optional.of(CollectionType.WITCH);
-
-        if (type == EntityType.PHANTOM)
-            return Optional.of(CollectionType.PHANTOM);
-
-        if (type == EntityType.SLIME)
-            return Optional.of(CollectionType.SLIME);
-
-        if (type == EntityType.MAGMA_CUBE)
-            return Optional.of(CollectionType.MAGMA_CUBE);
-
-        if (type == EntityType.PILLAGER  || type == EntityType.VINDICATOR
-         || type == EntityType.RAVAGER   || type == EntityType.ILLUSIONER)
-            return Optional.of(CollectionType.PILLAGER);
-
-        return Optional.empty();
-    }
-
     // ── Public accessors ──────────────────────────────────────────────────────
 
     public static List<CollectionTier> getTiers(CollectionType type) {

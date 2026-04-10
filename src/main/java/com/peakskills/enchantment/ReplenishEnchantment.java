@@ -4,9 +4,10 @@ import com.peakskills.PeakSkills;
 import com.peakskills.player.PlayerDataManager;
 import com.peakskills.skill.Skill;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.block.*;
 import net.minecraft.block.BlockState;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.LoreComponent;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.ItemEntity;
@@ -14,12 +15,12 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.recipe.Recipe;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.RawFilteredPair;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
@@ -46,34 +47,38 @@ public class ReplenishEnchantment {
 
     public static void register() {
         PlayerBlockBreakEvents.AFTER.register(ReplenishEnchantment::onBlockBreak);
-
-        // Unlock the recipe for players who already have Farming 30+ on join
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            ServerPlayerEntity player = handler.getPlayer();
-            if (PlayerDataManager.get(player.getUuid()).getLevel(Skill.FARMING) >= MIN_FARMING_LEVEL) {
-                unlockRecipe(player);
-            }
-        });
     }
 
     /** Called from XpManager when the Farming skill levels up. */
     public static void onFarmingLevelUp(ServerPlayerEntity player, int from, int to) {
         if (from < MIN_FARMING_LEVEL && to >= MIN_FARMING_LEVEL) {
-            unlockRecipe(player);
+            giveRecipeBook(player);
             player.sendMessage(
                 Text.literal("  ✦ Recipe Unlocked: ").formatted(Formatting.GOLD)
                     .append(Text.literal("Replenish I Book").formatted(Formatting.AQUA, Formatting.BOLD))
-                    .append(Text.literal(" — surround a Book with Wheat Seeds & Bone Meal.")
+                    .append(Text.literal(" — use /craft to make it. A recipe guide was added to your inventory.")
                         .formatted(Formatting.GRAY)),
                 false);
         }
     }
 
-    private static void unlockRecipe(ServerPlayerEntity player) {
-        var recipeId = RegistryKey.of(RegistryKeys.RECIPE,
-            Identifier.of(PeakSkills.MOD_ID, "replenish_book"));
-        ((ServerWorld) player.getEntityWorld()).getServer().getRecipeManager().get(recipeId)
-            .ifPresent(r -> player.unlockRecipes(List.of(r)));
+    private static void giveRecipeBook(ServerPlayerEntity player) {
+        ItemStack book = new ItemStack(Items.BOOK);
+        book.set(DataComponentTypes.CUSTOM_NAME,
+            Text.literal("Replenish I — Recipe Guide").formatted(Formatting.AQUA, Formatting.BOLD));
+        book.set(DataComponentTypes.LORE, new LoreComponent(List.of(
+            Text.literal("  Craft via /craft").formatted(Formatting.GOLD),
+            Text.empty(),
+            Text.literal("  Ingredients (16× each):").formatted(Formatting.GRAY),
+            Text.literal("  • Wheat").formatted(Formatting.GREEN),
+            Text.literal("  • Carrot").formatted(Formatting.GREEN),
+            Text.literal("  • Potato").formatted(Formatting.GREEN),
+            Text.literal("  • Nether Wart").formatted(Formatting.GREEN),
+            Text.literal("  • Bone Meal").formatted(Formatting.GREEN),
+            Text.empty(),
+            Text.literal("  Apply to a Hoe or Axe at an Anvil").formatted(Formatting.DARK_GRAY)
+        )));
+        player.getInventory().insertStack(book);
     }
 
     private static void onBlockBreak(World world, PlayerEntity player, BlockPos pos,
