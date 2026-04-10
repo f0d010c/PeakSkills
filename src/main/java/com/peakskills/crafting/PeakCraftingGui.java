@@ -1,6 +1,8 @@
 package com.peakskills.crafting;
 
 import com.peakskills.gui.SkillsScreenHandler;
+import com.peakskills.skill.Skill;
+import com.peakskills.xp.XpManager;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.LoreComponent;
 import net.minecraft.inventory.SimpleInventory;
@@ -204,6 +206,8 @@ public class PeakCraftingGui {
         if (!result.isEmpty()) {
             player.dropItem(result, false);
         }
+
+        XpManager.addXp(player, Skill.CRAFTING, 500);
 
         player.sendMessage(
             Text.literal("✦ Crafted: ").formatted(Formatting.GOLD)
