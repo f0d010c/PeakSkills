@@ -64,6 +64,15 @@ public class PeakRecipeRegistry {
     private static void reg(String id, String displayName, String category,
                              List<PeakIngredient> ingredients,
                              java.util.function.Supplier<net.minecraft.item.ItemStack> resultFactory) {
+        // Validate at registration time — catches config mistakes before runtime
+        if (id == null || id.isBlank())          throw new IllegalArgumentException("Recipe id must not be blank");
+        if (displayName == null || displayName.isBlank()) throw new IllegalArgumentException("Recipe displayName must not be blank: " + id);
+        if (ingredients == null || ingredients.isEmpty())  throw new IllegalArgumentException("Recipe has no ingredients: " + id);
+        for (PeakIngredient ing : ingredients) {
+            if (ing.item() == null)              throw new IllegalArgumentException("Null item in recipe: " + id);
+            if (ing.count() <= 0)                throw new IllegalArgumentException("Ingredient count must be > 0 in recipe: " + id);
+            if (ing.gridSlot() < 0 || ing.gridSlot() > 8) throw new IllegalArgumentException("gridSlot must be 0-8 in recipe: " + id);
+        }
         RECIPES.put(id, new PeakRecipe(id, displayName, category, ingredients, resultFactory));
     }
 }

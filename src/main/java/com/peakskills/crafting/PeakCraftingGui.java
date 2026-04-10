@@ -16,6 +16,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Skyblock-style crafting GUI.
@@ -39,6 +41,10 @@ import java.util.Map;
  *  Item stack count = required quantity (shows as the corner number like Skyblock).
  */
 public class PeakCraftingGui {
+
+    // ── Craft cooldown (per-player, 1 second) ─────────────────────────────────
+    private static final Map<UUID, Long> lastCraftTime = new ConcurrentHashMap<>();
+    private static final long CRAFT_COOLDOWN_MS = 1_000;
 
     // ── Detail view slot constants ─────────────────────────────────────────────
 
@@ -155,6 +161,11 @@ public class PeakCraftingGui {
     // ── Craft logic ───────────────────────────────────────────────────────────
 
     private static void tryCraft(ServerPlayerEntity player, PeakRecipe recipe) {
+        // Cooldown — prevent spam-clicking the craft button
+        long now = System.currentTimeMillis();
+        long last = lastCraftTime.getOrDefault(player.getUuid(), 0L);
+        if (now - last < CRAFT_COOLDOWN_MS) return;
+
         // Aggregate required counts per item (same item can appear in multiple grid slots)
         Map<Item, Integer> required = aggregateRequired(recipe);
 
@@ -172,11 +183,23 @@ public class PeakCraftingGui {
             }
         }
 
+        // Build result before consuming ingredients — if it fails, player loses nothing
+        ItemStack result;
+        try {
+            result = recipe.buildResult();
+        } catch (Exception e) {
+            player.sendMessage(
+                Text.literal("✗ Crafting failed — please report this to an admin.")
+                    .formatted(Formatting.RED), false);
+            return;
+        }
+
+        lastCraftTime.put(player.getUuid(), now);
+
         for (Map.Entry<Item, Integer> entry : required.entrySet()) {
             removeFromInventory(player, entry.getKey(), entry.getValue());
         }
 
-        ItemStack result = recipe.buildResult();
         player.getInventory().insertStack(result);
         if (!result.isEmpty()) {
             player.dropItem(result, false);
