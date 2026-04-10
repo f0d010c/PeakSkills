@@ -28,7 +28,7 @@ public class PeakRecipeRegistry {
         // Replenish I Book
         // Grid layout:
         //   [Wheat×16] [BoneMeal×4] [Carrot×16]
-        //   [BoneMeal×4] [   -    ] [BoneMeal×4]
+        //   [BoneMeal×4] [Book×1 ] [BoneMeal×4]
         //   [Potato×16] [BoneMeal×4] [NetherWart×16]
         // Bone Meal: 4 per slot × 4 slots = 16 total
         reg("replenish_book",
@@ -39,6 +39,7 @@ public class PeakRecipeRegistry {
                 new PeakIngredient(Items.BONE_MEAL,    4, 1),
                 new PeakIngredient(Items.CARROT,      16, 2),
                 new PeakIngredient(Items.BONE_MEAL,    4, 3),
+                new PeakIngredient(Items.BOOK,         1, 4),
                 new PeakIngredient(Items.BONE_MEAL,    4, 5),
                 new PeakIngredient(Items.POTATO,      16, 6),
                 new PeakIngredient(Items.BONE_MEAL,    4, 7),
