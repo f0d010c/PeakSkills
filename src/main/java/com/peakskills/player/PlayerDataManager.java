@@ -100,6 +100,59 @@ public class PlayerDataManager {
             .toList();
     }
 
+    /** Returns players sorted by combined skill level descending. */
+    public static List<Map.Entry<UUID, Integer>> getLeaderboardByLevel(int limit) {
+        Map<UUID, Integer> scores = new java.util.HashMap<>();
+        cache.forEach((uuid, data) -> scores.put(uuid, data.getTotalLevel()));
+        if (dataDir != null) {
+            try {
+                java.nio.file.Files.list(dataDir)
+                    .filter(p -> p.toString().endsWith(".json"))
+                    .forEach(file -> {
+                        try {
+                            String name = file.getFileName().toString();
+                            UUID uuid = UUID.fromString(name.substring(0, name.length() - 5));
+                            if (scores.containsKey(uuid)) return;
+                            try (java.io.Reader r = java.nio.file.Files.newBufferedReader(file)) {
+                                JsonObject json = GSON.fromJson(r, JsonObject.class);
+                                scores.put(uuid, fromJson(uuid, json).getTotalLevel());
+                            }
+                        } catch (Exception ignored) {}
+                    });
+            } catch (IOException ignored) {}
+        }
+        return scores.entrySet().stream()
+            .sorted(Map.Entry.<UUID, Integer>comparingByValue().reversed())
+            .limit(limit)
+            .toList();
+    }
+
+    /** Returns all players sorted by a single skill's level descending. */
+    public static List<Map.Entry<UUID, Integer>> getSkillLeaderboard(com.peakskills.skill.Skill skill) {
+        Map<UUID, Integer> scores = new java.util.HashMap<>();
+        cache.forEach((uuid, data) -> scores.put(uuid, data.getLevel(skill)));
+        if (dataDir != null) {
+            try {
+                java.nio.file.Files.list(dataDir)
+                    .filter(p -> p.toString().endsWith(".json"))
+                    .forEach(file -> {
+                        try {
+                            String name = file.getFileName().toString();
+                            UUID uuid = UUID.fromString(name.substring(0, name.length() - 5));
+                            if (scores.containsKey(uuid)) return;
+                            try (java.io.Reader r = java.nio.file.Files.newBufferedReader(file)) {
+                                JsonObject json = GSON.fromJson(r, JsonObject.class);
+                                scores.put(uuid, fromJson(uuid, json).getLevel(skill));
+                            }
+                        } catch (Exception ignored) {}
+                    });
+            } catch (IOException ignored) {}
+        }
+        return scores.entrySet().stream()
+            .sorted(Map.Entry.<UUID, Integer>comparingByValue().reversed())
+            .toList();
+    }
+
     private static long totalXp(PlayerData data) {
         long total = 0;
         for (Skill skill : Skill.values()) total += data.getXp(skill);

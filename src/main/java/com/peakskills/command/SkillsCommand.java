@@ -3,6 +3,7 @@ package com.peakskills.command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.LongArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import java.util.UUID;
 import com.peakskills.gui.SkillsGui;
 import com.peakskills.player.PlayerData;
 import com.peakskills.player.PlayerDataFailsafe;
@@ -99,15 +100,6 @@ public class SkillsCommand {
                                     })
                                 )
                             )
-                        )
-                    )
-
-                    // /skills top [count]
-                    .then(CommandManager.literal("top")
-                        .executes(ctx -> sendLeaderboard(ctx.getSource(), 10))
-                        .then(CommandManager.argument("count", IntegerArgumentType.integer(1, 50))
-                            .executes(ctx -> sendLeaderboard(ctx.getSource(),
-                                IntegerArgumentType.getInteger(ctx, "count")))
                         )
                     )
 
@@ -212,29 +204,142 @@ public class SkillsCommand {
                     )
             )
         );
+
+        // /skilltop [count] — top players by combined skill level
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
+            dispatcher.register(
+                CommandManager.literal("skilltop")
+                    .executes(ctx -> sendSkillTop(ctx.getSource(), 10))
+                    .then(CommandManager.argument("count", IntegerArgumentType.integer(1, 50))
+                        .executes(ctx -> sendSkillTop(ctx.getSource(),
+                            IntegerArgumentType.getInteger(ctx, "count")))
+                    )
+            )
+        );
+
+        // /skillrank — show the calling player's rank in every skill
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
+            dispatcher.register(
+                CommandManager.literal("skillrank")
+                    .executes(ctx -> sendSkillRank(ctx.getSource()))
+            )
+        );
     }
 
-    private static int sendLeaderboard(net.minecraft.server.command.ServerCommandSource source, int count) {
-        var entries = PlayerDataManager.getLeaderboard(count);
-        source.sendFeedback(() -> Text.literal("━━━  Top " + count + " Players  ━━━").formatted(Formatting.GOLD, Formatting.BOLD), false);
+    // ── /skilltop ─────────────────────────────────────────────────────────────
+
+    private static int sendSkillTop(net.minecraft.server.command.ServerCommandSource source, int count) {
+        var entries = PlayerDataManager.getLeaderboardByLevel(count);
+        net.minecraft.server.MinecraftServer server = source.getServer();
+        int total = entries.size();
+
+        source.sendFeedback(() -> Text.literal(" "), false);
+        source.sendFeedback(() -> Text.literal("  ✦ Skill Leaderboard ✦")
+            .formatted(Formatting.GOLD, Formatting.BOLD), false);
+        source.sendFeedback(() -> Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬")
+            .formatted(Formatting.DARK_GRAY), false);
+
         if (entries.isEmpty()) {
             source.sendFeedback(() -> Text.literal("  No data yet.").formatted(Formatting.DARK_GRAY), false);
             return 1;
         }
-        net.minecraft.server.MinecraftServer server = source.getServer();
+
+        String[] medals = { "✦", "✦", "✦" };
+        Formatting[] rankColors = { Formatting.GOLD, Formatting.GRAY, Formatting.RED };
+
         for (int i = 0; i < entries.size(); i++) {
             var entry = entries.get(i);
             int rank = i + 1;
-            long xp = entry.getValue();
-            String name = server.getPlayerManager().getPlayer(entry.getKey()) != null
-                ? server.getPlayerManager().getPlayer(entry.getKey()).getName().getString()
-                : entry.getKey().toString().substring(0, 8);
-            Formatting rankColor = rank == 1 ? Formatting.GOLD : rank == 2 ? Formatting.GRAY : rank == 3 ? Formatting.DARK_RED : Formatting.WHITE;
-            source.sendFeedback(() -> Text.literal("  #" + rank + "  ").formatted(rankColor, Formatting.BOLD)
-                .append(Text.literal(name).formatted(Formatting.WHITE))
-                .append(Text.literal("  —  " + String.format("%,d", xp) + " total XP").formatted(Formatting.DARK_GRAY)), false);
+            int level = entry.getValue();
+            String name = resolveDisplayName(server, entry.getKey());
+
+            Text line;
+            if (rank <= 3) {
+                Formatting col = rankColors[rank - 1];
+                line = Text.literal("  " + medals[rank - 1] + " #" + rank + "  ").formatted(col, Formatting.BOLD)
+                    .append(Text.literal(name).formatted(Formatting.WHITE))
+                    .append(Text.literal("  ").formatted(Formatting.DARK_GRAY))
+                    .append(Text.literal("Lvl " + String.format("%,d", level)).formatted(col));
+            } else {
+                line = Text.literal("  #" + rank + "  ").formatted(Formatting.DARK_GRAY)
+                    .append(Text.literal(name).formatted(Formatting.WHITE))
+                    .append(Text.literal("  Lvl " + String.format("%,d", level)).formatted(Formatting.DARK_GRAY));
+            }
+            Text finalLine = line;
+            source.sendFeedback(() -> finalLine, false);
         }
+        source.sendFeedback(() -> Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬")
+            .formatted(Formatting.DARK_GRAY), false);
+        source.sendFeedback(() -> Text.literal(" "), false);
         return 1;
+    }
+
+    // ── /skillrank ────────────────────────────────────────────────────────────
+
+    private static int sendSkillRank(net.minecraft.server.command.ServerCommandSource source) {
+        ServerPlayerEntity player;
+        try { player = source.getPlayerOrThrow(); } catch (Exception e) { return 0; }
+        UUID uuid = player.getUuid();
+        net.minecraft.server.MinecraftServer server = source.getServer();
+
+        source.sendFeedback(() -> Text.literal(" "), false);
+        source.sendFeedback(() -> Text.literal("  ✦ Your Skill Rankings ✦")
+            .formatted(Formatting.GOLD, Formatting.BOLD), false);
+        source.sendFeedback(() -> Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬")
+            .formatted(Formatting.DARK_GRAY), false);
+
+        for (Skill skill : Skill.values()) {
+            var board = PlayerDataManager.getSkillLeaderboard(skill);
+            int total = board.size();
+            int rank = -1;
+            int myLevel = 0;
+            for (int i = 0; i < board.size(); i++) {
+                if (board.get(i).getKey().equals(uuid)) {
+                    rank = i + 1;
+                    myLevel = board.get(i).getValue();
+                    break;
+                }
+            }
+            if (rank == -1) { rank = total + 1; }
+
+            String ordinal = ordinal(rank);
+            Formatting rankColor = rank == 1 ? Formatting.GOLD : rank <= 3 ? Formatting.YELLOW : rank <= 10 ? Formatting.GREEN : Formatting.GRAY;
+            int finalRank = rank;
+            int finalLevel = myLevel;
+            source.sendFeedback(() ->
+                Text.literal("  " + padRight(skill.getDisplayName(), 12)).formatted(Formatting.WHITE)
+                    .append(Text.literal(ordinal + " / " + total).formatted(rankColor))
+                    .append(Text.literal("  (Lv " + finalLevel + ")").formatted(Formatting.DARK_GRAY)),
+            false);
+        }
+
+        source.sendFeedback(() -> Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬")
+            .formatted(Formatting.DARK_GRAY), false);
+        source.sendFeedback(() -> Text.literal(" "), false);
+        return 1;
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private static String resolveDisplayName(net.minecraft.server.MinecraftServer server, UUID uuid) {
+        ServerPlayerEntity online = server.getPlayerManager().getPlayer(uuid);
+        if (online != null) return online.getName().getString();
+        // Fallback: short UUID prefix (user cache API varies by version)
+        return uuid.toString().substring(0, 8);
+    }
+
+    private static String ordinal(int n) {
+        if (n >= 11 && n <= 13) return n + "th";
+        return switch (n % 10) {
+            case 1 -> n + "st";
+            case 2 -> n + "nd";
+            case 3 -> n + "rd";
+            default -> n + "th";
+        };
+    }
+
+    private static String padRight(String s, int length) {
+        return s.length() >= length ? s : s + " ".repeat(length - s.length());
     }
 
     private static int doBackup(net.minecraft.server.command.ServerCommandSource src, ServerPlayerEntity target) {
