@@ -13,53 +13,52 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * /craft GUI — two views:
+ * Skyblock-style crafting GUI.
  *
- *  List view (main):
- *    Recipes shown in centre column (slots 1,10,19,28,37).
- *    Clicking one opens the Detail view.
+ * ── List view ──────────────────────────────────────────────────────────────
+ *  Row 0: bg  bg  bg  bg [Title] bg  bg  bg  bg
+ *  Row 1: bg [R0][R1][R2][R3][R4][R5][R6] bg
+ *  Row 2: bg [R7] ...
+ *  Row 3-4: bg
+ *  Row 5: bg  bg  bg  bg  bg  bg  bg  bg  bg
  *
- *  Detail view (per-recipe):
- *    Ingredients shown with "Have / Need" status.
- *    Craft button (slot 49) — green if craftable, red if not.
- *    Back button (slot 45) returns to list.
+ * ── Detail view ────────────────────────────────────────────────────────────
+ *  Row 0: bg  bg  bg  bg  bg  bg  bg  bg  bg
+ *  Row 1: bg [G0][G1][G2] bg [→] bg [Res] bg
+ *  Row 2: bg [G3][G4][G5] bg  bg  bg  bg  bg
+ *  Row 3: bg [G6][G7][G8] bg  bg  bg  bg  bg
+ *  Row 4: bg  bg  bg  bg  bg  bg  bg  bg  bg
+ *  Row 5: [←Back] bg bg bg bg bg [Craft] bg bg
  *
- * Layout (54 slots, 6 rows × 9 cols):
- *
- *  List view:
- *    bg bg [R0] bg bg bg bg bg bg
- *    bg bg [R1] bg bg bg bg bg bg
- *    bg bg [R2] bg bg bg bg bg bg
- *    bg bg [R3] bg bg bg bg bg bg
- *    bg bg [R4] bg bg bg bg bg bg
- *    bg bg  bg  bg bg bg bg bg bg
- *
- *  Detail view:
- *    bg bg bg bg [Title] bg bg bg bg
- *    bg [I0] bg [I1] bg [I2] bg bg bg
- *    bg [I3] bg [I4] bg bg  bg bg bg
- *    bg bg  bg  bg  bg  bg  bg bg bg
- *    bg bg  bg  bg  bg [Result] bg bg bg
- *    [Back] bg bg bg bg [Craft] bg bg bg
+ *  G0-G8 map to 3×3 grid slots (index 0=top-left … 8=bottom-right).
+ *  Item stack count = required quantity (shows as the corner number like Skyblock).
  */
 public class PeakCraftingGui {
 
-    // ── Slot constants ────────────────────────────────────────────────────────
+    // ── Detail view slot constants ─────────────────────────────────────────────
 
-    // List view: recipe icons in column 2 (index 2, 11, 20, 29, 38)
-    private static final int[] LIST_SLOTS = { 2, 11, 20, 29, 38 };
+    // 3×3 grid: rows 1-3, cols 1-3  (inv slots 10,11,12 / 19,20,21 / 28,29,30)
+    private static final int[] GRID_INV_SLOTS = { 10, 11, 12, 19, 20, 21, 28, 29, 30 };
 
-    // Detail view
-    private static final int[] INGREDIENT_SLOTS = { 10, 12, 14, 19, 21 };
-    private static final int RESULT_SLOT   = 40;
-    private static final int CRAFT_SLOT    = 49;
-    private static final int BACK_SLOT     = 45;
+    private static final int ARROW_SLOT  = 14;
+    private static final int RESULT_SLOT = 16;
+    private static final int BACK_SLOT   = 45;
+    private static final int CRAFT_SLOT  = 51;
+
+    // ── List view slot constants ───────────────────────────────────────────────
+
+    // Recipe icons fill rows 1-4, cols 1-7 (up to 28 recipes)
+    private static final int[] LIST_RECIPE_SLOTS = {
+        10, 11, 12, 13, 14, 15, 16,
+        19, 20, 21, 22, 23, 24, 25,
+        28, 29, 30, 31, 32, 33, 34,
+        37, 38, 39, 40, 41, 42, 43
+    };
 
     // ── Open ──────────────────────────────────────────────────────────────────
 
@@ -70,33 +69,31 @@ public class PeakCraftingGui {
     // ── List view ─────────────────────────────────────────────────────────────
 
     private static void openList(ServerPlayerEntity player) {
-        Collection<PeakRecipe> allRecipes = PeakRecipeRegistry.getAll();
-        List<PeakRecipe> recipes = new ArrayList<>(allRecipes);
+        List<PeakRecipe> recipes = new ArrayList<>(PeakRecipeRegistry.getAll());
 
         SimpleInventory inv = new SimpleInventory(54);
-        ItemStack bg = pane(Items.GRAY_STAINED_GLASS_PANE, " ");
-        for (int i = 0; i < 54; i++) inv.setStack(i, bg.copy());
+        fill(inv, pane(" "));
 
-        // Header
+        // Title
         ItemStack header = new ItemStack(Items.CRAFTING_TABLE);
+        header.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
         header.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal("Custom Recipes").formatted(Formatting.GOLD, Formatting.BOLD));
-        header.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-            Text.literal("  Click a recipe to view and craft it").formatted(Formatting.GRAY)
-        )));
+            Text.literal("(" + recipes.size() + ") PeakSkills Recipes")
+                .formatted(Formatting.GOLD, Formatting.BOLD));
         inv.setStack(4, header);
 
         Map<Integer, Runnable> handlers = new HashMap<>();
 
-        for (int i = 0; i < recipes.size() && i < LIST_SLOTS.length; i++) {
+        for (int i = 0; i < recipes.size() && i < LIST_RECIPE_SLOTS.length; i++) {
             PeakRecipe recipe = recipes.get(i);
-            inv.setStack(LIST_SLOTS[i], recipeListIcon(recipe, player));
-            handlers.put(LIST_SLOTS[i], () -> openDetail(player, recipe));
+            int slot = LIST_RECIPE_SLOTS[i];
+            inv.setStack(slot, listIcon(recipe, player));
+            handlers.put(slot, () -> openDetail(player, recipe));
         }
 
         player.openHandledScreen(new SimpleNamedScreenHandlerFactory(
             (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers),
-            Text.literal("Custom Recipes").formatted(Formatting.GOLD, Formatting.BOLD)
+            Text.literal("PeakSkills Recipes").formatted(Formatting.GOLD, Formatting.BOLD)
         ));
     }
 
@@ -104,42 +101,49 @@ public class PeakCraftingGui {
 
     private static void openDetail(ServerPlayerEntity player, PeakRecipe recipe) {
         SimpleInventory inv = new SimpleInventory(54);
-        ItemStack bg = pane(Items.GRAY_STAINED_GLASS_PANE, " ");
-        for (int i = 0; i < 54; i++) inv.setStack(i, bg.copy());
+        fill(inv, pane(" "));
 
-        // Title
-        ItemStack title = new ItemStack(Items.NETHER_STAR);
-        title.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
-        title.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal(recipe.displayName()).formatted(Formatting.AQUA, Formatting.BOLD));
-        inv.setStack(4, title);
-
-        // Ingredients
-        List<PeakIngredient> ingredients = recipe.ingredients();
-        for (int i = 0; i < ingredients.size() && i < INGREDIENT_SLOTS.length; i++) {
-            inv.setStack(INGREDIENT_SLOTS[i], ingredientIcon(ingredients.get(i), player));
+        // Populate 3×3 grid
+        PeakIngredient[] grid = new PeakIngredient[9];
+        for (PeakIngredient ing : recipe.ingredients()) {
+            if (ing.gridSlot() >= 0 && ing.gridSlot() < 9) {
+                grid[ing.gridSlot()] = ing;
+            }
+        }
+        for (int g = 0; g < 9; g++) {
+            int invSlot = GRID_INV_SLOTS[g];
+            if (grid[g] != null) {
+                inv.setStack(invSlot, gridIngredientIcon(grid[g], player));
+            } else {
+                inv.setStack(invSlot, pane("·")); // empty grid cell
+            }
         }
 
-        // Result preview (greyed name if not craftable)
-        boolean canCraft = canCraft(player, recipe);
-        ItemStack resultPreview = recipe.buildResult();
-        if (!canCraft) {
-            resultPreview.set(DataComponentTypes.CUSTOM_NAME,
+        // Arrow
+        ItemStack arrow = new ItemStack(Items.ARROW);
+        arrow.set(DataComponentTypes.CUSTOM_NAME, Text.literal("→").formatted(Formatting.WHITE));
+        inv.setStack(ARROW_SLOT, arrow);
+
+        // Result
+        boolean craftable = canCraft(player, recipe);
+        ItemStack result = recipe.buildResult();
+        if (!craftable) {
+            result.set(DataComponentTypes.CUSTOM_NAME,
                 Text.literal("✗ " + recipe.displayName()).formatted(Formatting.RED, Formatting.BOLD));
         }
-        inv.setStack(RESULT_SLOT, resultPreview);
+        inv.setStack(RESULT_SLOT, result);
 
-        // Craft button
-        inv.setStack(CRAFT_SLOT, craftButton(canCraft));
-
-        // Back button
+        // Back
         ItemStack back = new ItemStack(Items.ARROW);
         back.set(DataComponentTypes.CUSTOM_NAME,
             Text.literal("← Back").formatted(Formatting.YELLOW, Formatting.BOLD));
         inv.setStack(BACK_SLOT, back);
 
+        // Craft button
+        inv.setStack(CRAFT_SLOT, craftButton(craftable));
+
         Map<Integer, Runnable> handlers = new HashMap<>();
-        handlers.put(BACK_SLOT, () -> openList(player));
+        handlers.put(BACK_SLOT,  () -> openList(player));
         handlers.put(CRAFT_SLOT, () -> tryCraft(player, recipe));
 
         player.openHandledScreen(new SimpleNamedScreenHandlerFactory(
@@ -151,44 +155,55 @@ public class PeakCraftingGui {
     // ── Craft logic ───────────────────────────────────────────────────────────
 
     private static void tryCraft(ServerPlayerEntity player, PeakRecipe recipe) {
-        // Verify
-        for (PeakIngredient ingredient : recipe.ingredients()) {
-            int have = countInInventory(player, ingredient.item());
-            if (have < ingredient.count()) {
+        // Aggregate required counts per item (same item can appear in multiple grid slots)
+        Map<Item, Integer> required = aggregateRequired(recipe);
+
+        for (Map.Entry<Item, Integer> entry : required.entrySet()) {
+            int have = countInInventory(player, entry.getKey());
+            if (have < entry.getValue()) {
                 player.sendMessage(
                     Text.literal("✗ Missing: ").formatted(Formatting.RED)
-                        .append(Text.literal(ingredient.count() - have + "× ")
+                        .append(Text.literal((entry.getValue() - have) + "× ")
                             .formatted(Formatting.WHITE))
-                        .append(Text.translatable(ingredient.item().getTranslationKey())
+                        .append(Text.translatable(entry.getKey().getTranslationKey())
                             .formatted(Formatting.YELLOW)),
                     false);
                 return;
             }
         }
-        // Consume
-        for (PeakIngredient ingredient : recipe.ingredients()) {
-            removeFromInventory(player, ingredient.item(), ingredient.count());
+
+        for (Map.Entry<Item, Integer> entry : required.entrySet()) {
+            removeFromInventory(player, entry.getKey(), entry.getValue());
         }
-        // Give result
+
         ItemStack result = recipe.buildResult();
         player.getInventory().insertStack(result);
         if (!result.isEmpty()) {
-            // Inventory was full — drop at feet
             player.dropItem(result, false);
         }
+
         player.sendMessage(
             Text.literal("✦ Crafted: ").formatted(Formatting.GOLD)
                 .append(Text.literal(recipe.displayName()).formatted(Formatting.AQUA, Formatting.BOLD)),
             false);
-        // Reopen detail to refresh availability
+
         openDetail(player, recipe);
     }
 
     private static boolean canCraft(ServerPlayerEntity player, PeakRecipe recipe) {
-        for (PeakIngredient ingredient : recipe.ingredients()) {
-            if (countInInventory(player, ingredient.item()) < ingredient.count()) return false;
+        for (Map.Entry<Item, Integer> entry : aggregateRequired(recipe).entrySet()) {
+            if (countInInventory(player, entry.getKey()) < entry.getValue()) return false;
         }
         return true;
+    }
+
+    /** Sums counts for each unique item across all grid slots. */
+    private static Map<Item, Integer> aggregateRequired(PeakRecipe recipe) {
+        Map<Item, Integer> totals = new HashMap<>();
+        for (PeakIngredient ing : recipe.ingredients()) {
+            totals.merge(ing.item(), ing.count(), Integer::sum);
+        }
+        return totals;
     }
 
     private static int countInInventory(ServerPlayerEntity player, Item item) {
@@ -214,60 +229,73 @@ public class PeakCraftingGui {
 
     // ── Item builders ─────────────────────────────────────────────────────────
 
-    private static ItemStack recipeListIcon(PeakRecipe recipe, ServerPlayerEntity player) {
+    /** Recipe icon for the list view — result item with ingredient summary in lore. */
+    private static ItemStack listIcon(PeakRecipe recipe, ServerPlayerEntity player) {
         boolean craftable = canCraft(player, recipe);
         ItemStack stack = recipe.buildResult().copy();
+
         List<Text> lore = new ArrayList<>();
-        lore.add(Text.literal("  Ingredients:").formatted(Formatting.GRAY));
-        for (PeakIngredient ing : recipe.ingredients()) {
-            int have = countInInventory(player, ing.item());
-            boolean ok = have >= ing.count();
+        lore.add(Text.literal("  " + recipe.category() + " Recipe").formatted(Formatting.DARK_GRAY));
+        lore.add(Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").formatted(Formatting.DARK_GRAY));
+        for (Map.Entry<Item, Integer> entry : aggregateRequired(recipe).entrySet()) {
+            int have = countInInventory(player, entry.getKey());
+            boolean ok = have >= entry.getValue();
             lore.add(
                 Text.literal("  " + (ok ? "✔ " : "✗ ")).formatted(ok ? Formatting.GREEN : Formatting.RED)
-                    .append(Text.translatable(ing.item().getTranslationKey()).formatted(Formatting.WHITE))
-                    .append(Text.literal("  " + have + "/" + ing.count())
+                    .append(Text.translatable(entry.getKey().getTranslationKey()).formatted(Formatting.WHITE))
+                    .append(Text.literal("  " + have + "/" + entry.getValue())
                         .formatted(ok ? Formatting.GREEN : Formatting.RED))
             );
         }
-        lore.add(Text.empty());
-        lore.add(Text.literal(craftable ? "  ► Click to craft" : "  ✗ Missing materials")
+        lore.add(Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").formatted(Formatting.DARK_GRAY));
+        lore.add(Text.literal(craftable ? "  ► Click to view & craft" : "  ✗ Missing materials")
             .formatted(craftable ? Formatting.GREEN : Formatting.RED));
+
         stack.set(DataComponentTypes.LORE, new LoreComponent(lore));
         return stack;
     }
 
-    private static ItemStack ingredientIcon(PeakIngredient ingredient, ServerPlayerEntity player) {
+    /**
+     * Ingredient icon for the 3×3 grid.
+     * Stack count = required amount (shows as the corner number like Skyblock).
+     * Name color = green if player has enough, red if not.
+     */
+    private static ItemStack gridIngredientIcon(PeakIngredient ingredient, ServerPlayerEntity player) {
+        // Aggregate total required for this item across all slots
         int have = countInInventory(player, ingredient.item());
         boolean ok = have >= ingredient.count();
-        ItemStack stack = new ItemStack(ingredient.item());
+
+        // Set count to required amount — this is what shows as the corner number
+        ItemStack stack = new ItemStack(ingredient.item(), ingredient.count());
         stack.set(DataComponentTypes.CUSTOM_NAME,
             Text.translatable(ingredient.item().getTranslationKey())
-                .formatted(ok ? Formatting.GREEN : Formatting.RED, Formatting.BOLD));
+                .formatted(ok ? Formatting.GREEN : Formatting.RED));
         stack.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-            Text.literal("  Need: ").formatted(Formatting.GRAY)
-                .append(Text.literal(String.valueOf(ingredient.count())).formatted(Formatting.WHITE)),
             Text.literal("  Have: ").formatted(Formatting.GRAY)
                 .append(Text.literal(String.valueOf(have))
-                    .formatted(ok ? Formatting.GREEN : Formatting.RED))
+                    .formatted(ok ? Formatting.GREEN : Formatting.RED)),
+            Text.literal("  Need: ").formatted(Formatting.GRAY)
+                .append(Text.literal(String.valueOf(ingredient.count())).formatted(Formatting.WHITE))
         )));
         return stack;
     }
 
     private static ItemStack craftButton(boolean canCraft) {
-        ItemStack stack = new ItemStack(canCraft ? Items.LIME_DYE : Items.GRAY_DYE);
+        ItemStack stack = new ItemStack(canCraft ? Items.LIME_DYE : Items.BARRIER);
         stack.set(DataComponentTypes.CUSTOM_NAME,
             Text.literal(canCraft ? "► Craft" : "✗ Missing Materials")
                 .formatted(canCraft ? Formatting.GREEN : Formatting.RED, Formatting.BOLD));
-        if (!canCraft) {
-            stack.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-                Text.literal("  You don't have enough materials").formatted(Formatting.DARK_GRAY)
-            )));
-        }
         return stack;
     }
 
-    private static ItemStack pane(Item item, String name) {
-        ItemStack s = new ItemStack(item);
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private static void fill(SimpleInventory inv, ItemStack stack) {
+        for (int i = 0; i < 54; i++) inv.setStack(i, stack.copy());
+    }
+
+    private static ItemStack pane(String name) {
+        ItemStack s = new ItemStack(Items.GRAY_STAINED_GLASS_PANE);
         s.set(DataComponentTypes.CUSTOM_NAME, Text.literal(name));
         return s;
     }

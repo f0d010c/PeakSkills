@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.function.Supplier;
 
 /**
- * A custom recipe with per-ingredient quantity requirements.
+ * A custom recipe with per-ingredient quantity requirements and a 3×3 grid layout.
  * Add new recipes via {@link PeakRecipeRegistry#register()}.
  *
  * The result is a {@link Supplier} so it can reference the enchantment
@@ -15,6 +15,7 @@ import java.util.function.Supplier;
 public record PeakRecipe(
     String id,
     String displayName,
+    String category,
     List<PeakIngredient> ingredients,
     Supplier<ItemStack> resultFactory
 ) {
