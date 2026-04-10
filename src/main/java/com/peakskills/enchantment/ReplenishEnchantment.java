@@ -93,6 +93,10 @@ public class ReplenishEnchantment {
         // Farming 30 required
         if (PlayerDataManager.get(serverPlayer.getUuid()).getLevel(Skill.FARMING) < MIN_FARMING_LEVEL) return;
 
+        // Anti-desync: block must be within 8 blocks of the player
+        // Prevents a client spoofing a break packet for a distant crop to trigger magnet collection
+        if (pos.getSquaredDistanceFromCenter(serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ()) > 64) return;
+
         // Works on any age — replants immediately
         Block block = state.getBlock();
         Item seed = seedFor(block);

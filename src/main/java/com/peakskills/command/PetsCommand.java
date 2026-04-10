@@ -36,7 +36,7 @@ public class PetsCommand {
                     // /pets addxp <amount> — add XP to your active pet (admin only)
                     .then(CommandManager.literal("addxp")
                         .requires(PetsCommand::isOp)
-                        .then(CommandManager.argument("amount", LongArgumentType.longArg(1))
+                        .then(CommandManager.argument("amount", LongArgumentType.longArg(1, 10_000_000L))
                             .executes(ctx -> {
                                 ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
                                 long amount = LongArgumentType.getLong(ctx, "amount");

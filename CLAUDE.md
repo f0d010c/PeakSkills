@@ -40,6 +40,20 @@ When adding a new collection, all 3 of these must be updated:
 
 ## Development Mindset
 - When implementing something, check if the same logic applies elsewhere in the project — if it does, ask the user before doing it
+- **Every new feature must be reviewed for security vulnerabilities before committing.** Specifically check:
+  - Client-controlled input (NBT, command args, slot clicks) — clamp/validate all values
+  - Packet desync — add distance/position checks before acting on block/entity events (max ~8 blocks from player)
+  - Command arguments — all numeric args must have explicit min AND max bounds (`longArg(1, 10_000_000L)`, not `longArg(1)`)
+  - Arithmetic overflow — use saturating math or clamp before storing in player data
+  - Race conditions in GUIs — add per-player cooldowns on any action that consumes items or grants rewards
+
+## Security Patterns (established in codebase)
+- **Replenish distance check**: `pos.getSquaredDistanceFromCenter(...) > 64` guards against spoofed block break packets
+- **Craft cooldown**: `PeakCraftingGui.lastCraftTime` map — 1 second per player, prevents macro spam
+- **XP bounds**: `LongArgumentType.longArg(1, 10_000_000L)` on all admin XP commands
+- **Taming gain guard**: `amount > 0` check before passive taming grant in `XpManager`
+- **Item tagging**: Replenish and CombatDropTracker use UUID maps to ensure only the correct player benefits from item collection
+- **NBT clamping**: `PetEggHandler` and `PetInstance` clamp XP to `[0, maxXpForRarity]`
 
 ## Permission API (1.21.11 specific)
 - `hasPermissionLevel(int)` does NOT exist on `ServerCommandSource` in 1.21.11

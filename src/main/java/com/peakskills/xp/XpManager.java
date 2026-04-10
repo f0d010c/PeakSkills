@@ -112,7 +112,7 @@ public class XpManager {
         sendXpBar(player, data, skill, amount, leveledUp);
 
         // Taming XP: having an active pet earns passive Taming XP alongside any skill action
-        if (skill != Skill.TAMING && data.getPetRoster().getActivePet().isPresent()) {
+        if (skill != Skill.TAMING && amount > 0 && data.getPetRoster().getActivePet().isPresent()) {
             long tamingGain = Math.max(1, amount / 10);
             int tamingBefore = data.getLevel(Skill.TAMING);
             boolean tamingLeveled = data.addXp(Skill.TAMING, tamingGain);
