@@ -209,6 +209,7 @@ public class PlayerDataManager {
         root.add("xp", xpObj);
         root.addProperty("mana", data.getMana());
         root.addProperty("maxMana", data.getMaxMana());
+        root.addProperty("petsVisible", data.isPetsVisible());
 
         // Pets
         JsonArray petsArr = new JsonArray();
@@ -252,6 +253,7 @@ public class PlayerDataManager {
         }
 
         if (json.has("maxMana")) data.setMaxMana(json.get("maxMana").getAsDouble());
+        if (json.has("petsVisible")) data.setPetsVisible(json.get("petsVisible").getAsBoolean());
 
         // Pets
         if (json.has("pets")) {

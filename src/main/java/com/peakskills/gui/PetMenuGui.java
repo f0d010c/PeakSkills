@@ -42,11 +42,15 @@ public class PetMenuGui {
     }
 
     public static void open(ServerPlayerEntity player, Category filter) {
+        open(player, filter, PlayerDataManager.get(player.getUuid()).isPetsVisible());
+    }
+
+    public static void open(ServerPlayerEntity player, Category filter, boolean petsVisible) {
         PlayerData data = PlayerDataManager.get(player.getUuid());
         SimpleInventory inv = new SimpleInventory(54);
-        populate(inv, data, filter);
+        populate(inv, data, filter, petsVisible);
 
-        Map<Integer, Runnable> handlers        = buildClickHandlers(player, data, filter);
+        Map<Integer, Runnable> handlers        = buildClickHandlers(player, data, filter, petsVisible);
         Map<Integer, Runnable> rightHandlers   = buildRightClickHandlers(player, data, filter);
         Map<Integer, Runnable> middleHandlers  = buildMiddleClickHandlers(player, data, filter);
 
@@ -58,7 +62,7 @@ public class PetMenuGui {
 
     // ── Build ─────────────────────────────────────────────────────────────────
 
-    private static void populate(SimpleInventory inv, PlayerData data, Category filter) {
+    private static void populate(SimpleInventory inv, PlayerData data, Category filter, boolean petsVisible) {
         ItemStack bg = pane(" ");
         for (int i = 0; i < 54; i++) inv.setStack(i, bg.copy());
 
@@ -82,6 +86,17 @@ public class PetMenuGui {
             Text.literal("  using materials from your inventory").formatted(Formatting.DARK_GRAY)
         )));
         inv.setStack(6, craftBtn);
+
+        // Visibility toggle — slot 7
+        ItemStack visToggle = new ItemStack(petsVisible ? Items.ENDER_EYE : Items.FERMENTED_SPIDER_EYE);
+        visToggle.set(DataComponentTypes.CUSTOM_NAME,
+            Text.literal(petsVisible ? "✦ Pet Visuals: ON" : "✦ Pet Visuals: OFF")
+                .formatted(petsVisible ? Formatting.GREEN : Formatting.RED, Formatting.BOLD));
+        visToggle.set(DataComponentTypes.LORE, new LoreComponent(List.of(
+            Text.literal("  Click to " + (petsVisible ? "hide" : "show") + " active pet display")
+                .formatted(Formatting.DARK_GRAY)
+        )));
+        inv.setStack(7, visToggle);
 
         // Title — slot 8
         ItemStack title = new ItemStack(Items.LEAD);
@@ -112,7 +127,7 @@ public class PetMenuGui {
 
     // ── Click handlers ────────────────────────────────────────────────────────
 
-    private static Map<Integer, Runnable> buildClickHandlers(ServerPlayerEntity player, PlayerData data, Category filter) {
+    private static Map<Integer, Runnable> buildClickHandlers(ServerPlayerEntity player, PlayerData data, Category filter, boolean petsVisible) {
         Map<Integer, Runnable> handlers = new HashMap<>();
 
         // Filter tab handlers
@@ -123,6 +138,18 @@ public class PetMenuGui {
 
         // Craft button
         handlers.put(6, () -> PetBreederGui.open(player));
+
+        // Visibility toggle
+        handlers.put(7, () -> {
+            boolean nowVisible = !petsVisible;
+            data.setPetsVisible(nowVisible);
+            if (nowVisible) {
+                PetDisplayManager.restoreDisplay(player);
+            } else {
+                PetDisplayManager.killDisplay(player.getUuid(), PlayerDataManager.getServer());
+            }
+            open(player, filter, nowVisible);
+        });
 
         // Pet click handlers — must match the filtered list used in populate()
         List<PetInstance> pets = data.getPetRoster().getPets().stream()

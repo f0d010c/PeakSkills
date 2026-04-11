@@ -17,6 +17,7 @@ public class PlayerData {
     private final CollectionData collections = new CollectionData();
     private double mana;
     private double maxMana = 100;
+    private boolean petsVisible = true;
 
     public PlayerData(UUID uuid) {
         this.uuid = uuid;
@@ -74,6 +75,9 @@ public class PlayerData {
     // --- Pets ---
 
     public PetRoster getPetRoster() { return petRoster; }
+
+    public boolean isPetsVisible() { return petsVisible; }
+    public void setPetsVisible(boolean petsVisible) { this.petsVisible = petsVisible; }
 
     // --- Collections ---
 

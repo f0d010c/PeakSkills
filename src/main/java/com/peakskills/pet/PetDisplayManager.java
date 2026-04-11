@@ -141,8 +141,9 @@ public class PetDisplayManager {
     }
 
     public static void restoreDisplay(ServerPlayerEntity player) {
-        Optional<PetInstance> active =
-            PlayerDataManager.get(player.getUuid()).getPetRoster().getActivePet();
+        com.peakskills.player.PlayerData data = PlayerDataManager.get(player.getUuid());
+        if (!data.isPetsVisible()) return;
+        Optional<PetInstance> active = data.getPetRoster().getActivePet();
         active.ifPresent(pet -> spawnDisplay(player, pet.getType()));
     }
 }
