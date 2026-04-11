@@ -54,6 +54,19 @@ A live **action bar** above your hearts shows your current health and defense at
 | `/profile <player>` | View another player's profile |
 | `/pets` | Open your pet roster |
 | `/collections` | View your collections progress |
+| `/craft` | Open the custom crafting menu (PeakSkills recipes) |
+| `/skilltop [count]` | Leaderboard sorted by combined skill level |
+| `/skillrank` | Your rank in every individual skill |
+
+**Admin commands** (OP only)
+
+| Command | Description |
+|---|---|
+| `/skills addxp <player> <skill> <amount>` | Grant XP |
+| `/skills setlevel <player> <skill> <level>` | Set level directly |
+| `/skills removexp <player> <skill> <amount>` | Remove XP |
+| `/skills reset <player>` | Wipe all skill data |
+| `/pets addxp <player> <petId> <amount>` | Grant pet XP |
 
 ---
 
@@ -198,9 +211,20 @@ Earn XP by using an anvil or smithing table.
 #### 🌱 Replenish (Enchantment)
 A custom enchantment for hoes and axes. When you harvest a crop, it is automatically replanted — one seed is consumed from the drop. Works on all cropblock types: Wheat, Carrots, Potatoes, Beetroot, Nether Wart, Cocoa Beans, and more.
 
-**Unlock**: Reach Farming level 30. The crafting recipe is unlocked in your recipe book automatically.
+**Unlock**: Reach Farming level 30. A recipe book item is granted with all ingredients listed.
 
-**Recipe**: Craft using a **Book** (center), **Wheat Seeds** (corners), and **Bone Meal** (edges) in a 3×3 crafting grid. Produces an enchanted book with Replenish I, which can be applied at an anvil.
+**Recipe** (craft via `/craft`):
+
+| Slot | Item | Qty |
+|---|---|---|
+| Top-left | Wheat | 16 |
+| Top-right | Carrot | 16 |
+| Center | Book | 1 |
+| Bottom-left | Potato | 16 |
+| Bottom-right | Nether Wart | 16 |
+| Edges (×4) | Bone Meal | 4 each |
+
+Produces an enchanted book with Replenish I, which is applied at an anvil.
 
 ---
 
@@ -317,7 +341,7 @@ Earn XP by smelting food in a furnace or smoker.
 ---
 
 #### 🔧 Crafting
-Earn XP by using a crafting table.
+Earn XP by using a crafting table or completing recipes via `/craft` (custom recipes grant 500 XP each).
 
 **Stat Bonuses per level**
 - Luck +0.01 → max +0.99
@@ -469,6 +493,10 @@ Each rarity has a different XP multiplier that increases XP requirements per lev
 
 Right-click a pet in the roster to remove it. The pet is returned to your inventory as an egg with its XP preserved — re-hatching it restores the same level.
 
+### Pet Visibility
+
+A toggle button in the pet roster (slot 7) shows or hides the floating display entity for your active pet. State persists across sessions.
+
 ### All 18 Pets
 
 | Pet | Affinity | Stat Bonus |
@@ -591,6 +619,6 @@ Where `rarityMultiplier` is 1.0 (Common), 1.2 (Uncommon), 1.4 (Rare), 1.6 (Epic)
 
 ### Data Persistence
 
-All player data (skill XP, pet roster, collection counts) is stored server-side in a `PersistentState` NBT file per player UUID under the world's `data/` folder. It survives server restarts.
+All player data (skill XP, pet roster, collection counts, pet visibility) is stored server-side as JSON files under `world/peakskills/<uuid>.json`. It survives server restarts.
 
 Placed block positions (used to prevent farming block duplication exploits) are stored in a separate `peakskills_placed_blocks.dat` file in the overworld's `data/` folder as a flat list of packed `BlockPos` longs.
