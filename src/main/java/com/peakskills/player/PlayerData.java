@@ -42,7 +42,9 @@ public class PlayerData {
     public boolean addXp(Skill skill, long amount) {
         int before = getLevel(skill);
         long current = getXp(skill);
-        xp.put(skill, Math.max(0, current + amount));
+        // Saturating add — prevents long overflow wrapping to negative then clamping to 0
+        long next = (amount > 0 && current > Long.MAX_VALUE - amount) ? Long.MAX_VALUE : current + amount;
+        xp.put(skill, Math.max(0, next));
         int after = getLevel(skill);
         return after > before;
     }

@@ -1,6 +1,7 @@
 package com.peakskills.player;
 
 import com.google.gson.*;
+import com.peakskills.PeakLog;
 import com.peakskills.PeakSkills;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.server.MinecraftServer;
@@ -39,17 +40,17 @@ public class PlayerDataFailsafe {
             // Skip tick 0 (server just started — PlayerDataManager handles initial load)
             if (server.getTicks() == 0) return;
 
-            PeakSkills.LOGGER.info("[Failsafe] Running hourly auto-backup...");
+            PeakLog.info("[Failsafe] Running hourly auto-backup...");
             int count = 0;
             for (UUID uuid : PlayerDataManager.getCachedUuids()) {
                 try {
                     backup(uuid, server);
                     count++;
                 } catch (IOException e) {
-                    PeakSkills.LOGGER.warn("[Failsafe] Auto-backup failed for {}: {}", uuid, e.getMessage());
+                    PeakLog.warn("[Failsafe] Auto-backup failed for {}: {}", uuid, e.getMessage());
                 }
             }
-            PeakSkills.LOGGER.info("[Failsafe] Auto-backup complete — {} players backed up.", count);
+            PeakLog.info("[Failsafe] Auto-backup complete — {} players backed up.", count);
         });
     }
 
@@ -80,7 +81,7 @@ public class PlayerDataFailsafe {
             GSON.toJson(json, w);
         }
 
-        PeakSkills.LOGGER.info("[Failsafe] Backed up {} → {}", uuid, file.getFileName());
+        PeakLog.info("[Failsafe] Backed up {} → {}", uuid, file.getFileName());
         return file;
     }
 
@@ -108,7 +109,7 @@ public class PlayerDataFailsafe {
             PlayerDataManager.put(uuid, restored);
         }
 
-        PeakSkills.LOGGER.info("[Failsafe] Restored {} from {}", uuid, latest.get().getFileName());
+        PeakLog.info("[Failsafe] Restored {} from {}", uuid, latest.get().getFileName());
         return latest;
     }
 

@@ -8,47 +8,57 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.village.TradeOffer;
 import net.minecraft.village.TradeOfferList;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.WeakHashMap;
+import java.util.HashMap;
+import java.util.Map;
 
 @Mixin(MerchantScreenHandler.class)
 public class TradingDiscountMixin {
 
     /**
-     * Tracks what discount we previously applied to each TradeOffer so we can
-     * restore and re-apply correctly when the screen is reopened at a higher level.
-     * WeakHashMap ensures dead offers are GC'd automatically.
+     * Per-handler instance map: offer-list index → discount we applied this session.
+     * Non-static so each player gets their own handler with independent tracking.
+     * Keyed by index (not TradeOffer object) so it survives across offers being
+     * recreated from NBT on server restart within the same session.
      */
-    private static final WeakHashMap<TradeOffer, Integer> appliedDiscounts = new WeakHashMap<>();
+    @Unique
+    private final Map<Integer, Integer> peakDiscounts = new HashMap<>();
 
     @Inject(method = "<init>", at = @At("TAIL"))
     private void applyTradingDiscount(int syncId, PlayerInventory playerInventory,
                                       CallbackInfo ci) {
         if (!(playerInventory.player instanceof ServerPlayerEntity sp)) return;
+
         int level = PlayerDataManager.get(sp.getUuid()).getLevel(Skill.TRADING);
-        if (level < 5) return; // no discount below level 5
+        if (level < 5) return;
 
         // 0.5% discount per level → ~10% at L20, ~25% at L50, ~50% at L99
         float factor = level * 0.005f;
 
         MerchantScreenHandler handler = (MerchantScreenHandler)(Object) this;
         TradeOfferList offers = handler.getRecipes();
-        if (offers == null) return;
+        if (offers == null || offers.isEmpty()) return;
 
-        for (TradeOffer offer : offers) {
-            // Restore any previous PeakSkills discount before recalculating
-            int prev = appliedDiscounts.getOrDefault(offer, 0);
+        for (int i = 0; i < offers.size(); i++) {
+            TradeOffer offer = offers.get(i);
+
+            // Restore any discount we applied earlier this session before recalculating
+            int prev = peakDiscounts.getOrDefault(i, 0);
             if (prev > 0) offer.increaseSpecialPrice(prev);
 
             int base = offer.getOriginalFirstBuyItem().getCount();
+
+            // Calculate discount; guarantee at least 1 emerald off at level 10+ for any trade
             int discount = Math.round(base * factor);
+            if (discount <= 0 && level >= 10) discount = 1;
             if (discount <= 0) continue;
 
             offer.increaseSpecialPrice(-discount);
-            appliedDiscounts.put(offer, discount);
+            peakDiscounts.put(i, discount);
         }
     }
 }

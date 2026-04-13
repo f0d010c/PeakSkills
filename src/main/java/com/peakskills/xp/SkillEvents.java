@@ -5,7 +5,6 @@ import com.peakskills.collection.CollectionRewardHandler;
 import com.peakskills.collection.CollectionTier;
 import com.peakskills.combat.CombatDropTracker;
 import com.peakskills.gear.GearRequirements;
-import com.peakskills.pet.PetEggHandler;
 import com.peakskills.player.PlayerDataManager;
 import com.peakskills.skill.Skill;
 import com.peakskills.skill.SkillAbilityRegistry;
@@ -337,8 +336,6 @@ public class SkillEvents {
                         item -> CollectionRegistry.fromCombatDrop(item.getStack().getItem()).isPresent()
                     ).forEach(item -> CombatDropTracker.tagItemEntity(item.getUuid(), player.getUuid()));
                 }
-
-                PetEggHandler.tryDrop(entity, player);
             }
         );
     }

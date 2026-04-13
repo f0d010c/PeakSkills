@@ -24,7 +24,7 @@ public class PeakSkills implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        LOGGER.info("PeakSkills initializing...");
+        PeakLog.info("PeakSkills initializing...");
         PlayerDataManager.register();
         PlayerDataFailsafe.register();
         XpManager.register();

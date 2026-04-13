@@ -182,10 +182,11 @@ public class XpManager {
         long currentXp = data.getXp(skill);
 
         long floor  = XPTable.xpForLevel(level);
-        long ceil   = level < Skill.MAX_LEVEL ? XPTable.xpForLevel(level + 1) : floor + 1;
-        long span   = ceil - floor;
-        long prog   = currentXp - floor;
-        float pct   = span > 0 ? (float) prog / span : 1f;
+        boolean maxed = level >= Skill.MAX_LEVEL;
+        long ceil   = maxed ? floor : XPTable.xpForLevel(level + 1);
+        long span   = maxed ? 1 : ceil - floor;
+        long prog   = maxed ? 1 : currentXp - floor;
+        float pct   = maxed ? 1f : (span > 0 ? (float) prog / span : 1f);
 
         // Title line:  Mining   +6 XP   127 / 332   Lv.2
         Formatting nameColor = skillFormatting(skill);
@@ -193,8 +194,9 @@ public class XpManager {
                          .formatted(nameColor, Formatting.BOLD)
                 .append(Text.literal((leveledUp ? "▲ LEVEL UP!  " : "+" + gained + " XP  "))
                          .formatted(leveledUp ? Formatting.GOLD : Formatting.GREEN))
-                .append(Text.literal(String.format("%,d / %,d", prog, span))
-                         .formatted(Formatting.WHITE))
+                .append(maxed
+                    ? Text.literal("MAX LEVEL").formatted(Formatting.GOLD)
+                    : Text.literal(String.format("%,d / %,d", prog, span)).formatted(Formatting.WHITE))
                 .append(Text.literal("  Lv." + level)
                          .formatted(Formatting.AQUA));
 
@@ -306,102 +308,105 @@ public class XpManager {
         // Each entry: [item, count] — counts are tuned per item type so nothing absurd drops.
         // Armor/tools = always 1. Materials scale with rarity.
         record R(Item item, int count) {}
+        // Milestone philosophy: give things OUTSIDE the skill's own resource pool.
+        // Lv.25 = helpful cross-skill boost. Lv.50 = significant. Lv.75 = rare/powerful.
+        // Lv.99 = legendary — something that reflects mastery and cannot be casually obtained.
         R r = switch (skill) {
             case MINING -> switch (level) {
-                case 25 -> new R(Items.IRON_INGOT,           16);
-                case 50 -> new R(Items.DIAMOND,               6);
-                case 75 -> new R(Items.EMERALD,               4);
-                default -> new R(Items.NETHERITE_INGOT,       1);
+                case 25 -> new R(Items.EXPERIENCE_BOTTLE,     32);
+                case 50 -> new R(Items.DIAMOND,               16);
+                case 75 -> new R(Items.NETHERITE_SCRAP,        6);
+                default -> new R(Items.NETHERITE_INGOT,        4); // 4 ingots = significant
             };
             case WOODCUTTING -> switch (level) {
-                case 25 -> new R(Items.OAK_LOG,              32);
-                case 50 -> new R(Items.DARK_OAK_LOG,         32);
-                case 75 -> new R(Items.CHERRY_LOG,           32);
-                default -> new R(Items.NETHERITE_AXE,         1);
+                case 25 -> new R(Items.EXPERIENCE_BOTTLE,     32);
+                case 50 -> new R(Items.DIAMOND_AXE,            1);
+                case 75 -> new R(Items.NETHERITE_SCRAP,        4);
+                default -> new R(Items.NETHERITE_AXE,          1);
             };
             case EXCAVATING -> switch (level) {
-                case 25 -> new R(Items.SAND,                 32);
-                case 50 -> new R(Items.GRAVEL,               32);
-                case 75 -> new R(Items.CLAY_BALL,            32);
-                default -> new R(Items.DIAMOND_SHOVEL,        1);
+                case 25 -> new R(Items.EXPERIENCE_BOTTLE,     32);
+                case 50 -> new R(Items.DIAMOND,                8);
+                case 75 -> new R(Items.DIAMOND_SHOVEL,         1);
+                default -> new R(Items.NETHERITE_SHOVEL,       1);
             };
             case FARMING -> switch (level) {
-                case 25 -> new R(Items.WHEAT_SEEDS,          32);
-                case 50 -> new R(Items.GOLDEN_CARROT,         8);
-                case 75 -> new R(Items.PUMPKIN_PIE,          16);
-                default -> new R(Items.GOLDEN_APPLE,          4);
+                case 25 -> new R(Items.GOLDEN_CARROT,         16);
+                case 50 -> new R(Items.GOLDEN_APPLE,           4);
+                case 75 -> new R(Items.ENCHANTED_GOLDEN_APPLE, 1);
+                default -> new R(Items.ENCHANTED_GOLDEN_APPLE, 2); // pinnacle of food mastery
             };
             case FISHING -> switch (level) {
-                case 25 -> new R(Items.COD,                  16);
-                case 50 -> new R(Items.SALMON,               16);
-                case 75 -> new R(Items.NAUTILUS_SHELL,        3);
-                default -> new R(Items.HEART_OF_THE_SEA,      1);
+                case 25 -> new R(Items.NAUTILUS_SHELL,         4);
+                case 50 -> new R(Items.HEART_OF_THE_SEA,       1);
+                case 75 -> new R(Items.TRIDENT,                1);
+                default -> new R(Items.NETHER_STAR,            1);
             };
             case SLAYING -> switch (level) {
-                case 25 -> new R(Items.BONE,                 16);
-                case 50 -> new R(Items.BLAZE_ROD,            8);
-                case 75 -> new R(Items.WITHER_SKELETON_SKULL, 1);
-                default -> new R(Items.NETHER_STAR,           1);
+                case 25 -> new R(Items.DIAMOND_SWORD,          1);
+                case 50 -> new R(Items.TOTEM_OF_UNDYING,       1);
+                case 75 -> new R(Items.WITHER_SKELETON_SKULL,  2);
+                default -> new R(Items.NETHER_STAR,            1);
             };
             case RANGED -> switch (level) {
-                case 25 -> new R(Items.ARROW,                64);
-                case 50 -> new R(Items.SPECTRAL_ARROW,       32);
-                case 75 -> new R(Items.TIPPED_ARROW,         16);
-                default -> new R(Items.CROSSBOW,              1);
+                case 25 -> new R(Items.SPECTRAL_ARROW,        64);
+                case 50 -> new R(Items.CROSSBOW,               1);
+                case 75 -> new R(Items.TOTEM_OF_UNDYING,       1);
+                default -> new R(Items.NETHER_STAR,            1);
             };
             case DEFENSE -> switch (level) {
-                case 25 -> new R(Items.IRON_CHESTPLATE,       1);
-                case 50 -> new R(Items.DIAMOND_HELMET,        1);
-                case 75 -> new R(Items.DIAMOND_CHESTPLATE,    1);
-                default -> new R(Items.NETHERITE_CHESTPLATE,  1);
+                case 25 -> new R(Items.IRON_CHESTPLATE,        1);
+                case 50 -> new R(Items.DIAMOND_CHESTPLATE,     1);
+                case 75 -> new R(Items.NETHERITE_SCRAP,        4);
+                default -> new R(Items.NETHERITE_CHESTPLATE,   1);
             };
             case ENCHANTING -> switch (level) {
-                case 25 -> new R(Items.LAPIS_LAZULI,         32);
-                case 50 -> new R(Items.BOOKSHELF,             8);
-                case 75 -> new R(Items.EXPERIENCE_BOTTLE,    16);
-                default -> new R(Items.NETHER_STAR,           1);
+                case 25 -> new R(Items.LAPIS_LAZULI,          64);
+                case 50 -> new R(Items.BOOKSHELF,             15); // exactly fills max enchanting table
+                case 75 -> new R(Items.EXPERIENCE_BOTTLE,     64);
+                default -> new R(Items.NETHER_STAR,            1);
             };
             case ALCHEMY -> switch (level) {
-                case 25 -> new R(Items.GLASS_BOTTLE,         16);
-                case 50 -> new R(Items.BLAZE_POWDER,         16);
-                case 75 -> new R(Items.GHAST_TEAR,            4);
-                default -> new R(Items.NETHER_STAR,           1);
+                case 25 -> new R(Items.BREWING_STAND,          1);
+                case 50 -> new R(Items.GHAST_TEAR,             8);
+                case 75 -> new R(Items.DRAGON_BREATH,          4);
+                default -> new R(Items.NETHER_STAR,            1);
             };
             case SMITHING -> switch (level) {
-                case 25 -> new R(Items.IRON_INGOT,           16);
-                case 50 -> new R(Items.DIAMOND,               8);
-                case 75 -> new R(Items.NETHERITE_SCRAP,       4);
-                default -> new R(Items.NETHERITE_INGOT,       2);
+                case 25 -> new R(Items.DIAMOND,                8);
+                case 50 -> new R(Items.NETHERITE_SCRAP,        4);
+                case 75 -> new R(Items.NETHERITE_INGOT,        2);
+                default -> new R(Items.NETHERITE_INGOT,        6);
             };
             case COOKING -> switch (level) {
-                case 25 -> new R(Items.BREAD,                16);
-                case 50 -> new R(Items.COOKED_BEEF,          16);
-                case 75 -> new R(Items.GOLDEN_CARROT,         8);
-                default -> new R(Items.GOLDEN_APPLE,          4);
+                case 25 -> new R(Items.GOLDEN_CARROT,         16);
+                case 50 -> new R(Items.GOLDEN_APPLE,           4);
+                case 75 -> new R(Items.ENCHANTED_GOLDEN_APPLE, 1);
+                default -> new R(Items.ENCHANTED_GOLDEN_APPLE, 2);
             };
             case CRAFTING -> switch (level) {
-                case 25 -> new R(Items.OAK_PLANKS,           64);
-                case 50 -> new R(Items.CRAFTING_TABLE,        4);
-                case 75 -> new R(Items.CHEST,                 8);
-                default -> new R(Items.SHULKER_BOX,           1);
+                case 25 -> new R(Items.EXPERIENCE_BOTTLE,     32);
+                case 50 -> new R(Items.DIAMOND,                8);
+                case 75 -> new R(Items.CHEST,                 32);
+                default -> new R(Items.SHULKER_BOX,            4);
             };
             case AGILITY -> switch (level) {
-                case 25 -> new R(Items.FEATHER,              32);
-                case 50 -> new R(Items.LEATHER_BOOTS,         1);
-                case 75 -> new R(Items.DIAMOND_BOOTS,         1);
-                default -> new R(Items.ELYTRA,                1);
+                case 25 -> new R(Items.EXPERIENCE_BOTTLE,     32);
+                case 50 -> new R(Items.DIAMOND_BOOTS,          1);
+                case 75 -> new R(Items.NETHERITE_SCRAP,        4);
+                default -> new R(Items.ELYTRA,                 1);
             };
             case TAMING -> switch (level) {
-                case 25 -> new R(Items.BONE,                 16);
-                case 50 -> new R(Items.LEAD,                  4);
-                case 75 -> new R(Items.SADDLE,                1);
-                default -> new R(Items.NAME_TAG,              3);
+                case 25 -> new R(Items.GOLDEN_APPLE,           2);
+                case 50 -> new R(Items.SADDLE,                 1);
+                case 75 -> new R(Items.GOLDEN_APPLE,           8);
+                default -> new R(Items.TOTEM_OF_UNDYING,       2); // your bond with your pet protects you
             };
             case TRADING -> switch (level) {
-                case 25 -> new R(Items.EMERALD,              16);
-                case 50 -> new R(Items.EMERALD_BLOCK,         4);
-                case 75 -> new R(Items.DIAMOND,               8);
-                default -> new R(Items.NETHER_STAR,           1);
+                case 25 -> new R(Items.EMERALD,               64);
+                case 50 -> new R(Items.EMERALD_BLOCK,         16);
+                case 75 -> new R(Items.DIAMOND,               16);
+                default -> new R(Items.NETHER_STAR,            1);
             };
         };
 

@@ -145,7 +145,7 @@ public class SkillsCommand {
                         .requires(SkillsCommand::isOp)
                         .then(CommandManager.argument("player", StringArgumentType.word())
                             .then(CommandManager.argument("skill", StringArgumentType.word())
-                                .then(CommandManager.argument("amount", LongArgumentType.longArg(1))
+                                .then(CommandManager.argument("amount", LongArgumentType.longArg(1, 10_000_000L))
                                     .executes(ctx -> {
                                         ServerPlayerEntity target = resolvePlayer(ctx.getSource().getServer(),
                                             StringArgumentType.getString(ctx, "player"));

@@ -1,7 +1,9 @@
 package com.peakskills.player;
 
 import com.google.gson.*;
+import com.peakskills.PeakLog;
 import com.peakskills.PeakSkills;
+import com.peakskills.collection.CollectionRegistry;
 import com.peakskills.collection.CollectionType;
 import com.peakskills.pet.PetInstance;
 import com.peakskills.pet.PetRarity;
@@ -35,7 +37,7 @@ public class PlayerDataManager {
             try {
                 Files.createDirectories(dataDir);
             } catch (IOException e) {
-                PeakSkills.LOGGER.error("Failed to create player data directory", e);
+                PeakLog.error("Failed to create player data directory", e);
             }
         });
 
@@ -170,7 +172,7 @@ public class PlayerDataManager {
             JsonObject json = GSON.fromJson(reader, JsonObject.class);
             return fromJson(uuid, json);
         } catch (IOException e) {
-            PeakSkills.LOGGER.error("Failed to load data for {}", uuid, e);
+            PeakLog.error("Failed to load data for {}", uuid, e);
             return new PlayerData(uuid);
         }
     }
@@ -182,7 +184,7 @@ public class PlayerDataManager {
         try (Writer writer = Files.newBufferedWriter(file)) {
             GSON.toJson(toJson(data), writer);
         } catch (IOException e) {
-            PeakSkills.LOGGER.error("Failed to save data for {}", data.getUuid(), e);
+            PeakLog.error("Failed to save data for {}", data.getUuid(), e);
         }
     }
 
@@ -270,7 +272,7 @@ public class PlayerDataManager {
                     data.getPetRoster().addPet(pet);
                     if (active) activePetId = id;
                 } catch (Exception e) {
-                    PeakSkills.LOGGER.warn("Skipping corrupt pet entry: {}", e.getMessage());
+                    PeakLog.warn("Skipping corrupt pet entry: {}", e.getMessage());
                 }
             }
             if (activePetId != null) data.getPetRoster().setActivePet(activePetId);
@@ -290,8 +292,11 @@ public class PlayerDataManager {
             JsonObject tierObj = json.getAsJsonObject("collectionTiers");
             for (CollectionType type : CollectionType.values()) {
                 if (tierObj.has(type.name())) {
-                    data.getCollections().getUnlockedTiers()
-                        .put(type, tierObj.get(type.name()).getAsInt());
+                    int tier = tierObj.get(type.name()).getAsInt();
+                    int maxTier = CollectionRegistry.getTiers(type).size();
+                    if (tier > 0 && tier <= maxTier) {
+                        data.getCollections().getUnlockedTiers().put(type, tier);
+                    }
                 }
             }
         }
