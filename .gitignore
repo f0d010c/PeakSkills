@@ -7,3 +7,5 @@ out/
 *.ipr
 *.iws
 *.jar
+deploy.bat
+build-and-deploy.bat
