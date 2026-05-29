@@ -71,9 +71,12 @@ public class SkillsGui {
             handlers.put(MASTERY_SLOTS[i], () -> SkillDetailGui.open(viewer, data, skill));
         }
 
-        // Refresh button — slot 49
-        handlers.put(49, () -> populate(inv, PlayerDataManager.get(viewer.getUuid()), ownerName));
-        handlers.put(48, () -> SettingsGui.open(viewer));
+        // Bottom shortcut row.
+        handlers.put(38, () -> ProfileGui.open(viewer, PlayerDataManager.get(viewer.getUuid()), ownerName));
+        handlers.put(39, () -> CollectionsGui.open(viewer, PlayerDataManager.get(viewer.getUuid())));
+        handlers.put(40, () -> PetMenuGui.open(viewer));
+        handlers.put(41, () -> SettingsGui.open(viewer));
+        handlers.put(42, () -> populate(inv, PlayerDataManager.get(viewer.getUuid()), ownerName));
 
         viewer.openHandledScreen(new SimpleNamedScreenHandlerFactory(
             (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers),
@@ -100,22 +103,28 @@ public class SkillsGui {
         ItemStack header = new ItemStack(Items.NETHER_STAR);
         header.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
         header.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal("Your Skills").formatted(Formatting.GOLD, Formatting.BOLD));
+            Text.literal(ownerName + "'s Skills").formatted(Formatting.GOLD, Formatting.BOLD));
         int total = data.getTotalLevel();
         int max   = TOTAL_SKILLS * Skill.MAX_LEVEL;
         header.set(DataComponentTypes.LORE, new LoreComponent(List.of(
             Text.literal("  Total Level: ").formatted(Formatting.GRAY)
-                .append(Text.literal(total + " / " + max).formatted(Formatting.WHITE, Formatting.BOLD)),
+                .append(Text.literal(total + " / " + max).formatted(Formatting.AQUA, Formatting.BOLD)),
+            Text.literal("  " + bar(total, max, 20)).formatted(Formatting.AQUA)
+                .append(Text.literal("  " + String.format("%.1f%%", total * 100.0 / max)).formatted(Formatting.WHITE)),
+            separator(),
             Text.literal("  Click a skill to view its leveling path").formatted(Formatting.DARK_GRAY)
         )));
         inv.setStack(4, header);
 
-        inv.setStack(9, sectionItem(Items.IRON_PICKAXE, "Gathering", Formatting.GREEN,
+        inv.setStack(10, sectionItem(Items.LIME_CONCRETE, "Gathering", Formatting.GREEN,
             "Mining, Woodcutting, Excavating, Farming, Fishing"));
-        inv.setStack(18, sectionItem(Items.IRON_SWORD, "Combat", Formatting.RED,
+        inv.setStack(16, pane(Items.LIME_STAINED_GLASS_PANE, " "));
+        inv.setStack(19, sectionItem(Items.RED_CONCRETE, "Combat", Formatting.RED,
             "Defense, Slaying, Ranged, Smithing, Cooking"));
-        inv.setStack(27, sectionItem(Items.BOOK, "Mastery", Formatting.LIGHT_PURPLE,
+        inv.setStack(25, pane(Items.RED_STAINED_GLASS_PANE, " "));
+        inv.setStack(28, sectionItem(Items.PURPLE_CONCRETE, "Mastery", Formatting.LIGHT_PURPLE,
             "Crafting, Enchanting, Alchemy, Agility, Taming, Trading"));
+        inv.setStack(35, pane(Items.PURPLE_STAINED_GLASS_PANE, " "));
 
         // Skill icons
         for (int i = 0; i < GATHERING.length; i++)
@@ -125,27 +134,29 @@ public class SkillsGui {
         for (int i = 0; i < MASTERY.length; i++)
             inv.setStack(MASTERY_SLOTS[i], skillIcon(MASTERY[i],   data));
 
-        // Total XP bottle (slot 40)
-        ItemStack totalItem = new ItemStack(Items.EXPERIENCE_BOTTLE);
-        totalItem.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal("Total Level  " + total + " / " + max)
-                .formatted(Formatting.AQUA, Formatting.BOLD));
-        totalItem.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-            separator(),
-            Text.literal("  " + bar(total, max, 20) + "  ").formatted(Formatting.AQUA)
-                .append(Text.literal(String.format("%.1f%%", total * 100.0 / max)).formatted(Formatting.WHITE)),
-            separator()
+        ItemStack profile = new ItemStack(Items.PLAYER_HEAD);
+        profile.set(DataComponentTypes.CUSTOM_NAME,
+            Text.literal("Profile").formatted(Formatting.GOLD, Formatting.BOLD));
+        profile.set(DataComponentTypes.LORE, new LoreComponent(List.of(
+            Text.literal("  View stats and skill totals").formatted(Formatting.DARK_GRAY)
         )));
-        inv.setStack(40, totalItem);
+        inv.setStack(38, profile);
 
-        // Back/refresh (slot 49)
-        ItemStack refresh = new ItemStack(Items.ARROW);
-        refresh.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal("Refresh").formatted(Formatting.YELLOW, Formatting.BOLD));
-        refresh.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-            Text.literal("  Click to reload your skill data").formatted(Formatting.DARK_GRAY)
+        ItemStack collections = new ItemStack(Items.CHEST);
+        collections.set(DataComponentTypes.CUSTOM_NAME,
+            Text.literal("Collections").formatted(Formatting.GREEN, Formatting.BOLD));
+        collections.set(DataComponentTypes.LORE, new LoreComponent(List.of(
+            Text.literal("  View collection progress").formatted(Formatting.DARK_GRAY)
         )));
-        inv.setStack(49, refresh);
+        inv.setStack(39, collections);
+
+        ItemStack pets = new ItemStack(Items.BONE);
+        pets.set(DataComponentTypes.CUSTOM_NAME,
+            Text.literal("Pets").formatted(Formatting.LIGHT_PURPLE, Formatting.BOLD));
+        pets.set(DataComponentTypes.LORE, new LoreComponent(List.of(
+            Text.literal("  Open your pet roster").formatted(Formatting.DARK_GRAY)
+        )));
+        inv.setStack(40, pets);
 
         ItemStack settings = new ItemStack(Items.COMPARATOR);
         settings.set(DataComponentTypes.CUSTOM_NAME,
@@ -153,7 +164,15 @@ public class SkillsGui {
         settings.set(DataComponentTypes.LORE, new LoreComponent(List.of(
             Text.literal("  Open your PeakSkills settings").formatted(Formatting.DARK_GRAY)
         )));
-        inv.setStack(48, settings);
+        inv.setStack(41, settings);
+
+        ItemStack refresh = new ItemStack(Items.ARROW);
+        refresh.set(DataComponentTypes.CUSTOM_NAME,
+            Text.literal("Refresh").formatted(Formatting.YELLOW, Formatting.BOLD));
+        refresh.set(DataComponentTypes.LORE, new LoreComponent(List.of(
+            Text.literal("  Click to reload your skill data").formatted(Formatting.DARK_GRAY)
+        )));
+        inv.setStack(42, refresh);
     }
 
     // ── Skill icon ────────────────────────────────────────────────────────────
