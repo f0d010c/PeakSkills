@@ -67,7 +67,7 @@ public class PetBreederGui {
             final PetType pt = types[i];
             handlers.put(PET_SLOTS[i], () -> {
                 tryCraft(player, data, pt);
-                open(player); // always refresh so affordability indicators update
+                populate(inv, player); // refresh affordability indicators without reopening
             });
         }
 

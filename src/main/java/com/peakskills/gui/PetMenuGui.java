@@ -48,11 +48,13 @@ public class PetMenuGui {
     public static void open(ServerPlayerEntity player, Category filter, boolean petsVisible) {
         PlayerData data = PlayerDataManager.get(player.getUuid());
         SimpleInventory inv = new SimpleInventory(54);
-        populate(inv, data, filter, petsVisible);
+        Category[] currentFilter = { filter };
+        boolean[] currentPetsVisible = { petsVisible };
+        populate(inv, data, currentFilter[0], currentPetsVisible[0]);
 
-        Map<Integer, Runnable> handlers        = buildClickHandlers(player, data, filter, petsVisible);
-        Map<Integer, Runnable> rightHandlers   = buildRightClickHandlers(player, data, filter);
-        Map<Integer, Runnable> middleHandlers  = buildMiddleClickHandlers(player, data, filter);
+        Map<Integer, Runnable> handlers        = buildClickHandlers(player, data, inv, currentFilter, currentPetsVisible);
+        Map<Integer, Runnable> rightHandlers   = buildRightClickHandlers(player, data, inv, currentFilter, currentPetsVisible);
+        Map<Integer, Runnable> middleHandlers  = buildMiddleClickHandlers(player, data, inv, currentFilter, currentPetsVisible);
 
         player.openHandledScreen(new SimpleNamedScreenHandlerFactory(
             (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers, rightHandlers, middleHandlers),
@@ -127,39 +129,39 @@ public class PetMenuGui {
 
     // ── Click handlers ────────────────────────────────────────────────────────
 
-    private static Map<Integer, Runnable> buildClickHandlers(ServerPlayerEntity player, PlayerData data, Category filter, boolean petsVisible) {
+    private static Map<Integer, Runnable> buildClickHandlers(ServerPlayerEntity player, PlayerData data,
+                                                             SimpleInventory inv, Category[] currentFilter,
+                                                             boolean[] currentPetsVisible) {
         Map<Integer, Runnable> handlers = new HashMap<>();
 
         // Filter tab handlers
-        handlers.put(1, () -> open(player, Category.ALL));
-        handlers.put(2, () -> open(player, Category.GATHERING));
-        handlers.put(3, () -> open(player, Category.COMBAT));
-        handlers.put(4, () -> open(player, Category.MASTERY));
+        handlers.put(1, () -> refresh(inv, data, currentFilter, currentPetsVisible, Category.ALL));
+        handlers.put(2, () -> refresh(inv, data, currentFilter, currentPetsVisible, Category.GATHERING));
+        handlers.put(3, () -> refresh(inv, data, currentFilter, currentPetsVisible, Category.COMBAT));
+        handlers.put(4, () -> refresh(inv, data, currentFilter, currentPetsVisible, Category.MASTERY));
 
         // Craft button
         handlers.put(6, () -> PetBreederGui.open(player));
 
         // Visibility toggle
         handlers.put(7, () -> {
-            boolean nowVisible = !petsVisible;
+            boolean nowVisible = !currentPetsVisible[0];
             data.setPetsVisible(nowVisible);
+            currentPetsVisible[0] = nowVisible;
             if (nowVisible) {
                 PetDisplayManager.restoreDisplay(player);
             } else {
                 PetDisplayManager.killDisplay(player.getUuid(), PlayerDataManager.getServer());
             }
-            open(player, filter, nowVisible);
+            populate(inv, data, currentFilter[0], currentPetsVisible[0]);
         });
 
         // Pet click handlers — must match the filtered list used in populate()
-        List<PetInstance> pets = data.getPetRoster().getPets().stream()
-            .filter(p -> matchesFilter(p, filter))
-            .toList();
-
-        for (int i = 0; i < pets.size() && i < PET_SLOTS.length; i++) {
-            final PetInstance pet = pets.get(i);
+        for (int i = 0; i < PET_SLOTS.length; i++) {
             final int slot = PET_SLOTS[i];
             handlers.put(slot, () -> {
+                PetInstance pet = petAtSlot(data, currentFilter[0], slot);
+                if (pet == null) return;
                 PetRoster roster = data.getPetRoster();
                 if (pet.isActive()) {
                     roster.deactivate();
@@ -176,27 +178,49 @@ public class PetMenuGui {
                                 .formatted(pet.getRarity().color)),
                         false);
                 }
-                open(player, filter);
+                populate(inv, data, currentFilter[0], currentPetsVisible[0]);
             });
         }
         return handlers;
     }
 
-    // ── Middle-click: upgrade pet ─────────────────────────────────────────────
+    private static void refresh(SimpleInventory inv, PlayerData data, Category[] currentFilter,
+                                boolean[] currentPetsVisible, Category filter) {
+        currentFilter[0] = filter;
+        currentPetsVisible[0] = data.isPetsVisible();
+        populate(inv, data, currentFilter[0], currentPetsVisible[0]);
+    }
 
-    private static Map<Integer, Runnable> buildMiddleClickHandlers(ServerPlayerEntity player, PlayerData data, Category filter) {
-        Map<Integer, Runnable> handlers = new HashMap<>();
+    private static PetInstance petAtSlot(PlayerData data, Category filter, int slot) {
+        int index = -1;
+        for (int i = 0; i < PET_SLOTS.length; i++) {
+            if (PET_SLOTS[i] == slot) {
+                index = i;
+                break;
+            }
+        }
+        if (index < 0) return null;
 
         List<PetInstance> pets = data.getPetRoster().getPets().stream()
             .filter(p -> matchesFilter(p, filter))
             .toList();
+        return index < pets.size() ? pets.get(index) : null;
+    }
 
-        for (int i = 0; i < pets.size() && i < PET_SLOTS.length; i++) {
-            final PetInstance pet = pets.get(i);
-            if (!pet.canUpgrade()) continue;
-            handlers.put(PET_SLOTS[i], () -> {
+    // ── Middle-click: upgrade pet ─────────────────────────────────────────────
+
+    private static Map<Integer, Runnable> buildMiddleClickHandlers(ServerPlayerEntity player, PlayerData data,
+                                                                   SimpleInventory inv, Category[] currentFilter,
+                                                                   boolean[] currentPetsVisible) {
+        Map<Integer, Runnable> handlers = new HashMap<>();
+
+        for (int i = 0; i < PET_SLOTS.length; i++) {
+            final int slot = PET_SLOTS[i];
+            handlers.put(slot, () -> {
+                PetInstance pet = petAtSlot(data, currentFilter[0], slot);
+                if (pet == null || !pet.canUpgrade()) return;
                 PetUpgradeHandler.tryUpgrade(player, pet.getId());
-                open(player, filter);
+                populate(inv, data, currentFilter[0], currentPetsVisible[0]);
             });
         }
         return handlers;
@@ -204,16 +228,16 @@ public class PetMenuGui {
 
     // ── Right-click: remove pet ───────────────────────────────────────────────
 
-    private static Map<Integer, Runnable> buildRightClickHandlers(ServerPlayerEntity player, PlayerData data, Category filter) {
+    private static Map<Integer, Runnable> buildRightClickHandlers(ServerPlayerEntity player, PlayerData data,
+                                                                  SimpleInventory inv, Category[] currentFilter,
+                                                                  boolean[] currentPetsVisible) {
         Map<Integer, Runnable> handlers = new HashMap<>();
 
-        List<PetInstance> pets = data.getPetRoster().getPets().stream()
-            .filter(p -> matchesFilter(p, filter))
-            .toList();
-
-        for (int i = 0; i < pets.size() && i < PET_SLOTS.length; i++) {
-            final PetInstance pet = pets.get(i);
-            handlers.put(PET_SLOTS[i], () -> {
+        for (int i = 0; i < PET_SLOTS.length; i++) {
+            final int slot = PET_SLOTS[i];
+            handlers.put(slot, () -> {
+                PetInstance pet = petAtSlot(data, currentFilter[0], slot);
+                if (pet == null) return;
                 if (pet.isActive()) {
                     PetDisplayManager.killDisplay(player.getUuid(), com.peakskills.player.PlayerDataManager.getServer());
                 }
@@ -233,7 +257,7 @@ public class PetMenuGui {
                             .formatted(pet.getRarity().color))
                         .append(Text.literal(" to your inventory.").formatted(Formatting.YELLOW)),
                     false);
-                open(player, filter);
+                populate(inv, data, currentFilter[0], currentPetsVisible[0]);
             });
         }
         return handlers;

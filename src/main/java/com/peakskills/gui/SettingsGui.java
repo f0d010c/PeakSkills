@@ -28,7 +28,7 @@ public class SettingsGui {
             LEVEL_UP_DING_SLOT, () -> {
                 data.setLimitBurstLevelUpSounds(!data.shouldLimitBurstLevelUpSounds());
                 PlayerDataManager.saveAll();
-                open(player);
+                populate(inv, data);
             }
         );
 

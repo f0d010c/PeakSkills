@@ -109,6 +109,19 @@ public class PeakCraftingGui {
 
     private static void openDetail(ServerPlayerEntity player, PeakRecipe recipe) {
         SimpleInventory inv = new SimpleInventory(54);
+        populateDetail(inv, player, recipe);
+
+        Map<Integer, Runnable> handlers = new HashMap<>();
+        handlers.put(BACK_SLOT,  () -> openList(player));
+        handlers.put(CRAFT_SLOT, () -> tryCraft(player, recipe, inv));
+
+        player.openHandledScreen(new SimpleNamedScreenHandlerFactory(
+            (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers),
+            Text.literal(recipe.displayName()).formatted(Formatting.AQUA, Formatting.BOLD)
+        ));
+    }
+
+    private static void populateDetail(SimpleInventory inv, ServerPlayerEntity player, PeakRecipe recipe) {
         fill(inv, pane(" "));
 
         // Populate 3×3 grid
@@ -150,19 +163,11 @@ public class PeakCraftingGui {
         // Craft button
         inv.setStack(CRAFT_SLOT, craftButton(craftable));
 
-        Map<Integer, Runnable> handlers = new HashMap<>();
-        handlers.put(BACK_SLOT,  () -> openList(player));
-        handlers.put(CRAFT_SLOT, () -> tryCraft(player, recipe));
-
-        player.openHandledScreen(new SimpleNamedScreenHandlerFactory(
-            (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers),
-            Text.literal(recipe.displayName()).formatted(Formatting.AQUA, Formatting.BOLD)
-        ));
     }
 
     // ── Craft logic ───────────────────────────────────────────────────────────
 
-    private static void tryCraft(ServerPlayerEntity player, PeakRecipe recipe) {
+    private static void tryCraft(ServerPlayerEntity player, PeakRecipe recipe, SimpleInventory inv) {
         // Cooldown — prevent spam-clicking the craft button
         long now = System.currentTimeMillis();
         long last = lastCraftTime.getOrDefault(player.getUuid(), 0L);
@@ -214,7 +219,7 @@ public class PeakCraftingGui {
                 .append(Text.literal(recipe.displayName()).formatted(Formatting.AQUA, Formatting.BOLD)),
             false);
 
-        openDetail(player, recipe);
+        populateDetail(inv, player, recipe);
     }
 
     private static boolean canCraft(ServerPlayerEntity player, PeakRecipe recipe) {
