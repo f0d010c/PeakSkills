@@ -1,11 +1,20 @@
 # PeakSkills
 
-PeakSkills is a server-side Fabric RPG progression mod for Minecraft. It adds skills,
-levels, stat bonuses, pets, collections, custom fishing rewards, and quality of life
-systems built for survival servers.
+![Minecraft](https://img.shields.io/badge/Minecraft-1.21.11-62B47A?style=for-the-badge)
+![Fabric](https://img.shields.io/badge/Fabric-Server--Side-F9A03F?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-4C6FFF?style=for-the-badge)
+
+**Turn vanilla survival into a long-term RPG grind, without making players install
+anything.**
+
+PeakSkills is a server-side Fabric progression mod for Minecraft. It adds skills,
+levels, stats, pets, collections, custom fishing rewards, and quality of life systems
+that make normal survival feel more rewarding over time.
 
 - [Modrinth](https://modrinth.com/mod/peakskills)
 - [CurseForge](https://www.curseforge.com/minecraft/mc-mods/peakskills)
+
+`skills` `stats` `pets` `collections` `server-side` `survival progression`
 
 ## Requirements
 
