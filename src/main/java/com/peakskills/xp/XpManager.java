@@ -27,6 +27,8 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -35,9 +37,12 @@ public class XpManager {
 
     /** Ticks the boss bar stays visible after the last XP gain (~3 s). */
     private static final int BAR_DURATION = 60;
+    private static final int LEVEL_UP_SOUND_LIMIT = 5;
+    private static final long LEVEL_UP_SOUND_WINDOW_MS = 5 * 60 * 1000L;
 
     private static final Map<UUID, ServerBossBar> activeBars   = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer>       barCountdown = new ConcurrentHashMap<>();
+    private static final Map<UUID, Deque<Long>>   levelUpSoundWindow = new ConcurrentHashMap<>();
 
     /** Call once from PeakSkills.onInitialize() to register the tick cleaner. */
     public static void register() {
@@ -223,13 +228,15 @@ public class XpManager {
     private static void onLevelUp(ServerPlayerEntity player, Skill skill, int from, int to) {
         StatManager.applyStats(player);
 
-        // Level-up sound (plays only for this player)
-        player.networkHandler.sendPacket(new PlaySoundS2CPacket(
-            RegistryEntry.of(SoundEvents.ENTITY_PLAYER_LEVELUP),
-            SoundCategory.PLAYERS,
-            player.getX(), player.getY(), player.getZ(),
-            1.0f, 1.0f, 0L
-        ));
+        if (shouldPlayLevelUpSound(player, from, to)) {
+            // Level-up sound (plays only for this player)
+            player.networkHandler.sendPacket(new PlaySoundS2CPacket(
+                RegistryEntry.of(SoundEvents.ENTITY_PLAYER_LEVELUP),
+                SoundCategory.PLAYERS,
+                player.getX(), player.getY(), player.getZ(),
+                1.0f, 1.0f, 0L
+            ));
+        }
 
         Formatting skillColor = skillFormatting(skill);
         String sep = "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬";
@@ -302,6 +309,26 @@ public class XpManager {
                 .append(reward.getName().copy().formatted(Formatting.YELLOW))
                 .append(Text.literal(" x" + reward.getCount()).formatted(Formatting.WHITE)),
             false);
+    }
+
+    private static boolean shouldPlayLevelUpSound(ServerPlayerEntity player, int from, int to) {
+        PlayerData data = PlayerDataManager.get(player.getUuid());
+        if (!data.shouldLimitBurstLevelUpSounds()) return true;
+
+        int levelsGained = Math.max(1, to - from);
+        long now = System.currentTimeMillis();
+        Deque<Long> timestamps = levelUpSoundWindow.computeIfAbsent(player.getUuid(),
+            uuid -> new ArrayDeque<>());
+
+        while (!timestamps.isEmpty() && now - timestamps.peekFirst() > LEVEL_UP_SOUND_WINDOW_MS) {
+            timestamps.removeFirst();
+        }
+
+        for (int i = 0; i < levelsGained; i++) {
+            timestamps.addLast(now);
+        }
+
+        return timestamps.size() <= LEVEL_UP_SOUND_LIMIT;
     }
 
     private static net.minecraft.item.ItemStack milestoneReward(Skill skill, int level) {

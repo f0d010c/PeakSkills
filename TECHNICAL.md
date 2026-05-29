@@ -27,6 +27,7 @@ com.peakskills
 │   ├── SkillsGui.java           — skill list GUI (54-slot chest)
 │   ├── SkillDetailGui.java      — single skill detail view
 │   ├── ProfileGui.java          — stat overview + skill grid
+│   ├── SettingsGui.java         — player preference toggles
 │   ├── PetMenuGui.java          — pet roster GUI with filter tabs + visibility toggle
 │   ├── PetBreederGui.java       — craft pet eggs GUI
 │   ├── CollectionsGui.java      — collection category picker
@@ -92,7 +93,8 @@ StatManager.applyStats(player)
 PlayerDataManager
   → load: world/peakskills/<uuid>.json → gson → PlayerData
   → save: triggered on disconnect + periodic autosave
-  → fields: skills{}, pets[], collections{}, petsVisible, mana, maxMana
+    → fields: skills{}, pets[], collections{}, petsVisible, mana, maxMana
+      settings: limitBurstLevelUpSounds
 ```
 
 ### Pet Display
@@ -214,6 +216,7 @@ private static boolean isOp(CommandContext<ServerCommandSource> ctx) {
 | Max skill level | `XPTable.MAX_LEVEL = 99` | |
 | Max pet slots | `PetRoster.MAX_SLOTS = 21` | |
 | Stat bar update interval | `XpManager` every 40 ticks | ~2 seconds |
+| Level-up ding guard | `XpManager` >5 levels in 5 minutes | Player-toggleable in `/settings` |
 | Replenish distance cap | 8 blocks (squaredDist 64) | |
 | Craft cooldown | 1000ms | `PeakCraftingGui.COOLDOWN_MS` |
 | Custom recipe XP | 500 | hardcoded in `tryCraft()` |

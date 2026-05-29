@@ -241,6 +241,7 @@ public class PlayerDataManager {
         root.addProperty("mana", data.getMana());
         root.addProperty("maxMana", data.getMaxMana());
         root.addProperty("petsVisible", data.isPetsVisible());
+        root.addProperty("limitBurstLevelUpSounds", data.shouldLimitBurstLevelUpSounds());
 
         // Pets
         JsonArray petsArr = new JsonArray();
@@ -285,6 +286,9 @@ public class PlayerDataManager {
 
         if (json.has("maxMana")) data.setMaxMana(json.get("maxMana").getAsDouble());
         if (json.has("petsVisible")) data.setPetsVisible(json.get("petsVisible").getAsBoolean());
+        if (json.has("limitBurstLevelUpSounds")) {
+            data.setLimitBurstLevelUpSounds(json.get("limitBurstLevelUpSounds").getAsBoolean());
+        }
 
         // Pets
         if (json.has("pets")) {

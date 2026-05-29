@@ -55,6 +55,7 @@ A live **action bar** above your hearts shows your current health and defense at
 | `/pets` | Open your pet roster |
 | `/collections` | View your collections progress |
 | `/craft` | Open the custom crafting menu (PeakSkills recipes) |
+| `/settings` | Open your personal PeakSkills settings |
 | `/skilltop [count]` | Leaderboard sorted by combined skill level |
 | `/skillrank` | Your rank in every individual skill |
 
@@ -496,6 +497,10 @@ Right-click a pet in the roster to remove it. The pet is returned to your invent
 ### Pet Visibility
 
 A toggle button in the pet roster (slot 7) shows or hides the floating display entity for your active pet. State persists across sessions.
+
+### Personal Settings
+
+`/settings` opens player-specific toggles. The first setting, **Level-Up Ding Guard**, mutes repeated level-up ding sounds after more than 5 levels are gained within 5 minutes. Level-up messages, rewards, and XP bars still appear.
 
 ### All 18 Pets
 

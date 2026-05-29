@@ -18,6 +18,7 @@ public class PlayerData {
     private double mana;
     private double maxMana = 100;
     private boolean petsVisible = true;
+    private boolean limitBurstLevelUpSounds = true;
 
     public PlayerData(UUID uuid) {
         this.uuid = uuid;
@@ -80,6 +81,11 @@ public class PlayerData {
 
     public boolean isPetsVisible() { return petsVisible; }
     public void setPetsVisible(boolean petsVisible) { this.petsVisible = petsVisible; }
+
+    public boolean shouldLimitBurstLevelUpSounds() { return limitBurstLevelUpSounds; }
+    public void setLimitBurstLevelUpSounds(boolean limitBurstLevelUpSounds) {
+        this.limitBurstLevelUpSounds = limitBurstLevelUpSounds;
+    }
 
     // --- Collections ---
 
