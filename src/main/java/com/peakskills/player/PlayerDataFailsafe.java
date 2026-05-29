@@ -77,9 +77,7 @@ public class PlayerDataFailsafe {
         String ts   = LocalDateTime.now().format(FMT);
         Path   file = dir.resolve(uuid + "_" + ts + ".json");
 
-        try (Writer w = Files.newBufferedWriter(file)) {
-            GSON.toJson(json, w);
-        }
+        PlayerDataManager.writeJsonAtomic(file, json);
 
         PeakLog.info("[Failsafe] Backed up {} → {}", uuid, file.getFileName());
         return file;

@@ -1,6 +1,6 @@
 # PeakSkills
 
-A Fabric mod for Minecraft 1.21.x that adds an OSRS-inspired skill progression system to vanilla survival. Sixteen skills level up through normal gameplay, unlocking passive stat bonuses, abilities, and a pet system — without replacing or bypassing any vanilla mechanics.
+A Fabric mod for Minecraft 1.21.11 that adds an OSRS-inspired skill progression system to vanilla survival. Sixteen skills level up through normal gameplay, unlocking passive stat bonuses, abilities, and a pet system — without replacing or bypassing any vanilla mechanics.
 
 ---
 
@@ -36,8 +36,8 @@ A live **action bar** above your hearts shows your current health and defense at
 ## Installation
 
 **Requirements**
-- Minecraft 1.21.x (Fabric)
-- Fabric Loader 0.16+
+- Minecraft 1.21.11 (Fabric)
+- Fabric Loader 0.18.2+
 - Fabric API
 
 **Server-side only.** Players do not need the mod installed on their client. Drop the jar into your server's `mods/` folder and restart.

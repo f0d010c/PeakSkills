@@ -7,11 +7,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * A player's full pet collection — 1 active + up to 20 passive slots.
+ * A player's full pet collection. One pet can be active at a time.
  */
 public class PetRoster {
 
-    public static final int MAX_SLOTS = 20;
+    public static final int MAX_SLOTS = 21;
 
     private final List<PetInstance> pets = new ArrayList<>();
 

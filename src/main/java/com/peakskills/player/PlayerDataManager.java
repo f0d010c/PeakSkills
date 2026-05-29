@@ -181,10 +181,39 @@ public class PlayerDataManager {
         if (dataDir == null) return;
         Path file = dataDir.resolve(data.getUuid() + ".json");
 
-        try (Writer writer = Files.newBufferedWriter(file)) {
-            GSON.toJson(toJson(data), writer);
+        try {
+            writeJsonAtomic(file, toJson(data));
         } catch (IOException e) {
             PeakLog.error("Failed to save data for {}", data.getUuid(), e);
+        }
+    }
+
+    static void writeJsonAtomic(Path file, JsonObject json) throws IOException {
+        Files.createDirectories(file.getParent());
+        Path temp = Files.createTempFile(file.getParent(), file.getFileName().toString(), ".tmp");
+
+        boolean moved = false;
+        try (Writer writer = Files.newBufferedWriter(temp)) {
+            GSON.toJson(json, writer);
+        }
+
+        try {
+            Files.move(temp, file,
+                StandardCopyOption.REPLACE_EXISTING,
+                StandardCopyOption.ATOMIC_MOVE);
+            moved = true;
+        } catch (AtomicMoveNotSupportedException e) {
+            Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING);
+            moved = true;
+        } finally {
+            if (!moved) {
+                try {
+                    Files.deleteIfExists(temp);
+                } catch (IOException cleanupError) {
+                    PeakLog.warn("Failed to clean up temp player data file {}: {}",
+                        temp.getFileName(), cleanupError.getMessage());
+                }
+            }
         }
     }
 
