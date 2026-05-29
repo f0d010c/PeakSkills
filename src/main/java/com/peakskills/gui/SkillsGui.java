@@ -72,7 +72,8 @@ public class SkillsGui {
         }
 
         // Refresh button — slot 49
-        handlers.put(49, () -> SkillsGui.open(viewer, PlayerDataManager.get(viewer.getUuid()), ownerName));
+        handlers.put(49, () -> populate(inv, PlayerDataManager.get(viewer.getUuid()), ownerName));
+        handlers.put(48, () -> SettingsGui.open(viewer));
 
         viewer.openHandledScreen(new SimpleNamedScreenHandlerFactory(
             (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers),
@@ -83,9 +84,17 @@ public class SkillsGui {
     // ── Build ─────────────────────────────────────────────────────────────────
 
     private static void populate(SimpleInventory inv, PlayerData data, String ownerName) {
-        // Gray background
-        ItemStack bg = pane(Items.GRAY_STAINED_GLASS_PANE, " ");
+        ItemStack border = pane(Items.GRAY_STAINED_GLASS_PANE, " ");
+        ItemStack bg = pane(Items.BLACK_STAINED_GLASS_PANE, " ");
         for (int i = 0; i < 54; i++) inv.setStack(i, bg.copy());
+        for (int i = 0; i < 9; i++) {
+            inv.setStack(i, border.copy());
+            inv.setStack(45 + i, border.copy());
+        }
+        for (int row = 1; row <= 4; row++) {
+            inv.setStack(row * 9, border.copy());
+            inv.setStack(row * 9 + 8, border.copy());
+        }
 
         // Header title (slot 4) — diamond sword as the "skills" icon
         ItemStack header = new ItemStack(Items.NETHER_STAR);
@@ -100,6 +109,13 @@ public class SkillsGui {
             Text.literal("  Click a skill to view its leveling path").formatted(Formatting.DARK_GRAY)
         )));
         inv.setStack(4, header);
+
+        inv.setStack(9, sectionItem(Items.IRON_PICKAXE, "Gathering", Formatting.GREEN,
+            "Mining, Woodcutting, Excavating, Farming, Fishing"));
+        inv.setStack(18, sectionItem(Items.IRON_SWORD, "Combat", Formatting.RED,
+            "Defense, Slaying, Ranged, Smithing, Cooking"));
+        inv.setStack(27, sectionItem(Items.BOOK, "Mastery", Formatting.LIGHT_PURPLE,
+            "Crafting, Enchanting, Alchemy, Agility, Taming, Trading"));
 
         // Skill icons
         for (int i = 0; i < GATHERING.length; i++)
@@ -130,6 +146,14 @@ public class SkillsGui {
             Text.literal("  Click to reload your skill data").formatted(Formatting.DARK_GRAY)
         )));
         inv.setStack(49, refresh);
+
+        ItemStack settings = new ItemStack(Items.COMPARATOR);
+        settings.set(DataComponentTypes.CUSTOM_NAME,
+            Text.literal("Settings").formatted(Formatting.AQUA, Formatting.BOLD));
+        settings.set(DataComponentTypes.LORE, new LoreComponent(List.of(
+            Text.literal("  Open your PeakSkills settings").formatted(Formatting.DARK_GRAY)
+        )));
+        inv.setStack(48, settings);
     }
 
     // ── Skill icon ────────────────────────────────────────────────────────────
@@ -223,6 +247,16 @@ public class SkillsGui {
         ItemStack s = new ItemStack(item);
         s.set(DataComponentTypes.CUSTOM_NAME, Text.literal(name));
         return s;
+    }
+
+    private static ItemStack sectionItem(Item item, String name, Formatting color, String subtitle) {
+        ItemStack stack = new ItemStack(item);
+        stack.set(DataComponentTypes.CUSTOM_NAME,
+            Text.literal(name).formatted(color, Formatting.BOLD));
+        stack.set(DataComponentTypes.LORE, new LoreComponent(List.of(
+            Text.literal("  " + subtitle).formatted(Formatting.DARK_GRAY)
+        )));
+        return stack;
     }
 
     private static Text separator() {
