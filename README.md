@@ -14,8 +14,6 @@ that make normal survival feel more rewarding over time.
 - [Modrinth](https://modrinth.com/mod/peakskills)
 - [CurseForge](https://www.curseforge.com/minecraft/mc-mods/peakskills)
 
-`skills` `stats` `pets` `collections` `server-side` `survival progression`
-
 ## Requirements
 
 - Minecraft `1.21.11`
