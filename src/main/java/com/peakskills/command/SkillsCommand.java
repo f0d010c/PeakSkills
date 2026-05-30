@@ -6,7 +6,6 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import java.util.UUID;
 import com.peakskills.config.PeakConfig;
 import com.peakskills.fishing.event.FishingCommunityEventManager;
-import com.peakskills.fishing.item.FishingItemRegistry;
 import com.peakskills.gui.SkillsGui;
 import com.peakskills.player.PlayerData;
 import com.peakskills.player.PlayerDataFailsafe;
@@ -16,8 +15,6 @@ import com.peakskills.skill.XPTable;
 import com.peakskills.stat.StatManager;
 import com.peakskills.xp.XpManager;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.command.CommandSource;
-import net.minecraft.item.ItemStack;
 import net.minecraft.server.PlayerConfigEntry;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -205,26 +202,6 @@ public class SkillsCommand {
                                 if (target == null) { ctx.getSource().sendError(Text.literal("Player not found: " + name)); return 0; }
                                 return doRestore(ctx.getSource(), target);
                             })
-                        )
-                    )
-                    // /skills givefishingitem <player> <item_id> [amount]
-                    .then(CommandManager.literal("givefishingitem")
-                        .requires(SkillsCommand::isOp)
-                        .then(CommandManager.argument("player", StringArgumentType.word())
-                            .then(CommandManager.argument("item_id", StringArgumentType.word())
-                                .suggests((ctx, builder) -> CommandSource.suggestMatching(
-                                    FishingItemRegistry.all().stream().map(i -> i.id()).toList(), builder))
-                                .executes(ctx -> giveFishingItem(ctx.getSource(),
-                                    StringArgumentType.getString(ctx, "player"),
-                                    StringArgumentType.getString(ctx, "item_id"),
-                                    1))
-                                .then(CommandManager.argument("amount", IntegerArgumentType.integer(1, 64))
-                                    .executes(ctx -> giveFishingItem(ctx.getSource(),
-                                        StringArgumentType.getString(ctx, "player"),
-                                        StringArgumentType.getString(ctx, "item_id"),
-                                        IntegerArgumentType.getInteger(ctx, "amount")))
-                                )
-                            )
                         )
                     )
                     // /skills fishingevent <status|start|stop>
@@ -427,29 +404,6 @@ public class SkillsCommand {
             src.sendError(Text.literal("Restore failed: " + e.getMessage()));
             return 0;
         }
-    }
-
-    private static int giveFishingItem(ServerCommandSource source, String playerName, String itemId, int amount) {
-        ServerPlayerEntity target = resolvePlayer(source.getServer(), playerName);
-        if (target == null) {
-            source.sendError(Text.literal("Player not found: " + playerName));
-            return 0;
-        }
-
-        var def = FishingItemRegistry.get(itemId);
-        if (def.isEmpty()) {
-            source.sendError(Text.literal("Unknown fishing item: " + itemId));
-            return 0;
-        }
-
-        for (int i = 0; i < amount; i++) {
-            ItemStack stack = FishingItemRegistry.create(itemId);
-            if (!target.getInventory().insertStack(stack)) target.dropItem(stack, false);
-        }
-
-        source.sendFeedback(() -> Text.literal("Gave " + amount + "x " + def.get().displayName()
-            + " to " + target.getName().getString()).formatted(Formatting.GREEN), true);
-        return 1;
     }
 
     private static int startFishingEvent(ServerCommandSource source, int goal, int minutes) {

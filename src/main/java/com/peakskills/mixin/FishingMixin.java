@@ -4,10 +4,8 @@ import com.peakskills.collection.CollectionRewardHandler;
 import com.peakskills.collection.CollectionTier;
 import com.peakskills.collection.CollectionType;
 import com.peakskills.config.PeakConfig;
-import com.peakskills.fishing.event.FishingCommunityEventManager;
 import com.peakskills.fishing.FishingLootTable;
-import com.peakskills.fishing.item.FishingItemDef;
-import com.peakskills.fishing.item.FishingItemHelper;
+import com.peakskills.fishing.event.FishingCommunityEventManager;
 import com.peakskills.player.PlayerData;
 import com.peakskills.player.PlayerDataManager;
 import com.peakskills.skill.Skill;
@@ -24,96 +22,89 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
-import java.util.List;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.Collections;
-import java.util.Set;
-import java.util.UUID;
+import java.util.List;
 
 @Mixin(FishingBobberEntity.class)
 public class FishingMixin {
 
-    // Track which bobber UUIDs have already dispensed custom loot.
-    private static final Set<UUID> usedBobbers =
-        Collections.synchronizedSet(Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>()));
+    @Shadow
+    private boolean caughtFish;
 
-    @Inject(method = "use", at = @At("RETURN"))
+    @Inject(method = "use", at = @At("HEAD"), cancellable = true)
     private void onReel(ItemStack usedItem, CallbackInfoReturnable<Integer> cir) {
-        int count = cir.getReturnValue();
-        if (count <= 0) return;
-
         FishingBobberEntity self = (FishingBobberEntity)(Object) this;
 
-        // Only award XP/loot when the bobber is actually in water.
-        // isTouchingWater() returns false when reeling in a ground item or casting on dry land.
+        if (!PeakConfig.get().fishingOverhaulEnabled) return;
+
+        if (self.getHookedEntity() != null) {
+            cancelAndRemove(self, cir, 0);
+            return;
+        }
+
+        if (!caughtFish) return;
+
         if (!self.isTouchingWater()) {
-            // Also check the block at/below the bobber in case it's right at the surface
             BlockPos pos = self.getBlockPos();
             boolean waterBelow = self.getEntityWorld().getFluidState(pos).isIn(FluidTags.WATER)
                 || self.getEntityWorld().getFluidState(pos.down()).isIn(FluidTags.WATER);
-            if (!waterBelow) return;
-        }
-        if (!PeakConfig.get().fishingOverhaulEnabled) return;
-
-        // Each bobber should only give custom loot once
-        UUID bobberUuid = self.getUuid();
-        if (!usedBobbers.add(bobberUuid)) return;
-
-        if (!(self.getPlayerOwner() instanceof ServerPlayerEntity player)) return;
-        net.minecraft.server.MinecraftServer mcServer = PlayerDataManager.getServer();
-        if (mcServer == null) return;
-        if (!(self.getEntityWorld() instanceof ServerWorld sw)) return;
-
-        // ── Custom loot roll ──────────────────────────────────────────────────
-        PlayerData data      = PlayerDataManager.get(player.getUuid());
-        int fishingLevel     = data.getLevel(Skill.FISHING);
-        int effectiveLevelBonus = 0;
-        double itemXpBonus = 0.0;
-        int eventContribution = 1;
-
-        var fishingItem = FishingItemHelper.get(usedItem);
-        if (fishingItem.isPresent()) {
-            FishingItemDef def = fishingItem.get();
-            if (fishingLevel >= def.requiredFishingLevel()) {
-                effectiveLevelBonus += def.effectiveLevelBonus();
-                itemXpBonus += def.fishingXpBonus();
-                eventContribution += def.eventContributionBonus();
-            } else {
-                player.sendMessage(Text.literal("Requires Fishing " + def.requiredFishingLevel()
-                    + " to use " + def.displayName() + ".").formatted(Formatting.RED), true);
+            if (!waterBelow) {
+                cancelAndRemove(self, cir, 0);
                 return;
             }
         }
+
+        if (!(self.getPlayerOwner() instanceof ServerPlayerEntity player)) {
+            cancelAndRemove(self, cir, 0);
+            return;
+        }
+        net.minecraft.server.MinecraftServer mcServer = PlayerDataManager.getServer();
+        if (mcServer == null) {
+            cancelAndRemove(self, cir, 0);
+            return;
+        }
+        if (!(self.getEntityWorld() instanceof ServerWorld sw)) {
+            cancelAndRemove(self, cir, 0);
+            return;
+        }
+
+        PlayerData data = PlayerDataManager.get(player.getUuid());
+        int fishingLevel = data.getLevel(Skill.FISHING);
+        int effectiveLevelBonus = 0;
+        int eventContribution = 1;
 
         double luckRaw = 0;
         var luckAttr = player.getAttributeInstance(Stat.LUCK.getAttribute());
         if (luckAttr != null) luckRaw = luckAttr.getValue();
 
         FishingLootTable.RollResult result = FishingLootTable.roll(fishingLevel + effectiveLevelBonus, luckRaw, sw.getRandom());
-        if (result == null || result.stack().isEmpty()) return;
+        if (result == null || result.stack().isEmpty()) {
+            cancelAndRemove(self, cir, 1);
+            return;
+        }
 
         ItemStack loot = result.stack();
 
-        // ── Fishing XP — scaled by rarity of the catch ────────────────────────
         double abilityMult = SkillAbilityRegistry.getFlatXpMultiplier(Skill.FISHING, fishingLevel);
         double configMult = PeakConfig.get().fishingXpMultiplier;
-        long fishingXp = Math.max(1L, Math.round(result.xp() * abilityMult * configMult * (1.0 + itemXpBonus)));
+        long fishingXp = Math.max(1L, Math.round(result.xp() * abilityMult * configMult));
         XpManager.addXp(player, Skill.FISHING, fishingXp);
         FishingCommunityEventManager.recordCatch(player, eventContribution);
 
-        // ── Fishing collections ───────────────────────────────────────────────
         CollectionType fishCol = fishCollection(loot);
         if (fishCol != null) {
             List<CollectionTier> newTiers = data.getCollections().increment(fishCol, 1);
             CollectionRewardHandler.apply(player, fishCol, newTiers, mcServer);
         }
 
-        // ── Spawn item near bobber, angled toward player ───────────────────────
-        double x = self.getX(), y = self.getY(), z = self.getZ();
+        double x = self.getX();
+        double y = self.getY();
+        double z = self.getZ();
         ItemEntity ie = new ItemEntity(sw, x, y, z, loot);
         double dx = player.getX() - x;
         double dy = player.getY() - y + 0.5;
@@ -121,29 +112,35 @@ public class FishingMixin {
         double speed = 0.1;
         ie.setVelocity(
             dx * speed,
-            dy * speed + Math.sqrt(Math.sqrt(dx*dx + dy*dy + dz*dz)) * 0.08,
+            dy * speed + Math.sqrt(Math.sqrt(dx * dx + dy * dy + dz * dz)) * 0.08,
             dz * speed
         );
         sw.spawnEntity(ie);
 
-        // ── Action bar catch message ──────────────────────────────────────────
         player.sendMessage(
-            Text.literal("✦ ").formatted(Formatting.GOLD)
+            Text.literal("* ").formatted(Formatting.GOLD)
                 .append(Text.literal("Caught: ").formatted(Formatting.GRAY))
                 .append(loot.getName()),
             true
         );
+
+        cancelAndRemove(self, cir, 1);
+    }
+
+    private static void cancelAndRemove(FishingBobberEntity bobber, CallbackInfoReturnable<Integer> cir, int returnValue) {
+        cir.setReturnValue(returnValue);
+        bobber.discard();
     }
 
     private static CollectionType fishCollection(ItemStack stack) {
-        if (stack.isOf(Items.COD))               return CollectionType.COD;
-        if (stack.isOf(Items.SALMON))            return CollectionType.SALMON;
-        if (stack.isOf(Items.PUFFERFISH))        return CollectionType.PUFFERFISH;
-        if (stack.isOf(Items.TROPICAL_FISH))     return CollectionType.TROPICAL_FISH;
-        if (stack.isOf(Items.LILY_PAD))          return CollectionType.LILY_PAD;
-        if (stack.isOf(Items.INK_SAC))           return CollectionType.INK_SAC;
-        if (stack.isOf(Items.NAUTILUS_SHELL))    return CollectionType.NAUTILUS_SHELL;
-        if (stack.isOf(Items.PRISMARINE_SHARD))  return CollectionType.PRISMARINE;
+        if (stack.isOf(Items.COD)) return CollectionType.COD;
+        if (stack.isOf(Items.SALMON)) return CollectionType.SALMON;
+        if (stack.isOf(Items.PUFFERFISH)) return CollectionType.PUFFERFISH;
+        if (stack.isOf(Items.TROPICAL_FISH)) return CollectionType.TROPICAL_FISH;
+        if (stack.isOf(Items.LILY_PAD)) return CollectionType.LILY_PAD;
+        if (stack.isOf(Items.INK_SAC)) return CollectionType.INK_SAC;
+        if (stack.isOf(Items.NAUTILUS_SHELL)) return CollectionType.NAUTILUS_SHELL;
+        if (stack.isOf(Items.PRISMARINE_SHARD)) return CollectionType.PRISMARINE;
         return null;
     }
 }
