@@ -63,11 +63,7 @@ public class SkillDetailGui {
         populate(inv, data, skill, page);
 
         Map<Integer, Runnable> handlers = new HashMap<>();
-        handlers.put(0, () -> SkillsGui.open(player));
-        if (page > 0)
-            handlers.put(45, () -> open(player, PlayerDataManager.get(player.getUuid()), skill, page - 1));
-        if (page < MAX_PAGE)
-            handlers.put(49, () -> open(player, PlayerDataManager.get(player.getUuid()), skill, page + 1));
+        configureHandlers(inv, handlers, player, skill, page);
 
         player.openHandledScreen(new SimpleNamedScreenHandlerFactory(
             (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers),
@@ -76,6 +72,25 @@ public class SkillDetailGui {
     }
 
     // ── Populate ──────────────────────────────────────────────────────────────
+
+    private static void configureHandlers(SimpleInventory inv, Map<Integer, Runnable> handlers,
+                                          ServerPlayerEntity player, Skill skill, int page) {
+        handlers.clear();
+        handlers.put(0, () -> SkillsGui.open(player));
+        if (page > 0) {
+            handlers.put(45, () -> refreshPage(inv, handlers, player, skill, page - 1));
+        }
+        if (page < MAX_PAGE) {
+            handlers.put(49, () -> refreshPage(inv, handlers, player, skill, page + 1));
+        }
+    }
+
+    private static void refreshPage(SimpleInventory inv, Map<Integer, Runnable> handlers,
+                                    ServerPlayerEntity player, Skill skill, int page) {
+        populate(inv, PlayerDataManager.get(player.getUuid()), skill, page);
+        configureHandlers(inv, handlers, player, skill, page);
+        inv.markDirty();
+    }
 
     private static void populate(SimpleInventory inv, PlayerData data, Skill skill, int page) {
         // Gray background everywhere
