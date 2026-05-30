@@ -116,16 +116,6 @@ public class SkillsGui {
         )));
         inv.setStack(4, header);
 
-        inv.setStack(10, sectionItem(Items.LIME_CONCRETE, "Gathering", Formatting.GREEN,
-            "Mining, Woodcutting, Excavating, Farming, Fishing"));
-        inv.setStack(16, pane(Items.LIME_STAINED_GLASS_PANE, " "));
-        inv.setStack(19, sectionItem(Items.RED_CONCRETE, "Combat", Formatting.RED,
-            "Defense, Slaying, Ranged, Smithing, Cooking"));
-        inv.setStack(25, pane(Items.RED_STAINED_GLASS_PANE, " "));
-        inv.setStack(28, sectionItem(Items.PURPLE_CONCRETE, "Mastery", Formatting.LIGHT_PURPLE,
-            "Crafting, Enchanting, Alchemy, Agility, Taming, Trading"));
-        inv.setStack(35, pane(Items.PURPLE_STAINED_GLASS_PANE, " "));
-
         // Skill icons
         for (int i = 0; i < GATHERING.length; i++)
             inv.setStack(GATHER_SLOTS[i],  skillIcon(GATHERING[i], data));
