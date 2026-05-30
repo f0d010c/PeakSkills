@@ -4,6 +4,9 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.LongArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import java.util.UUID;
+import com.peakskills.config.PeakConfig;
+import com.peakskills.fishing.event.FishingCommunityEventManager;
+import com.peakskills.fishing.item.FishingItemRegistry;
 import com.peakskills.gui.SkillsGui;
 import com.peakskills.player.PlayerData;
 import com.peakskills.player.PlayerDataFailsafe;
@@ -13,6 +16,8 @@ import com.peakskills.skill.XPTable;
 import com.peakskills.stat.StatManager;
 import com.peakskills.xp.XpManager;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.command.CommandSource;
+import net.minecraft.item.ItemStack;
 import net.minecraft.server.PlayerConfigEntry;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -202,6 +207,58 @@ public class SkillsCommand {
                             })
                         )
                     )
+                    // /skills givefishingitem <player> <item_id> [amount]
+                    .then(CommandManager.literal("givefishingitem")
+                        .requires(SkillsCommand::isOp)
+                        .then(CommandManager.argument("player", StringArgumentType.word())
+                            .then(CommandManager.argument("item_id", StringArgumentType.word())
+                                .suggests((ctx, builder) -> CommandSource.suggestMatching(
+                                    FishingItemRegistry.all().stream().map(i -> i.id()).toList(), builder))
+                                .executes(ctx -> giveFishingItem(ctx.getSource(),
+                                    StringArgumentType.getString(ctx, "player"),
+                                    StringArgumentType.getString(ctx, "item_id"),
+                                    1))
+                                .then(CommandManager.argument("amount", IntegerArgumentType.integer(1, 64))
+                                    .executes(ctx -> giveFishingItem(ctx.getSource(),
+                                        StringArgumentType.getString(ctx, "player"),
+                                        StringArgumentType.getString(ctx, "item_id"),
+                                        IntegerArgumentType.getInteger(ctx, "amount")))
+                                )
+                            )
+                        )
+                    )
+                    // /skills fishingevent <status|start|stop>
+                    .then(CommandManager.literal("fishingevent")
+                        .requires(SkillsCommand::isOp)
+                        .then(CommandManager.literal("status")
+                            .executes(ctx -> {
+                                ctx.getSource().sendFeedback(FishingCommunityEventManager::statusText, false);
+                                return 1;
+                            })
+                        )
+                        .then(CommandManager.literal("start")
+                            .executes(ctx -> startFishingEvent(ctx.getSource(),
+                                PeakConfig.get().defaultCommunityFishingGoal,
+                                PeakConfig.get().defaultCommunityFishingMinutes))
+                            .then(CommandManager.argument("goal", IntegerArgumentType.integer(1, 1_000_000))
+                                .then(CommandManager.argument("minutes", IntegerArgumentType.integer(1, 1440))
+                                    .executes(ctx -> startFishingEvent(ctx.getSource(),
+                                        IntegerArgumentType.getInteger(ctx, "goal"),
+                                        IntegerArgumentType.getInteger(ctx, "minutes")))
+                                )
+                            )
+                        )
+                        .then(CommandManager.literal("stop")
+                            .executes(ctx -> {
+                                boolean stopped = FishingCommunityEventManager.stop(ctx.getSource().getServer());
+                                if (!stopped) {
+                                    ctx.getSource().sendError(Text.literal("No Fishing Event is active."));
+                                    return 0;
+                                }
+                                return 1;
+                            })
+                        )
+                    )
             )
         );
 
@@ -370,6 +427,38 @@ public class SkillsCommand {
             src.sendError(Text.literal("Restore failed: " + e.getMessage()));
             return 0;
         }
+    }
+
+    private static int giveFishingItem(ServerCommandSource source, String playerName, String itemId, int amount) {
+        ServerPlayerEntity target = resolvePlayer(source.getServer(), playerName);
+        if (target == null) {
+            source.sendError(Text.literal("Player not found: " + playerName));
+            return 0;
+        }
+
+        var def = FishingItemRegistry.get(itemId);
+        if (def.isEmpty()) {
+            source.sendError(Text.literal("Unknown fishing item: " + itemId));
+            return 0;
+        }
+
+        for (int i = 0; i < amount; i++) {
+            ItemStack stack = FishingItemRegistry.create(itemId);
+            if (!target.getInventory().insertStack(stack)) target.dropItem(stack, false);
+        }
+
+        source.sendFeedback(() -> Text.literal("Gave " + amount + "x " + def.get().displayName()
+            + " to " + target.getName().getString()).formatted(Formatting.GREEN), true);
+        return 1;
+    }
+
+    private static int startFishingEvent(ServerCommandSource source, int goal, int minutes) {
+        boolean started = FishingCommunityEventManager.start(source.getServer(), goal, minutes);
+        if (!started) {
+            source.sendError(Text.literal("Fishing Event could not start. It may already be active or disabled."));
+            return 0;
+        }
+        return 1;
     }
 
     private static boolean isOp(ServerCommandSource src) {

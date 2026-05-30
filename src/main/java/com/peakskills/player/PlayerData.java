@@ -11,6 +11,8 @@ import java.util.UUID;
 
 public class PlayerData {
 
+    public static final int DATA_VERSION = 2;
+
     private final UUID uuid;
     private final Map<Skill, Long> xp = new EnumMap<>(Skill.class);
     private final PetRoster petRoster = new PetRoster();
@@ -19,6 +21,7 @@ public class PlayerData {
     private double maxMana = 100;
     private boolean petsVisible = true;
     private boolean limitBurstLevelUpSounds = true;
+    private int dataVersion = DATA_VERSION;
 
     public PlayerData(UUID uuid) {
         this.uuid = uuid;
@@ -96,4 +99,10 @@ public class PlayerData {
     public UUID getUuid() { return uuid; }
 
     public Map<Skill, Long> getXpMap() { return xp; }
+
+    public int getDataVersion() { return dataVersion; }
+
+    public void setDataVersion(int dataVersion) {
+        this.dataVersion = Math.max(1, Math.min(DATA_VERSION, dataVersion));
+    }
 }

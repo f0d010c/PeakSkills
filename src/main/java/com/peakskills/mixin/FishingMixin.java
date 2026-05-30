@@ -3,10 +3,15 @@ package com.peakskills.mixin;
 import com.peakskills.collection.CollectionRewardHandler;
 import com.peakskills.collection.CollectionTier;
 import com.peakskills.collection.CollectionType;
+import com.peakskills.config.PeakConfig;
+import com.peakskills.fishing.event.FishingCommunityEventManager;
 import com.peakskills.fishing.FishingLootTable;
+import com.peakskills.fishing.item.FishingItemDef;
+import com.peakskills.fishing.item.FishingItemHelper;
 import com.peakskills.player.PlayerData;
 import com.peakskills.player.PlayerDataManager;
 import com.peakskills.skill.Skill;
+import com.peakskills.skill.SkillAbilityRegistry;
 import com.peakskills.stat.Stat;
 import com.peakskills.xp.XpManager;
 import net.minecraft.entity.ItemEntity;
@@ -52,6 +57,7 @@ public class FishingMixin {
                 || self.getEntityWorld().getFluidState(pos.down()).isIn(FluidTags.WATER);
             if (!waterBelow) return;
         }
+        if (!PeakConfig.get().fishingOverhaulEnabled) return;
 
         // Each bobber should only give custom loot once
         UUID bobberUuid = self.getUuid();
@@ -60,23 +66,44 @@ public class FishingMixin {
         if (!(self.getPlayerOwner() instanceof ServerPlayerEntity player)) return;
         net.minecraft.server.MinecraftServer mcServer = PlayerDataManager.getServer();
         if (mcServer == null) return;
-        ServerWorld sw = mcServer.getOverworld();
+        if (!(self.getEntityWorld() instanceof ServerWorld sw)) return;
 
         // ── Custom loot roll ──────────────────────────────────────────────────
         PlayerData data      = PlayerDataManager.get(player.getUuid());
         int fishingLevel     = data.getLevel(Skill.FISHING);
+        int effectiveLevelBonus = 0;
+        double itemXpBonus = 0.0;
+        int eventContribution = 1;
+
+        var fishingItem = FishingItemHelper.get(usedItem);
+        if (fishingItem.isPresent()) {
+            FishingItemDef def = fishingItem.get();
+            if (fishingLevel >= def.requiredFishingLevel()) {
+                effectiveLevelBonus += def.effectiveLevelBonus();
+                itemXpBonus += def.fishingXpBonus();
+                eventContribution += def.eventContributionBonus();
+            } else {
+                player.sendMessage(Text.literal("Requires Fishing " + def.requiredFishingLevel()
+                    + " to use " + def.displayName() + ".").formatted(Formatting.RED), true);
+                return;
+            }
+        }
 
         double luckRaw = 0;
         var luckAttr = player.getAttributeInstance(Stat.LUCK.getAttribute());
         if (luckAttr != null) luckRaw = luckAttr.getValue();
 
-        FishingLootTable.RollResult result = FishingLootTable.roll(fishingLevel, luckRaw, sw.getRandom());
+        FishingLootTable.RollResult result = FishingLootTable.roll(fishingLevel + effectiveLevelBonus, luckRaw, sw.getRandom());
         if (result == null || result.stack().isEmpty()) return;
 
         ItemStack loot = result.stack();
 
         // ── Fishing XP — scaled by rarity of the catch ────────────────────────
-        XpManager.addXp(player, Skill.FISHING, result.xp());
+        double abilityMult = SkillAbilityRegistry.getFlatXpMultiplier(Skill.FISHING, fishingLevel);
+        double configMult = PeakConfig.get().fishingXpMultiplier;
+        long fishingXp = Math.max(1L, Math.round(result.xp() * abilityMult * configMult * (1.0 + itemXpBonus)));
+        XpManager.addXp(player, Skill.FISHING, fishingXp);
+        FishingCommunityEventManager.recordCatch(player, eventContribution);
 
         // ── Fishing collections ───────────────────────────────────────────────
         CollectionType fishCol = fishCollection(loot);

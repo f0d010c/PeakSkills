@@ -8,6 +8,8 @@ import com.peakskills.command.PetsCommand;
 import com.peakskills.command.ProfileCommand;
 import com.peakskills.command.SettingsCommand;
 import com.peakskills.command.SkillsCommand;
+import com.peakskills.config.PeakConfig;
+import com.peakskills.fishing.event.FishingCommunityEventManager;
 import com.peakskills.pet.PetDisplayManager;
 import com.peakskills.pet.PetEggHandler;
 import com.peakskills.player.PlayerDataFailsafe;
@@ -26,7 +28,9 @@ public class PeakSkills implements ModInitializer {
     @Override
     public void onInitialize() {
         PeakLog.info("PeakSkills initializing...");
+        PeakConfig.register();
         PlayerDataManager.register();
+        FishingCommunityEventManager.register();
         PlayerDataFailsafe.register();
         XpManager.register();
         SkillEvents.register();

@@ -232,6 +232,7 @@ public class PlayerDataManager {
     static JsonObject toJson(PlayerData data) {
         JsonObject root = new JsonObject();
         root.addProperty("uuid", data.getUuid().toString());
+        root.addProperty("dataVersion", PlayerData.DATA_VERSION);
 
         JsonObject xpObj = new JsonObject();
         for (Skill skill : Skill.values()) {
@@ -273,6 +274,7 @@ public class PlayerDataManager {
 
     static PlayerData fromJson(UUID uuid, JsonObject json) {
         PlayerData data = new PlayerData(uuid);
+        data.setDataVersion(json.has("dataVersion") ? json.get("dataVersion").getAsInt() : 1);
 
         if (json.has("xp")) {
             JsonObject xpObj = json.getAsJsonObject("xp");
