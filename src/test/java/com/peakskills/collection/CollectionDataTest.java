@@ -8,6 +8,9 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 class CollectionDataTest {
 
@@ -44,5 +47,13 @@ class CollectionDataTest {
         data.increment(type, Long.MAX_VALUE - 2);
         data.increment(type, 10);
         assertEquals(Long.MAX_VALUE, data.getCount(type));
+    }
+
+    @Test
+    void generatedDropsMustMatchTheirCollection() {
+        assertTrue(CollectionRegistry.matchesItem(CollectionType.COBBLESTONE,
+            new ItemStack(Items.COBBLESTONE, 4)));
+        assertFalse(CollectionRegistry.matchesItem(CollectionType.GRAVEL,
+            new ItemStack(Items.COD, 1)));
     }
 }

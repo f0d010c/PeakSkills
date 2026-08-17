@@ -593,6 +593,14 @@ public class CollectionRegistry {
         return Optional.empty();
     }
 
+    /** Returns whether an actual generated drop belongs to the selected collection. */
+    public static boolean matchesItem(CollectionType type, ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        if (stack.is(type.icon)) return true;
+        Block block = Block.byItem(stack.getItem());
+        return block != Blocks.AIR && fromBlock(block.defaultBlockState()).orElse(null) == type;
+    }
+
     // ── Public accessors ──────────────────────────────────────────────────────
 
     public static List<CollectionTier> getTiers(CollectionType type) {

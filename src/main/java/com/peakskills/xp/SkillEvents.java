@@ -39,6 +39,7 @@ public class SkillEvents {
 
     // Pre-counted sugar-cane blocks above the broken block (captured in BEFORE, consumed in AFTER)
     private static final Map<UUID, Integer> pendingCaneExtra = new HashMap<>();
+    private static final Map<UUID, ColumnExtra> pendingColumnCollectionExtra = new HashMap<>();
 
     // Player-placed block positions are persisted via PlacedBlocksState (PersistentState).
     // Retrieved per-call from the server instance — always up-to-date and restart-safe.
@@ -58,15 +59,29 @@ public class SkillEvents {
 
         // Count sugar-cane blocks above BEFORE they auto-break, so AFTER can award XP for all of them.
         PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, be) -> {
-            if (state.getBlock() == net.minecraft.world.level.block.Blocks.SUGAR_CANE
+            net.minecraft.world.level.block.Block column = state.getBlock();
+            if ((column == net.minecraft.world.level.block.Blocks.SUGAR_CANE
+                    || column == net.minecraft.world.level.block.Blocks.BAMBOO
+                    || column == net.minecraft.world.level.block.Blocks.CACTUS)
                     && player instanceof ServerPlayer sp) {
                 int extra = 0;
                 BlockPos scan = pos.above();
-                while (world.getBlockState(scan).getBlock() == net.minecraft.world.level.block.Blocks.SUGAR_CANE) {
+                while (world.getBlockState(scan).getBlock() == column) {
                     extra++;
                     scan = scan.above();
                 }
-                if (extra > 0) pendingCaneExtra.put(sp.getUUID(), extra);
+                if (extra > 0) {
+                    if (column == net.minecraft.world.level.block.Blocks.SUGAR_CANE) {
+                        pendingCaneExtra.put(sp.getUUID(), extra);
+                    }
+                    com.peakskills.collection.CollectionType type =
+                        column == net.minecraft.world.level.block.Blocks.SUGAR_CANE
+                            ? com.peakskills.collection.CollectionType.SUGAR_CANE
+                            : column == net.minecraft.world.level.block.Blocks.BAMBOO
+                                ? com.peakskills.collection.CollectionType.BAMBOO_WOOD
+                                : com.peakskills.collection.CollectionType.CACTUS;
+                    pendingColumnCollectionExtra.put(sp.getUUID(), new ColumnExtra(column, type, extra));
+                }
             }
             return true; // never cancel
         });
@@ -122,28 +137,20 @@ public class SkillEvents {
                     }
                 }
 
-                // ── Collections ───────────────────────────────────────────────
-                // Defer to next tick so item entities from the break are fully
-                // registered, then count actual stack sizes instead of assuming 1.
-                CollectionRegistry.fromBlock(state).ifPresent(colType -> {
-                    final ServerLevel sw2 = (ServerLevel) world;
-                    final BlockPos scanPos = pos;
-                    sw2.getServer().execute(() -> {
-                        net.minecraft.world.phys.AABB box =
-                            new net.minecraft.world.phys.AABB(scanPos).inflate(1.5);
-                        int count = sw2.getEntities(
-                                net.minecraft.world.entity.EntityType.ITEM, box,
-                                e -> e.getItem().is(colType.icon))
-                            .stream().mapToInt(e -> e.getItem().getCount()).sum();
-                        if (count <= 0) count = 1; // fallback for blocks that drop no item entity (e.g. instant-pickup)
-                        List<CollectionTier> newTiers = PlayerDataManager.get(serverPlayer.getUUID())
-                            .getCollections().increment(colType, count);
-                        CollectionRewardHandler.apply(serverPlayer, colType, newTiers, PlayerDataManager.getServer());
-                    });
-                });
+                ColumnExtra columnExtra = pendingColumnCollectionExtra.remove(serverPlayer.getUUID());
+                if (columnExtra != null && columnExtra.block() == state.getBlock()
+                        && columnExtra.amount() > 0) {
+                    List<CollectionTier> newTiers = PlayerDataManager.get(serverPlayer.getUUID())
+                        .getCollections().increment(columnExtra.type(), columnExtra.amount());
+                    CollectionRewardHandler.apply(serverPlayer, columnExtra.type(), newTiers,
+                        PlayerDataManager.getServer());
+                }
             }
         );
     }
+
+    private record ColumnExtra(net.minecraft.world.level.block.Block block,
+                               com.peakskills.collection.CollectionType type, int amount) {}
 
     // -------------------------------------------------------------------------
     // TOOL RESTRICTION — block attack with insufficient skill level
