@@ -1,0 +1,176 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 2 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: peakskills-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-server-tests:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build, run unit tests, and run server GameTests
+        run: ./gradlew build stageProductionServer --stacktrace
+
+      - name: Upload failure reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-test-failure-${{ github.run_id }}
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            build/reports/
+            build/test-results/
+            build/run/gameTest/logs/
+            build/run/gameTest/crash-reports/
+            build/gametest/
+
+  nightly-client-tests:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run client GameTests in a virtual display
+        run: xvfb-run --auto-servernum ./gradlew runClientGameTest --stacktrace
+
+      - name: Upload client failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-test-failure-${{ github.run_id }}
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            build/reports/
+            build/test-results/
+            build/run/
+
+  nightly-production-server:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Stage production mod jars
+        run: ./gradlew stageProductionServer --stacktrace
+
+      - name: Boot packaged mod on a production Fabric server
+        shell: bash
+        run: |
+          set -euo pipefail
+          mc_version="$(sed -n 's/^minecraft_version=//p' gradle.properties)"
+          loader_version="$(sed -n 's/^loader_version=//p' gradle.properties)"
+          server_name="peakskills-production-smoke"
+
+          cleanup() {
+            docker logs "$server_name" > build/production-server/server.log 2>&1 || true
+            docker rm -f "$server_name" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          start_server() {
+            docker run --detach --name "$server_name" \
+              --env EULA=TRUE \
+              --env TYPE=FABRIC \
+              --env VERSION="$mc_version" \
+              --env FABRIC_LOADER_VERSION="$loader_version" \
+              --env ONLINE_MODE=FALSE \
+              --env MEMORY=2G \
+              --volume "$PWD/build/production-server:/data" \
+              itzg/minecraft-server:stable-java21
+          }
+
+          wait_for_server() {
+            for attempt in $(seq 1 60); do
+              if docker logs "$server_name" 2>&1 | grep -q 'Done ('; then
+                return 0
+              fi
+              if [ "$(docker inspect --format '{{.State.Running}}' "$server_name")" != "true" ]; then
+                docker logs "$server_name"
+                return 1
+              fi
+              sleep 5
+            done
+            docker logs "$server_name"
+            echo "Production server did not become ready in time."
+            return 1
+          }
+
+          verify_command() {
+            command_output="$(docker exec "$server_name" rcon-cli 'skills fishingevent status')"
+            echo "$command_output"
+            grep -q 'Fishing Event' <<< "$command_output"
+          }
+
+          start_server
+          wait_for_server
+          verify_command
+
+          docker stop --time 60 "$server_name"
+          docker rm "$server_name"
+
+          start_server
+          wait_for_server
+          verify_command
+
+      - name: Upload production smoke failure log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-smoke-failure-${{ github.run_id }}
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            build/production-server/server.log
+            build/production-server/logs/
+            build/production-server/crash-reports/

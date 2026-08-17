@@ -131,13 +131,10 @@ public class PetsCommand {
     }
 
     private static boolean isOp(ServerCommandSource src) {
-        try {
-            ServerPlayerEntity player = src.getPlayer();
-            PlayerConfigEntry entry = new PlayerConfigEntry(player.getGameProfile());
-            return src.getServer().getPlayerManager().getOpList().get(entry) != null;
-        } catch (Exception e) {
-            return true;
-        }
+        ServerPlayerEntity player = src.getPlayer();
+        if (player == null) return !src.isExecutedByPlayer();
+        PlayerConfigEntry entry = new PlayerConfigEntry(player.getGameProfile());
+        return src.getServer().getPlayerManager().getOpList().get(entry) != null;
     }
 
     private static int givePet(ServerPlayerEntity player, String typeName, String rarityName) {

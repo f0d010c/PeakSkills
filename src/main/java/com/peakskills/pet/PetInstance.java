@@ -42,10 +42,9 @@ public class PetInstance {
      */
     public boolean addXp(long amount) {
         int before = getLevel();
-        xp += amount;
-        // Clamp XP at the level cap for current rarity
         long max = PetXPTable.xpForLevel(rarity.levelCap, rarity);
-        if (xp > max) xp = max;
+        long next = (amount > 0 && xp > Long.MAX_VALUE - amount) ? Long.MAX_VALUE : xp + amount;
+        xp = Math.max(0, Math.min(next, max));
         return getLevel() > before;
     }
 

@@ -112,6 +112,21 @@ For a faster compile check during development:
 .\gradlew.bat compileJava
 ```
 
+## Automated Testing
+
+Every push and pull request is built on GitHub Actions. The build includes fast JUnit
+regression tests and Fabric server GameTests running inside a real Minecraft server.
+Nightly and manually triggered workflows additionally launch a client GameTest and
+boot the packaged mod on a clean production-style Fabric server.
+
+Run the required local verification with:
+
+```powershell
+.\scripts\verify-peakskills.ps1
+```
+
+See [DEVELOPMENT.md](DEVELOPMENT.md) for the test layout and commands.
+
 ## License
 
 PeakSkills is licensed under the MIT License.

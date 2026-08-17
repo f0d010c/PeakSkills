@@ -416,13 +416,10 @@ public class SkillsCommand {
     }
 
     private static boolean isOp(ServerCommandSource src) {
-        try {
-            ServerPlayerEntity player = src.getPlayer();
-            PlayerConfigEntry entry = new PlayerConfigEntry(player.getGameProfile());
-            return src.getServer().getPlayerManager().getOpList().get(entry) != null;
-        } catch (Exception e) {
-            return true; // non-player source (console/server) always allowed
-        }
+        ServerPlayerEntity player = src.getPlayer();
+        if (player == null) return !src.isExecutedByPlayer();
+        PlayerConfigEntry entry = new PlayerConfigEntry(player.getGameProfile());
+        return src.getServer().getPlayerManager().getOpList().get(entry) != null;
     }
 
     private static ServerPlayerEntity resolvePlayer(net.minecraft.server.MinecraftServer server, String name) {

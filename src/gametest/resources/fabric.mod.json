@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "peakskills-gametest",
+  "version": "1.0.0",
+  "name": "PeakSkills Game Tests",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-gametest": [
+      "com.peakskills.gametest.PeakSkillsServerGameTests"
+    ],
+    "fabric-client-gametest": [
+      "com.peakskills.gametest.PeakSkillsClientGameTests"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.18.2",
+    "minecraft": "~1.21.11",
+    "fabric-api": "*",
+    "peakskills": "*"
+  }
+}
