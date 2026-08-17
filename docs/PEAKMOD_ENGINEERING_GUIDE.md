@@ -126,6 +126,19 @@ Important test rules:
 - Define operator-facing health signals for persistent events and integrations: active
   state, bounded progress, last success/failure, and recovery command.
 
+## Server-driven interface standard
+
+- Use bundled SGui for inventory grids, pagination, and item previews. Treat every
+  inventory click as untrusted: lock player slots, accept only named click types,
+  throttle state-changing actions, and re-check live state before consuming or granting.
+- Use Minecraft's native dialogs for settings, text/number choices, notices, and
+  confirmations. Dialog callbacks must be player-bound, one-use, short-lived, and
+  invalidated when a newer dialog opens or the player disconnects.
+- Keep UI libraries embedded per mod rather than introducing a required shared client
+  mod. Every screen must remain usable by an unmodified 26.1.2 client.
+- Prefer server GameTests for command/action authorization and pure unit tests for page
+  bounds. Use client GameTests only when visual or input behavior itself must be proved.
+
 ## Repository-owned verification
 
 Each mod owns one documented verification entry point that works locally and in CI.

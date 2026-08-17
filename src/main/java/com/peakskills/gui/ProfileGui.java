@@ -18,7 +18,6 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleContainer;
-import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -74,10 +73,8 @@ public class ProfileGui {
         // Slot 49 — open full skills GUI
         handlers.put(49, () -> SkillsGui.open(viewer, data, ownerName));
 
-        viewer.openMenu(new SimpleMenuProvider(
-            (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers),
-            Component.literal("✦ " + ownerName + "'s Profile").withStyle(ChatFormatting.GOLD)
-        ));
+        com.peakskills.gui.core.LegacyContainerGui.open(viewer,
+            Component.literal("✦ " + ownerName + "'s Profile").withStyle(ChatFormatting.GOLD), inv, handlers);
     }
 
     // ── Build ─────────────────────────────────────────────────────────────────

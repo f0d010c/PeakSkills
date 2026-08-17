@@ -10,6 +10,7 @@ import com.peakskills.command.SettingsCommand;
 import com.peakskills.command.SkillsCommand;
 import com.peakskills.config.PeakConfig;
 import com.peakskills.fishing.event.FishingCommunityEventManager;
+import com.peakskills.gui.core.PeakDialogActions;
 import com.peakskills.pet.PetDisplayManager;
 import com.peakskills.pet.PetEggHandler;
 import com.peakskills.player.PlayerDataFailsafe;
@@ -44,5 +45,6 @@ public class PeakSkills implements ModInitializer {
         CollectionsCommand.register();
         ProfileCommand.register();
         SettingsCommand.register();
+        PeakDialogActions.register();
     }
 }

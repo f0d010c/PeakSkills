@@ -48,6 +48,23 @@ public class PeakSkillsServerGameTests {
     }
 
     @GameTest
+    public void dialogCallbackCommandIsPlayerOnly(GameTestHelper context) {
+        var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
+        CommandNode<CommandSourceStack> callback = dispatcher.getRoot().getChild("_peakskills_ui");
+        context.assertTrue(callback != null, "Missing native-dialog callback command");
+        context.assertTrue(callback.canUse(fakePlayer(context, "dialog_callback").createCommandSourceStack()),
+            "Player cannot submit a native-dialog callback");
+        try {
+            int result = dispatcher.execute("_peakskills_ui invalid-token",
+                context.getLevel().getServer().createCommandSourceStack());
+            context.assertValueEqual(0, result, "Console callback did not fail closed");
+        } catch (Exception exception) {
+            context.fail("Console callback check failed: " + exception.getMessage());
+        }
+        context.succeed();
+    }
+
+    @GameTest
     public void playerProgressionWorksInsideARealServer(GameTestHelper context) {
         ServerPlayer player = fakePlayer(context, "progression_test");
         PlayerData data = PlayerDataManager.get(player.getUUID());

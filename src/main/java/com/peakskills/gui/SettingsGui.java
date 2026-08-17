@@ -1,66 +1,51 @@
 package com.peakskills.gui;
 
+import com.peakskills.gui.core.PeakDialogActions;
+import com.peakskills.gui.core.PeakDialogs;
 import com.peakskills.player.PlayerData;
 import com.peakskills.player.PlayerDataManager;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.common.ClientboundShowDialogPacket;
+import net.minecraft.server.dialog.ActionButton;
+import net.minecraft.server.dialog.CommonDialogData;
+import net.minecraft.server.dialog.DialogAction;
+import net.minecraft.server.dialog.MultiActionDialog;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.SimpleContainer;
-import net.minecraft.world.SimpleMenuProvider;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.component.ItemLore;
 
-public class SettingsGui {
-
-    private static final int LEVEL_UP_DING_SLOT = 22;
-
+/** PeakSkills settings rendered with Minecraft's native server-driven dialog UI. */
+public final class SettingsGui {
     public static void open(ServerPlayer player) {
         PlayerData data = PlayerDataManager.get(player.getUUID());
-        SimpleContainer inv = new SimpleContainer(54);
-        populate(inv, data);
+        PeakDialogActions.begin(player);
 
-        Map<Integer, Runnable> handlers = Map.of(
-            LEVEL_UP_DING_SLOT, () -> {
-                data.setLimitBurstLevelUpSounds(!data.shouldLimitBurstLevelUpSounds());
-                PlayerDataManager.saveAll();
-                populate(inv, data);
-            }
-        );
-
-        player.openMenu(new SimpleMenuProvider(
-            (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers),
-            Component.literal("PeakSkills Settings").withStyle(ChatFormatting.AQUA)
-        ));
-    }
-
-    private static void populate(SimpleContainer inv, PlayerData data) {
-        ItemStack bg = pane(" ");
-        for (int i = 0; i < 54; i++) inv.setItem(i, bg.copy());
+        String toggleToken = PeakDialogActions.issue(player, () -> {
+            data.setLimitBurstLevelUpSounds(!data.shouldLimitBurstLevelUpSounds());
+            PlayerDataManager.saveAll();
+            open(player);
+        });
+        String skillsToken = PeakDialogActions.issue(player,
+            () -> SkillsGui.open(player, PlayerDataManager.get(player.getUUID()), player.getName().getString()));
 
         boolean enabled = data.shouldLimitBurstLevelUpSounds();
-        ItemStack ding = new ItemStack(enabled ? Items.NOTE_BLOCK : Items.BELL);
-        ding.set(DataComponents.CUSTOM_NAME,
-            Component.literal("Level-Up Ding Guard: ")
-                .withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD)
-                .append(Component.literal(enabled ? "ON" : "OFF")
-                    .withStyle(enabled ? ChatFormatting.GREEN : ChatFormatting.RED, ChatFormatting.BOLD)));
-        ding.set(DataComponents.LORE, new ItemLore(List.of(
-            Component.literal("  When ON, level-up dings are muted").withStyle(ChatFormatting.GRAY),
-            Component.literal("  after more than 5 levels in 5 minutes.").withStyle(ChatFormatting.GRAY),
-            Component.literal("  Level-up messages and rewards still appear.").withStyle(ChatFormatting.DARK_GRAY),
-            Component.empty(),
-            Component.literal("  Click to toggle").withStyle(ChatFormatting.YELLOW)
-        )));
-        inv.setItem(LEVEL_UP_DING_SLOT, ding);
+        ActionButton toggle = PeakDialogs.actionButton(
+            Component.literal("Level-Up Ding Guard: " + (enabled ? "ON" : "OFF"))
+                .withStyle(enabled ? ChatFormatting.GREEN : ChatFormatting.RED),
+            Component.literal("Limits repeated level-up dings after more than five levels in five minutes."),
+            toggleToken);
+        ActionButton back = PeakDialogs.actionButton(Component.literal("Back to Skills"),
+            Component.literal("Return to the skills menu."), skillsToken);
+
+        CommonDialogData common = new CommonDialogData(
+            Component.literal("PeakSkills Settings").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD),
+            Optional.of(Component.literal("PeakSkills Settings")), true, false,
+            DialogAction.WAIT_FOR_RESPONSE, List.of(), List.of());
+        MultiActionDialog dialog = new MultiActionDialog(common, List.of(toggle), Optional.of(back), 1);
+        player.connection.send(new ClientboundShowDialogPacket(Holder.direct(dialog)));
     }
 
-    private static ItemStack pane(String name) {
-        ItemStack stack = new ItemStack(Items.BLACK_STAINED_GLASS_PANE);
-        stack.set(DataComponents.CUSTOM_NAME, Component.literal(name));
-        return stack;
-    }
+    private SettingsGui() {}
 }

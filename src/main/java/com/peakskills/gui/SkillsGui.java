@@ -18,7 +18,6 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleContainer;
-import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -77,10 +76,8 @@ public class SkillsGui {
         handlers.put(41, () -> SettingsGui.open(viewer));
         handlers.put(42, () -> populate(inv, PlayerDataManager.get(viewer.getUUID()), ownerName));
 
-        viewer.openMenu(new SimpleMenuProvider(
-            (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers),
-            Component.literal("Your Skills").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD)
-        ));
+        com.peakskills.gui.core.LegacyContainerGui.open(viewer,
+            Component.literal("Your Skills").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), inv, handlers);
     }
 
     // ── Build ─────────────────────────────────────────────────────────────────

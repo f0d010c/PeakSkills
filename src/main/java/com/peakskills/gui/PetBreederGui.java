@@ -9,7 +9,6 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleContainer;
-import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -73,10 +72,8 @@ public class PetBreederGui {
         // Back to pet roster
         handlers.put(49, () -> PetMenuGui.open(player));
 
-        player.openMenu(new SimpleMenuProvider(
-            (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers),
-            Component.literal("✦ Pet Breeder").withStyle(ChatFormatting.LIGHT_PURPLE)
-        ));
+        com.peakskills.gui.core.LegacyContainerGui.open(player,
+            Component.literal("✦ Pet Breeder").withStyle(ChatFormatting.LIGHT_PURPLE), inv, handlers);
     }
 
     // ── Build ─────────────────────────────────────────────────────────────────
