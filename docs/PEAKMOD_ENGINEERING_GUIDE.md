@@ -167,4 +167,3 @@ A change is complete only when:
   and frequent mapping-port breakage. Refactor from evidence, not aesthetics alone.
 - Keep active docs short and authoritative; archive superseded plans instead of leaving
   conflicting instructions beside current ones.
-
