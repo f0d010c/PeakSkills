@@ -1,7 +1,7 @@
 # PeakSkills development and testing
 
 PeakSkills uses three automated test layers. The normal Gradle `build` runs unit
-tests and server GameTests. Client GameTests and the packaged production-server smoke
+tests and server GameTests. A client-startup GameTest and the packaged production-server smoke
 test run nightly in GitHub Actions or can be started manually from the Actions tab.
 
 ## Local verification
@@ -42,7 +42,7 @@ screens, rendering, or integrated-server behavior.
 ## CI policy
 
 - Pushes and pull requests run `build`, which includes unit and server GameTests.
-- Manual and nightly runs launch the client GameTest in a virtual display.
+- Manual and nightly runs launch the client-startup GameTest in a virtual display.
 - Manual and nightly runs boot the packaged JAR in a clean Fabric server container
   and execute a PeakSkills command over RCON.
 - Logs, reports, crash reports, and screenshots are uploaded only when a job fails
