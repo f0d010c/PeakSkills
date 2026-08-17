@@ -2,21 +2,20 @@ package com.peakskills.gui;
 
 import com.peakskills.collection.*;
 import com.peakskills.player.PlayerData;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.inventory.SimpleInventory;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.ItemLore;
 
 /**
  * Hypixel SkyBlock-style collection detail view.
@@ -39,9 +38,9 @@ public class CollectionDetailGui {
     // Tier slots: T1-T7 in row 1 (slots 10-16), T8-T9 in row 2 (19-20)
     private static final int[] TIER_SLOTS = { 10, 11, 12, 13, 14, 15, 16, 19, 20 };
 
-    public static void open(ServerPlayerEntity viewer, PlayerData data,
+    public static void open(ServerPlayer viewer, PlayerData data,
                             CollectionType type, Runnable backAction) {
-        SimpleInventory inv = new SimpleInventory(54);
+        SimpleContainer inv = new SimpleContainer(54);
         Map<Integer, Runnable> handlers = new HashMap<>();
 
         CollectionData cd       = data.getCollections();
@@ -52,29 +51,29 @@ public class CollectionDetailGui {
 
         // ── Background ────────────────────────────────────────────────────────
         for (int i = 0; i < 54; i++)
-            inv.setStack(i, pane(Items.BLACK_STAINED_GLASS_PANE, " "));
+            inv.setItem(i, pane(Items.BLACK_STAINED_GLASS_PANE, " "));
 
         // ── Coloured header stripe (slots 0-3, 5-8) ───────────────────────────
         Item stripe = stripePane(type);
         for (int col : new int[]{0, 1, 2, 3, 5, 6, 7, 8})
-            inv.setStack(col, pane(stripe, " "));
+            inv.setItem(col, pane(stripe, " "));
 
         // ── Title (slot 4) ────────────────────────────────────────────────────
         ItemStack title = new ItemStack(type.icon);
-        title.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, unlocked > 0);
-        title.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal(type.displayName + " Collection").formatted(type.color, Formatting.BOLD));
-        title.set(DataComponentTypes.LORE, new LoreComponent(List.of(
+        title.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, unlocked > 0);
+        title.set(DataComponents.CUSTOM_NAME,
+            Component.literal(type.displayName + " Collection").withStyle(type.color, ChatFormatting.BOLD));
+        title.set(DataComponents.LORE, new ItemLore(List.of(
             sep(),
-            Text.literal(" Category: ").formatted(Formatting.GRAY)
-                .append(Text.literal(type.category).formatted(Formatting.WHITE)),
-            Text.literal(String.format(" Collected: %,d", count)).formatted(Formatting.GRAY),
-            Text.literal(" Tier: ").formatted(Formatting.GRAY)
-                .append(Text.literal(unlocked + " / " + maxTier)
-                    .formatted(unlocked >= maxTier ? Formatting.GOLD : Formatting.WHITE, Formatting.BOLD)),
+            Component.literal(" Category: ").withStyle(ChatFormatting.GRAY)
+                .append(Component.literal(type.category).withStyle(ChatFormatting.WHITE)),
+            Component.literal(String.format(" Collected: %,d", count)).withStyle(ChatFormatting.GRAY),
+            Component.literal(" Tier: ").withStyle(ChatFormatting.GRAY)
+                .append(Component.literal(unlocked + " / " + maxTier)
+                    .withStyle(unlocked >= maxTier ? ChatFormatting.GOLD : ChatFormatting.WHITE, ChatFormatting.BOLD)),
             sep()
         )));
-        inv.setStack(4, title);
+        inv.setItem(4, title);
 
         // ── Tier slots ────────────────────────────────────────────────────────
         for (int i = 0; i < maxTier; i++) {
@@ -83,28 +82,28 @@ public class CollectionDetailGui {
             boolean reached      = (i + 1) <= unlocked;
             boolean isCurrent    = (i + 1) == unlocked + 1 && unlocked < maxTier;
 
-            inv.setStack(slot, tierItem(type, tier, count, reached, isCurrent, i + 1));
+            inv.setItem(slot, tierItem(type, tier, count, reached, isCurrent, i + 1));
         }
 
         // ── Progress summary (slot 22) ────────────────────────────────────────
-        inv.setStack(22, progressItem(type, cd, count, unlocked, tiers, maxTier));
+        inv.setItem(22, progressItem(type, cd, count, unlocked, tiers, maxTier));
 
         // ── Active stat bonuses (slot 31) ─────────────────────────────────────
-        inv.setStack(31, bonusItem(type, cd, unlocked, tiers));
+        inv.setItem(31, bonusItem(type, cd, unlocked, tiers));
 
         // ── Back button (slot 49) ─────────────────────────────────────────────
         ItemStack back = new ItemStack(Items.ARROW);
-        back.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal("← Back to Collections").formatted(Formatting.YELLOW, Formatting.BOLD));
-        back.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-            Text.literal(" Click to return").formatted(Formatting.DARK_GRAY)
+        back.set(DataComponents.CUSTOM_NAME,
+            Component.literal("← Back to Collections").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD));
+        back.set(DataComponents.LORE, new ItemLore(List.of(
+            Component.literal(" Click to return").withStyle(ChatFormatting.DARK_GRAY)
         )));
-        inv.setStack(49, back);
+        inv.setItem(49, back);
         handlers.put(49, backAction);
 
-        viewer.openHandledScreen(new SimpleNamedScreenHandlerFactory(
+        viewer.openMenu(new SimpleMenuProvider(
             (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers),
-            Text.literal(type.displayName + " Collection").formatted(type.color)
+            Component.literal(type.displayName + " Collection").withStyle(type.color)
         ));
     }
 
@@ -115,71 +114,71 @@ public class CollectionDetailGui {
                                       int tierNum) {
         // Glass pane with count = tier number (shows in bottom-right corner of slot)
         Item icon;
-        Formatting nameColor;
+        ChatFormatting nameColor;
         String namePrefix;
 
         if (reached) {
             icon      = Items.LIME_STAINED_GLASS_PANE;
-            nameColor = Formatting.GREEN;
+            nameColor = ChatFormatting.GREEN;
             namePrefix = "✔ Tier " + tier.tierLabel();
         } else if (isCurrent) {
             icon      = Items.YELLOW_STAINED_GLASS_PANE;
-            nameColor = Formatting.GOLD;
+            nameColor = ChatFormatting.GOLD;
             namePrefix = "◆ Tier " + tier.tierLabel();
         } else {
             icon      = Items.GRAY_STAINED_GLASS_PANE;
-            nameColor = Formatting.DARK_GRAY;
+            nameColor = ChatFormatting.DARK_GRAY;
             namePrefix = "✗ Tier " + tier.tierLabel();
         }
 
         ItemStack stack = new ItemStack(icon);
         stack.setCount(tierNum);  // ← tier number shows in bottom-right corner
-        if (reached) stack.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
+        if (reached) stack.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
 
-        stack.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal(namePrefix).formatted(nameColor, Formatting.BOLD));
+        stack.set(DataComponents.CUSTOM_NAME,
+            Component.literal(namePrefix).withStyle(nameColor, ChatFormatting.BOLD));
 
-        List<Text> lore = new ArrayList<>();
+        List<Component> lore = new ArrayList<>();
         lore.add(sep());
 
         // Threshold
-        lore.add(Text.literal(" Required: ").formatted(Formatting.GRAY)
-            .append(Text.literal(String.format("%,d × %s", tier.threshold(), type.displayName))
-                .formatted(Formatting.WHITE)));
+        lore.add(Component.literal(" Required: ").withStyle(ChatFormatting.GRAY)
+            .append(Component.literal(String.format("%,d × %s", tier.threshold(), type.displayName))
+                .withStyle(ChatFormatting.WHITE)));
 
         // Progress bar for current tier
         if (isCurrent) {
             long needed   = tier.threshold();
             float pct     = needed > 0 ? (float) count / needed * 100f : 100f;
-            lore.add(Text.empty());
-            lore.add(Text.literal(" " + CollectionsGui.bar(count, needed, 20) + " ")
-                    .formatted(Formatting.YELLOW)
-                .append(Text.literal(String.format("%.1f%%", pct)).formatted(Formatting.WHITE)));
-            lore.add(Text.literal(String.format(" %,d / %,d", count, needed)).formatted(Formatting.GRAY));
+            lore.add(Component.empty());
+            lore.add(Component.literal(" " + CollectionsGui.bar(count, needed, 20) + " ")
+                    .withStyle(ChatFormatting.YELLOW)
+                .append(Component.literal(String.format("%.1f%%", pct)).withStyle(ChatFormatting.WHITE)));
+            lore.add(Component.literal(String.format(" %,d / %,d", count, needed)).withStyle(ChatFormatting.GRAY));
         }
 
         // Rewards
         if (!tier.rewards().isEmpty()) {
-            lore.add(Text.empty());
-            lore.add(Text.literal(" Reward:").formatted(Formatting.GOLD, Formatting.BOLD));
+            lore.add(Component.empty());
+            lore.add(Component.literal(" Reward:").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
             for (CollectionReward r : tier.rewards())
                 lore.add(rewardLine(r));
         }
 
         // Status footer
-        lore.add(Text.empty());
+        lore.add(Component.empty());
         if (reached) {
-            lore.add(Text.literal(" ✔ UNLOCKED").formatted(Formatting.GREEN, Formatting.BOLD));
+            lore.add(Component.literal(" ✔ UNLOCKED").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD));
         } else if (isCurrent) {
             long remaining = Math.max(0, tier.threshold() - count);
-            lore.add(Text.literal(String.format(" Need %,d more %s", remaining, type.displayName))
-                .formatted(Formatting.RED));
+            lore.add(Component.literal(String.format(" Need %,d more %s", remaining, type.displayName))
+                .withStyle(ChatFormatting.RED));
         } else {
-            lore.add(Text.literal(" ✗ LOCKED").formatted(Formatting.DARK_GRAY));
+            lore.add(Component.literal(" ✗ LOCKED").withStyle(ChatFormatting.DARK_GRAY));
         }
         lore.add(sep());
 
-        stack.set(DataComponentTypes.LORE, new LoreComponent(lore));
+        stack.set(DataComponents.LORE, new ItemLore(lore));
         return stack;
     }
 
@@ -189,32 +188,32 @@ public class CollectionDetailGui {
                                           long count, int unlocked,
                                           List<CollectionTier> tiers, int maxTier) {
         ItemStack stack = new ItemStack(Items.BOOK);
-        stack.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal("Collection Progress").formatted(Formatting.AQUA, Formatting.BOLD));
+        stack.set(DataComponents.CUSTOM_NAME,
+            Component.literal("Collection Progress").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
 
-        List<Text> lore = new ArrayList<>();
+        List<Component> lore = new ArrayList<>();
         lore.add(sep());
-        lore.add(Text.literal(String.format(" Total Collected: %,d", count)).formatted(Formatting.WHITE));
-        lore.add(Text.literal(" Tiers Unlocked: ").formatted(Formatting.GRAY)
-            .append(Text.literal(unlocked + " / " + maxTier)
-                .formatted(unlocked >= maxTier ? Formatting.GOLD : Formatting.AQUA)));
+        lore.add(Component.literal(String.format(" Total Collected: %,d", count)).withStyle(ChatFormatting.WHITE));
+        lore.add(Component.literal(" Tiers Unlocked: ").withStyle(ChatFormatting.GRAY)
+            .append(Component.literal(unlocked + " / " + maxTier)
+                .withStyle(unlocked >= maxTier ? ChatFormatting.GOLD : ChatFormatting.AQUA)));
 
         if (unlocked < maxTier) {
             long next = tiers.get(unlocked).threshold();
             float pct = next > 0 ? (float) count / next * 100f : 100f;
-            lore.add(Text.empty());
-            lore.add(Text.literal(" Next Tier " + tiers.get(unlocked).tierLabel() + ":").formatted(Formatting.YELLOW));
-            lore.add(Text.literal(" " + CollectionsGui.bar(count, next, 20) + " ")
-                    .formatted(Formatting.GREEN)
-                .append(Text.literal(String.format("%.1f%%", pct)).formatted(Formatting.WHITE)));
-            lore.add(Text.literal(String.format(" %,d / %,d", count, next)).formatted(Formatting.GRAY));
+            lore.add(Component.empty());
+            lore.add(Component.literal(" Next Tier " + tiers.get(unlocked).tierLabel() + ":").withStyle(ChatFormatting.YELLOW));
+            lore.add(Component.literal(" " + CollectionsGui.bar(count, next, 20) + " ")
+                    .withStyle(ChatFormatting.GREEN)
+                .append(Component.literal(String.format("%.1f%%", pct)).withStyle(ChatFormatting.WHITE)));
+            lore.add(Component.literal(String.format(" %,d / %,d", count, next)).withStyle(ChatFormatting.GRAY));
         } else {
-            lore.add(Text.empty());
-            lore.add(Text.literal(" ✦ MAX TIER REACHED ✦").formatted(Formatting.GOLD, Formatting.BOLD));
+            lore.add(Component.empty());
+            lore.add(Component.literal(" ✦ MAX TIER REACHED ✦").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
         }
 
         lore.add(sep());
-        stack.set(DataComponentTypes.LORE, new LoreComponent(lore));
+        stack.set(DataComponents.LORE, new ItemLore(lore));
         return stack;
     }
 
@@ -223,10 +222,10 @@ public class CollectionDetailGui {
     private static ItemStack bonusItem(CollectionType type, CollectionData cd,
                                        int unlocked, List<CollectionTier> tiers) {
         ItemStack stack = new ItemStack(Items.NETHER_STAR);
-        stack.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal("Active Bonuses").formatted(Formatting.GOLD, Formatting.BOLD));
+        stack.set(DataComponents.CUSTOM_NAME,
+            Component.literal("Active Bonuses").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
 
-        List<Text> lore = new ArrayList<>();
+        List<Component> lore = new ArrayList<>();
         lore.add(sep());
 
         boolean hasStat   = false;
@@ -237,14 +236,14 @@ public class CollectionDetailGui {
                 switch (r) {
                     case CollectionReward.StatBonus sb -> {
                         hasStat = true;
-                        lore.add(Text.literal(" +" + sb.displayValue() + " "
+                        lore.add(Component.literal(" +" + sb.displayValue() + " "
                             + sb.stat().getIcon() + " " + sb.stat().getDisplayName())
-                            .formatted(Formatting.GREEN));
+                            .withStyle(ChatFormatting.GREEN));
                     }
                     case CollectionReward.RecipeUnlock ru -> {
                         hasRecipe = true;
-                        lore.add(Text.literal(" ✦ Recipe: " + formatPath(ru.recipeId().getPath()))
-                            .formatted(Formatting.AQUA));
+                        lore.add(Component.literal(" ✦ Recipe: " + formatPath(ru.recipeId().getPath()))
+                            .withStyle(ChatFormatting.AQUA));
                     }
                     default -> {}
                 }
@@ -252,12 +251,12 @@ public class CollectionDetailGui {
         }
 
         if (!hasStat && !hasRecipe) {
-            lore.add(Text.literal(" No stat bonuses yet").formatted(Formatting.DARK_GRAY));
-            lore.add(Text.literal(" Unlock tiers to gain bonuses").formatted(Formatting.DARK_GRAY));
+            lore.add(Component.literal(" No stat bonuses yet").withStyle(ChatFormatting.DARK_GRAY));
+            lore.add(Component.literal(" Unlock tiers to gain bonuses").withStyle(ChatFormatting.DARK_GRAY));
         }
 
         lore.add(sep());
-        stack.set(DataComponentTypes.LORE, new LoreComponent(lore));
+        stack.set(DataComponents.LORE, new ItemLore(lore));
         return stack;
     }
 
@@ -277,27 +276,27 @@ public class CollectionDetailGui {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private static Text rewardLine(CollectionReward reward) {
+    private static Component rewardLine(CollectionReward reward) {
         return switch (reward) {
             case CollectionReward.ItemReward ir ->
-                Text.literal("  ◆ x" + ir.stack().getCount() + " "
-                    + ir.stack().getName().getString()).formatted(Formatting.GREEN);
+                Component.literal("  ◆ x" + ir.stack().getCount() + " "
+                    + ir.stack().getHoverName().getString()).withStyle(ChatFormatting.GREEN);
             case CollectionReward.StatBonus sb ->
-                Text.literal("  ◆ +" + sb.displayValue() + " "
-                    + sb.stat().getIcon() + " " + sb.stat().getDisplayName()).formatted(Formatting.GREEN);
+                Component.literal("  ◆ +" + sb.displayValue() + " "
+                    + sb.stat().getIcon() + " " + sb.stat().getDisplayName()).withStyle(ChatFormatting.GREEN);
             case CollectionReward.RecipeUnlock ru ->
-                Text.literal("  ◆ Recipe: " + formatPath(ru.recipeId().getPath())).formatted(Formatting.AQUA);
+                Component.literal("  ◆ Recipe: " + formatPath(ru.recipeId().getPath())).withStyle(ChatFormatting.AQUA);
         };
     }
 
-    private static Text sep() {
-        return Text.literal(" \u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac")
-            .formatted(Formatting.DARK_GRAY);
+    private static Component sep() {
+        return Component.literal(" \u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac")
+            .withStyle(ChatFormatting.DARK_GRAY);
     }
 
     private static ItemStack pane(Item item, String name) {
         ItemStack s = new ItemStack(item);
-        s.set(DataComponentTypes.CUSTOM_NAME, Text.literal(name));
+        s.set(DataComponents.CUSTOM_NAME, Component.literal(name));
         return s;
     }
 

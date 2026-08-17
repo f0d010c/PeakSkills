@@ -5,21 +5,20 @@ import com.peakskills.collection.CollectionRegistry;
 import com.peakskills.collection.CollectionType;
 import com.peakskills.player.PlayerData;
 import com.peakskills.player.PlayerDataManager;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.inventory.SimpleInventory;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.ItemLore;
 
 /**
  * Collections category overview — one icon per category, SkyBlock style.
@@ -45,9 +44,9 @@ public class CollectionsGui {
         Items.IRON_HOE, Items.FISHING_ROD, Items.IRON_SWORD
     };
 
-    private static final Formatting[] CATEGORY_COLORS = {
-        Formatting.GRAY, Formatting.GREEN, Formatting.YELLOW,
-        Formatting.DARK_GREEN, Formatting.AQUA, Formatting.RED
+    private static final ChatFormatting[] CATEGORY_COLORS = {
+        ChatFormatting.GRAY, ChatFormatting.GREEN, ChatFormatting.YELLOW,
+        ChatFormatting.DARK_GREEN, ChatFormatting.AQUA, ChatFormatting.RED
     };
 
     private static final Item[] CATEGORY_PANES = {
@@ -64,46 +63,46 @@ public class CollectionsGui {
 
     // ── Open ──────────────────────────────────────────────────────────────────
 
-    public static void open(ServerPlayerEntity viewer) {
-        open(viewer, PlayerDataManager.get(viewer.getUuid()));
+    public static void open(ServerPlayer viewer) {
+        open(viewer, PlayerDataManager.get(viewer.getUUID()));
     }
 
-    public static void open(ServerPlayerEntity viewer, PlayerData data) {
-        SimpleInventory inv = new SimpleInventory(54);
+    public static void open(ServerPlayer viewer, PlayerData data) {
+        SimpleContainer inv = new SimpleContainer(54);
         Map<Integer, Runnable> handlers = new HashMap<>();
 
         for (int i = 0; i < 54; i++)
-            inv.setStack(i, bg());
+            inv.setItem(i, bg());
 
         // ── Title (slot 4) ────────────────────────────────────────────────────
         ItemStack header = new ItemStack(Items.CHEST);
-        header.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
-        header.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal("✦ Collections").formatted(Formatting.GOLD, Formatting.BOLD));
+        header.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+        header.set(DataComponents.CUSTOM_NAME,
+            Component.literal("✦ Collections").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
 
         int totalUnlocked = 0, totalMax = CollectionType.values().length * 9;
         for (CollectionType t : CollectionType.values())
             totalUnlocked += data.getCollections().getUnlockedTier(t);
 
-        header.set(DataComponentTypes.LORE, new LoreComponent(List.of(
+        header.set(DataComponents.LORE, new ItemLore(List.of(
             sep(),
-            Text.literal(" Track resources you've gathered").formatted(Formatting.GRAY),
-            Text.literal(" Unlock items, stats & recipes at each tier").formatted(Formatting.GRAY),
-            Text.empty(),
-            Text.literal(" Overall Progress: ").formatted(Formatting.YELLOW)
-                .append(Text.literal(String.format("%.1f%%  (%d/%d tiers)",
+            Component.literal(" Track resources you've gathered").withStyle(ChatFormatting.GRAY),
+            Component.literal(" Unlock items, stats & recipes at each tier").withStyle(ChatFormatting.GRAY),
+            Component.empty(),
+            Component.literal(" Overall Progress: ").withStyle(ChatFormatting.YELLOW)
+                .append(Component.literal(String.format("%.1f%%  (%d/%d tiers)",
                     totalUnlocked * 100.0 / totalMax, totalUnlocked, totalMax))
-                    .formatted(Formatting.WHITE)),
+                    .withStyle(ChatFormatting.WHITE)),
             sep()
         )));
-        inv.setStack(4, header);
+        inv.setItem(4, header);
 
         // ── Category icons ────────────────────────────────────────────────────
         CollectionData cd = data.getCollections();
         for (int i = 0; i < CATEGORIES.length; i++) {
             String cat   = CATEGORIES[i];
             int    slot  = CATEGORY_SLOTS[i];
-            inv.setStack(slot, categoryIcon(cat, CATEGORY_ICONS[i], CATEGORY_COLORS[i], cd));
+            inv.setItem(slot, categoryIcon(cat, CATEGORY_ICONS[i], CATEGORY_COLORS[i], cd));
             handlers.put(slot, () ->
                 CollectionCategoryGui.open(viewer, data, cat, () -> CollectionsGui.open(viewer, data))
             );
@@ -111,24 +110,24 @@ public class CollectionsGui {
 
         // ── Refresh (slot 49) ─────────────────────────────────────────────────
         ItemStack refresh = new ItemStack(Items.ARROW);
-        refresh.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal("↻ Refresh").formatted(Formatting.YELLOW, Formatting.BOLD));
-        refresh.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-            Text.literal(" Click to reload your data").formatted(Formatting.DARK_GRAY)
+        refresh.set(DataComponents.CUSTOM_NAME,
+            Component.literal("↻ Refresh").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD));
+        refresh.set(DataComponents.LORE, new ItemLore(List.of(
+            Component.literal(" Click to reload your data").withStyle(ChatFormatting.DARK_GRAY)
         )));
-        inv.setStack(49, refresh);
-        handlers.put(49, () -> CollectionsGui.open(viewer, PlayerDataManager.get(viewer.getUuid())));
+        inv.setItem(49, refresh);
+        handlers.put(49, () -> CollectionsGui.open(viewer, PlayerDataManager.get(viewer.getUUID())));
 
-        viewer.openHandledScreen(new SimpleNamedScreenHandlerFactory(
+        viewer.openMenu(new SimpleMenuProvider(
             (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers),
-            Text.literal("✦ Collections").formatted(Formatting.GOLD)
+            Component.literal("✦ Collections").withStyle(ChatFormatting.GOLD)
         ));
     }
 
     // ── Category icon ─────────────────────────────────────────────────────────
 
     private static ItemStack categoryIcon(String cat, Item icon,
-                                          Formatting color, CollectionData cd) {
+                                          ChatFormatting color, CollectionData cd) {
         CollectionType[] items = typesForCategory(cat);
         int unlocked = 0; // any tier > 0
         int maxed    = 0; // all tiers done
@@ -139,29 +138,29 @@ public class CollectionsGui {
         }
 
         ItemStack stack = new ItemStack(icon);
-        if (unlocked > 0) stack.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
-        stack.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal(cat + " Collections").formatted(color, Formatting.BOLD));
+        if (unlocked > 0) stack.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+        stack.set(DataComponents.CUSTOM_NAME,
+            Component.literal(cat + " Collections").withStyle(color, ChatFormatting.BOLD));
 
-        List<Text> lore = new ArrayList<>();
+        List<Component> lore = new ArrayList<>();
         lore.add(sep());
-        lore.add(Text.literal(" View your " + cat + " Collections!").formatted(Formatting.GRAY));
-        lore.add(Text.empty());
+        lore.add(Component.literal(" View your " + cat + " Collections!").withStyle(ChatFormatting.GRAY));
+        lore.add(Component.empty());
         if (maxed >= items.length && items.length > 0) {
-            lore.add(Text.literal(" ✦ Collections Maxed ✦").formatted(Formatting.GOLD, Formatting.BOLD));
+            lore.add(Component.literal(" ✦ Collections Maxed ✦").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
         } else {
-            lore.add(Text.literal(" Collections Unlocked: ").formatted(Formatting.GRAY)
-                .append(Text.literal(unlocked + "/" + items.length).formatted(Formatting.YELLOW)));
+            lore.add(Component.literal(" Collections Unlocked: ").withStyle(ChatFormatting.GRAY)
+                .append(Component.literal(unlocked + "/" + items.length).withStyle(ChatFormatting.YELLOW)));
             float pct = items.length > 0 ? unlocked * 100f / items.length : 0f;
-            lore.add(Text.literal(" " + bar(unlocked, items.length, 20) + " ")
-                    .formatted(Formatting.GREEN)
-                .append(Text.literal(String.format("%.1f%%", pct)).formatted(Formatting.WHITE)));
+            lore.add(Component.literal(" " + bar(unlocked, items.length, 20) + " ")
+                    .withStyle(ChatFormatting.GREEN)
+                .append(Component.literal(String.format("%.1f%%", pct)).withStyle(ChatFormatting.WHITE)));
         }
-        lore.add(Text.empty());
-        lore.add(Text.literal(" Click to view!").formatted(Formatting.YELLOW));
+        lore.add(Component.empty());
+        lore.add(Component.literal(" Click to view!").withStyle(ChatFormatting.YELLOW));
         lore.add(sep());
 
-        stack.set(DataComponentTypes.LORE, new LoreComponent(lore));
+        stack.set(DataComponents.LORE, new ItemLore(lore));
         return stack;
     }
 
@@ -180,21 +179,21 @@ public class CollectionsGui {
         return Items.BLACK_STAINED_GLASS_PANE;
     }
 
-    public static Formatting colorForCategory(String cat) {
+    public static ChatFormatting colorForCategory(String cat) {
         for (int i = 0; i < CATEGORIES.length; i++)
             if (CATEGORIES[i].equals(cat)) return CATEGORY_COLORS[i];
-        return Formatting.WHITE;
+        return ChatFormatting.WHITE;
     }
 
     static ItemStack bg() {
         ItemStack s = new ItemStack(Items.BLACK_STAINED_GLASS_PANE);
-        s.set(DataComponentTypes.CUSTOM_NAME, Text.literal(" "));
+        s.set(DataComponents.CUSTOM_NAME, Component.literal(" "));
         return s;
     }
 
-    static Text sep() {
-        return Text.literal(" \u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac")
-            .formatted(Formatting.DARK_GRAY);
+    static Component sep() {
+        return Component.literal(" \u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac")
+            .withStyle(ChatFormatting.DARK_GRAY);
     }
 
     static String bar(long value, long max, int len) {

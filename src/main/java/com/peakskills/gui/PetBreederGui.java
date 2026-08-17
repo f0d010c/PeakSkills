@@ -3,18 +3,17 @@ package com.peakskills.gui;
 import com.peakskills.pet.*;
 import com.peakskills.player.PlayerData;
 import com.peakskills.player.PlayerDataManager;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.inventory.SimpleInventory;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
 import java.util.*;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.ItemLore;
 
 /**
  * Pet crafting screen — shows all pet types with their crafting recipes.
@@ -55,9 +54,9 @@ public class PetBreederGui {
 
     // ── Open ──────────────────────────────────────────────────────────────────
 
-    public static void open(ServerPlayerEntity player) {
-        PlayerData data = PlayerDataManager.get(player.getUuid());
-        SimpleInventory inv = new SimpleInventory(54);
+    public static void open(ServerPlayer player) {
+        PlayerData data = PlayerDataManager.get(player.getUUID());
+        SimpleContainer inv = new SimpleContainer(54);
         populate(inv, player);
 
         Map<Integer, Runnable> handlers = new HashMap<>();
@@ -74,99 +73,99 @@ public class PetBreederGui {
         // Back to pet roster
         handlers.put(49, () -> PetMenuGui.open(player));
 
-        player.openHandledScreen(new SimpleNamedScreenHandlerFactory(
+        player.openMenu(new SimpleMenuProvider(
             (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers),
-            Text.literal("✦ Pet Breeder").formatted(Formatting.LIGHT_PURPLE)
+            Component.literal("✦ Pet Breeder").withStyle(ChatFormatting.LIGHT_PURPLE)
         ));
     }
 
     // ── Build ─────────────────────────────────────────────────────────────────
 
-    private static void populate(SimpleInventory inv, ServerPlayerEntity player) {
+    private static void populate(SimpleContainer inv, ServerPlayer player) {
         ItemStack bg = pane(" ");
-        for (int i = 0; i < 54; i++) inv.setStack(i, bg.copy());
+        for (int i = 0; i < 54; i++) inv.setItem(i, bg.copy());
 
         // Title (slot 4)
         ItemStack title = new ItemStack(Items.BLAZE_POWDER);
-        title.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
-        title.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal("✦ Pet Breeder").formatted(Formatting.LIGHT_PURPLE, Formatting.BOLD));
-        title.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-            Text.literal("  Craft a Common pet egg").formatted(Formatting.DARK_GRAY),
-            Text.literal("  Cost: 1 Lead + recipe material").formatted(Formatting.DARK_GRAY)
+        title.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+        title.set(DataComponents.CUSTOM_NAME,
+            Component.literal("✦ Pet Breeder").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD));
+        title.set(DataComponents.LORE, new ItemLore(List.of(
+            Component.literal("  Craft a Common pet egg").withStyle(ChatFormatting.DARK_GRAY),
+            Component.literal("  Cost: 1 Lead + recipe material").withStyle(ChatFormatting.DARK_GRAY)
         )));
-        inv.setStack(4, title);
+        inv.setItem(4, title);
 
         // Back button (slot 49)
         ItemStack back = new ItemStack(Items.ARROW);
-        back.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal("« Back to Pets").formatted(Formatting.GRAY));
-        inv.setStack(49, back);
+        back.set(DataComponents.CUSTOM_NAME,
+            Component.literal("« Back to Pets").withStyle(ChatFormatting.GRAY));
+        inv.setItem(49, back);
 
         // Pet recipe icons
         PetType[] types = PetType.values();
         for (int i = 0; i < types.length && i < PET_SLOTS.length; i++) {
-            inv.setStack(PET_SLOTS[i], petRecipeIcon(types[i], player));
+            inv.setItem(PET_SLOTS[i], petRecipeIcon(types[i], player));
         }
     }
 
     // ── Pet recipe icon ───────────────────────────────────────────────────────
 
-    private static ItemStack petRecipeIcon(PetType petType, ServerPlayerEntity player) {
+    private static ItemStack petRecipeIcon(PetType petType, ServerPlayer player) {
         Recipe recipe = RECIPES.get(petType);
         boolean canAfford = recipe != null
             && hasItem(player, Items.LEAD, 1)
             && hasItem(player, recipe.material(), recipe.count());
 
         ItemStack stack = new ItemStack(petType.icon);
-        stack.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal(petType.displayName).formatted(
-                canAfford ? Formatting.GREEN : Formatting.WHITE, Formatting.BOLD));
+        stack.set(DataComponents.CUSTOM_NAME,
+            Component.literal(petType.displayName).withStyle(
+                canAfford ? ChatFormatting.GREEN : ChatFormatting.WHITE, ChatFormatting.BOLD));
 
-        List<Text> lore = new ArrayList<>();
-        lore.add(Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").formatted(Formatting.DARK_GRAY));
-        lore.add(Text.literal("  Affinity: ").formatted(Formatting.GRAY)
-            .append(Text.literal(petType.affinity.getDisplayName()).formatted(Formatting.WHITE)));
-        lore.add(Text.empty());
-        lore.add(Text.literal("  Recipe — Common Egg:").formatted(Formatting.YELLOW));
-        lore.add(Text.literal("   ✦ 1x Lead").formatted(
-            hasItem(player, Items.LEAD, 1) ? Formatting.GREEN : Formatting.RED));
+        List<Component> lore = new ArrayList<>();
+        lore.add(Component.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").withStyle(ChatFormatting.DARK_GRAY));
+        lore.add(Component.literal("  Affinity: ").withStyle(ChatFormatting.GRAY)
+            .append(Component.literal(petType.affinity.getDisplayName()).withStyle(ChatFormatting.WHITE)));
+        lore.add(Component.empty());
+        lore.add(Component.literal("  Recipe — Common Egg:").withStyle(ChatFormatting.YELLOW));
+        lore.add(Component.literal("   ✦ 1x Lead").withStyle(
+            hasItem(player, Items.LEAD, 1) ? ChatFormatting.GREEN : ChatFormatting.RED));
         if (recipe != null) {
-            String matName = recipe.material().getName().getString();
+            String matName = new ItemStack(recipe.material()).getHoverName().getString();
             boolean hasMat = hasItem(player, recipe.material(), recipe.count());
-            lore.add(Text.literal("   ✦ " + recipe.count() + "x " + matName)
-                .formatted(hasMat ? Formatting.GREEN : Formatting.RED));
+            lore.add(Component.literal("   ✦ " + recipe.count() + "x " + matName)
+                .withStyle(hasMat ? ChatFormatting.GREEN : ChatFormatting.RED));
         }
-        lore.add(Text.empty());
+        lore.add(Component.empty());
         if (canAfford) {
-            lore.add(Text.literal("  ✦ Click to craft!").formatted(Formatting.GREEN, Formatting.BOLD));
+            lore.add(Component.literal("  ✦ Click to craft!").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD));
         } else {
-            lore.add(Text.literal("  ✗ Missing materials").formatted(Formatting.RED));
+            lore.add(Component.literal("  ✗ Missing materials").withStyle(ChatFormatting.RED));
         }
-        lore.add(Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").formatted(Formatting.DARK_GRAY));
+        lore.add(Component.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").withStyle(ChatFormatting.DARK_GRAY));
 
-        stack.set(DataComponentTypes.LORE, new LoreComponent(lore));
+        stack.set(DataComponents.LORE, new ItemLore(lore));
         return stack;
     }
 
     // ── Crafting ──────────────────────────────────────────────────────────────
 
-    private static void tryCraft(ServerPlayerEntity player, PlayerData data, PetType petType) {
+    private static void tryCraft(ServerPlayer player, PlayerData data, PetType petType) {
         Recipe recipe = RECIPES.get(petType);
         if (recipe == null) return;
 
         if (!hasItem(player, Items.LEAD, 1) || !hasItem(player, recipe.material(), recipe.count())) {
-            player.sendMessage(
-                Text.literal("✗ Need: 1x Lead + " + recipe.count() + "x "
-                    + recipe.material().getName().getString())
-                    .formatted(Formatting.RED),
+            player.sendSystemMessage(
+                Component.literal("✗ Need: 1x Lead + " + recipe.count() + "x "
+                    + new ItemStack(recipe.material()).getHoverName().getString())
+                    .withStyle(ChatFormatting.RED),
                 true);
             return;
         }
 
         if (data.getPetRoster().isFull()) {
-            player.sendMessage(Text.literal("Pet roster is full! (" + PetRoster.MAX_SLOTS + " max)")
-                .formatted(Formatting.RED), true);
+            player.sendSystemMessage(Component.literal("Pet roster is full! (" + PetRoster.MAX_SLOTS + " max)")
+                .withStyle(ChatFormatting.RED), true);
             return;
         }
 
@@ -174,34 +173,34 @@ public class PetBreederGui {
         removeItem(player, recipe.material(), recipe.count());
 
         ItemStack egg = PetEggHandler.createEgg(petType, PetRarity.COMMON);
-        player.giveItemStack(egg);
+        player.addItem(egg);
 
-        player.sendMessage(
-            Text.literal("✦ Crafted: ").formatted(Formatting.GOLD)
-                .append(Text.literal("Common " + petType.displayName + " Egg!")
-                    .formatted(Formatting.WHITE, Formatting.BOLD))
-                .append(Text.literal("  Right-click to hatch.").formatted(Formatting.DARK_GRAY)),
+        player.sendSystemMessage(
+            Component.literal("✦ Crafted: ").withStyle(ChatFormatting.GOLD)
+                .append(Component.literal("Common " + petType.displayName + " Egg!")
+                    .withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD))
+                .append(Component.literal("  Right-click to hatch.").withStyle(ChatFormatting.DARK_GRAY)),
             false);
     }
 
     // ── Inventory helpers ─────────────────────────────────────────────────────
 
-    private static boolean hasItem(ServerPlayerEntity player, Item item, int count) {
+    private static boolean hasItem(ServerPlayer player, Item item, int count) {
         int found = 0;
-        for (int i = 0; i < player.getInventory().size(); i++) {
-            ItemStack s = player.getInventory().getStack(i);
+        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+            ItemStack s = player.getInventory().getItem(i);
             if (s.getItem() == item) found += s.getCount();
             if (found >= count) return true;
         }
         return false;
     }
 
-    private static void removeItem(ServerPlayerEntity player, Item item, int toRemove) {
-        for (int i = 0; i < player.getInventory().size() && toRemove > 0; i++) {
-            ItemStack s = player.getInventory().getStack(i);
+    private static void removeItem(ServerPlayer player, Item item, int toRemove) {
+        for (int i = 0; i < player.getInventory().getContainerSize() && toRemove > 0; i++) {
+            ItemStack s = player.getInventory().getItem(i);
             if (s.getItem() == item) {
                 int take = Math.min(s.getCount(), toRemove);
-                s.decrement(take);
+                s.shrink(take);
                 toRemove -= take;
             }
         }
@@ -209,7 +208,7 @@ public class PetBreederGui {
 
     private static ItemStack pane(String name) {
         ItemStack s = new ItemStack(Items.GRAY_STAINED_GLASS_PANE);
-        s.set(DataComponentTypes.CUSTOM_NAME, Text.literal(name));
+        s.set(DataComponents.CUSTOM_NAME, Component.literal(name));
         return s;
     }
 }

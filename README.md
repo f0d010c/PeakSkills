@@ -1,8 +1,9 @@
 # PeakSkills
 
-![Minecraft](https://img.shields.io/badge/Minecraft-1.21.11-62B47A?style=for-the-badge)
+![Minecraft](https://img.shields.io/badge/Minecraft-26.1.2-62B47A?style=for-the-badge)
 ![Fabric](https://img.shields.io/badge/Fabric-Server--Side-F9A03F?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-4C6FFF?style=for-the-badge)
+[![CI](https://github.com/f0d010c/PeakSkills/actions/workflows/ci.yml/badge.svg)](https://github.com/f0d010c/PeakSkills/actions/workflows/ci.yml)
 
 **Turn vanilla survival into a long-term RPG grind, without making players install
 anything.**
@@ -16,10 +17,10 @@ that make normal survival feel more rewarding over time.
 
 ## Requirements
 
-- Minecraft `1.21.11`
-- Fabric Loader `0.18.2` or newer
+- Minecraft `26.1.2`
+- Fabric Loader `0.19.3` or newer
 - Fabric API
-- Java 21
+- Java 25
 
 PeakSkills is server-side. Players can join without installing the mod on their
 client, although the server must have Fabric and PeakSkills installed.

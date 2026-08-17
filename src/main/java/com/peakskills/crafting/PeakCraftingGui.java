@@ -3,23 +3,22 @@ package com.peakskills.crafting;
 import com.peakskills.gui.SkillsScreenHandler;
 import com.peakskills.skill.Skill;
 import com.peakskills.xp.XpManager;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.inventory.SimpleInventory;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.ItemLore;
 
 /**
  * Skyblock-style crafting GUI.
@@ -70,58 +69,58 @@ public class PeakCraftingGui {
 
     // ── Open ──────────────────────────────────────────────────────────────────
 
-    public static void open(ServerPlayerEntity player) {
+    public static void open(ServerPlayer player) {
         openList(player);
     }
 
     // ── List view ─────────────────────────────────────────────────────────────
 
-    private static void openList(ServerPlayerEntity player) {
+    private static void openList(ServerPlayer player) {
         List<PeakRecipe> recipes = new ArrayList<>(PeakRecipeRegistry.getAll());
 
-        SimpleInventory inv = new SimpleInventory(54);
+        SimpleContainer inv = new SimpleContainer(54);
         fill(inv, pane(" "));
 
         // Title
         ItemStack header = new ItemStack(Items.CRAFTING_TABLE);
-        header.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
-        header.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal("(" + recipes.size() + ") PeakSkills Recipes")
-                .formatted(Formatting.GOLD, Formatting.BOLD));
-        inv.setStack(4, header);
+        header.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+        header.set(DataComponents.CUSTOM_NAME,
+            Component.literal("(" + recipes.size() + ") PeakSkills Recipes")
+                .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+        inv.setItem(4, header);
 
         Map<Integer, Runnable> handlers = new HashMap<>();
 
         for (int i = 0; i < recipes.size() && i < LIST_RECIPE_SLOTS.length; i++) {
             PeakRecipe recipe = recipes.get(i);
             int slot = LIST_RECIPE_SLOTS[i];
-            inv.setStack(slot, listIcon(recipe, player));
+            inv.setItem(slot, listIcon(recipe, player));
             handlers.put(slot, () -> openDetail(player, recipe));
         }
 
-        player.openHandledScreen(new SimpleNamedScreenHandlerFactory(
+        player.openMenu(new SimpleMenuProvider(
             (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers),
-            Text.literal("PeakSkills Recipes").formatted(Formatting.GOLD, Formatting.BOLD)
+            Component.literal("PeakSkills Recipes").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD)
         ));
     }
 
     // ── Detail view ───────────────────────────────────────────────────────────
 
-    private static void openDetail(ServerPlayerEntity player, PeakRecipe recipe) {
-        SimpleInventory inv = new SimpleInventory(54);
+    private static void openDetail(ServerPlayer player, PeakRecipe recipe) {
+        SimpleContainer inv = new SimpleContainer(54);
         populateDetail(inv, player, recipe);
 
         Map<Integer, Runnable> handlers = new HashMap<>();
         handlers.put(BACK_SLOT,  () -> openList(player));
         handlers.put(CRAFT_SLOT, () -> tryCraft(player, recipe, inv));
 
-        player.openHandledScreen(new SimpleNamedScreenHandlerFactory(
+        player.openMenu(new SimpleMenuProvider(
             (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers),
-            Text.literal(recipe.displayName()).formatted(Formatting.AQUA, Formatting.BOLD)
+            Component.literal(recipe.displayName()).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)
         ));
     }
 
-    private static void populateDetail(SimpleInventory inv, ServerPlayerEntity player, PeakRecipe recipe) {
+    private static void populateDetail(SimpleContainer inv, ServerPlayer player, PeakRecipe recipe) {
         fill(inv, pane(" "));
 
         // Populate 3×3 grid
@@ -134,43 +133,43 @@ public class PeakCraftingGui {
         for (int g = 0; g < 9; g++) {
             int invSlot = GRID_INV_SLOTS[g];
             if (grid[g] != null) {
-                inv.setStack(invSlot, gridIngredientIcon(grid[g], player));
+                inv.setItem(invSlot, gridIngredientIcon(grid[g], player));
             } else {
-                inv.setStack(invSlot, pane("·")); // empty grid cell
+                inv.setItem(invSlot, pane("·")); // empty grid cell
             }
         }
 
         // Arrow
         ItemStack arrow = new ItemStack(Items.ARROW);
-        arrow.set(DataComponentTypes.CUSTOM_NAME, Text.literal("→").formatted(Formatting.WHITE));
-        inv.setStack(ARROW_SLOT, arrow);
+        arrow.set(DataComponents.CUSTOM_NAME, Component.literal("→").withStyle(ChatFormatting.WHITE));
+        inv.setItem(ARROW_SLOT, arrow);
 
         // Result
         boolean craftable = canCraft(player, recipe);
         ItemStack result = recipe.buildResult();
         if (!craftable) {
-            result.set(DataComponentTypes.CUSTOM_NAME,
-                Text.literal("✗ " + recipe.displayName()).formatted(Formatting.RED, Formatting.BOLD));
+            result.set(DataComponents.CUSTOM_NAME,
+                Component.literal("✗ " + recipe.displayName()).withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
         }
-        inv.setStack(RESULT_SLOT, result);
+        inv.setItem(RESULT_SLOT, result);
 
         // Back
         ItemStack back = new ItemStack(Items.ARROW);
-        back.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal("← Back").formatted(Formatting.YELLOW, Formatting.BOLD));
-        inv.setStack(BACK_SLOT, back);
+        back.set(DataComponents.CUSTOM_NAME,
+            Component.literal("← Back").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD));
+        inv.setItem(BACK_SLOT, back);
 
         // Craft button
-        inv.setStack(CRAFT_SLOT, craftButton(craftable));
+        inv.setItem(CRAFT_SLOT, craftButton(craftable));
 
     }
 
     // ── Craft logic ───────────────────────────────────────────────────────────
 
-    private static void tryCraft(ServerPlayerEntity player, PeakRecipe recipe, SimpleInventory inv) {
+    private static void tryCraft(ServerPlayer player, PeakRecipe recipe, SimpleContainer inv) {
         // Cooldown — prevent spam-clicking the craft button
         long now = System.currentTimeMillis();
-        long last = lastCraftTime.getOrDefault(player.getUuid(), 0L);
+        long last = lastCraftTime.getOrDefault(player.getUUID(), 0L);
         if (now - last < CRAFT_COOLDOWN_MS) return;
 
         // Aggregate required counts per item (same item can appear in multiple grid slots)
@@ -179,12 +178,12 @@ public class PeakCraftingGui {
         for (Map.Entry<Item, Integer> entry : required.entrySet()) {
             int have = countInInventory(player, entry.getKey());
             if (have < entry.getValue()) {
-                player.sendMessage(
-                    Text.literal("✗ Missing: ").formatted(Formatting.RED)
-                        .append(Text.literal((entry.getValue() - have) + "× ")
-                            .formatted(Formatting.WHITE))
-                        .append(Text.translatable(entry.getKey().getTranslationKey())
-                            .formatted(Formatting.YELLOW)),
+                player.sendSystemMessage(
+                    Component.literal("✗ Missing: ").withStyle(ChatFormatting.RED)
+                        .append(Component.literal((entry.getValue() - have) + "× ")
+                            .withStyle(ChatFormatting.WHITE))
+                        .append(Component.translatable(entry.getKey().getDescriptionId())
+                            .withStyle(ChatFormatting.YELLOW)),
                     false);
                 return;
             }
@@ -195,34 +194,34 @@ public class PeakCraftingGui {
         try {
             result = recipe.buildResult();
         } catch (Exception e) {
-            player.sendMessage(
-                Text.literal("✗ Crafting failed — please report this to an admin.")
-                    .formatted(Formatting.RED), false);
+            player.sendSystemMessage(
+                Component.literal("✗ Crafting failed — please report this to an admin.")
+                    .withStyle(ChatFormatting.RED), false);
             return;
         }
 
-        lastCraftTime.put(player.getUuid(), now);
+        lastCraftTime.put(player.getUUID(), now);
 
         for (Map.Entry<Item, Integer> entry : required.entrySet()) {
             removeFromInventory(player, entry.getKey(), entry.getValue());
         }
 
-        player.getInventory().insertStack(result);
+        player.getInventory().add(result);
         if (!result.isEmpty()) {
-            player.dropItem(result, false);
+            player.drop(result, false);
         }
 
         XpManager.addXp(player, Skill.CRAFTING, 500);
 
-        player.sendMessage(
-            Text.literal("✦ Crafted: ").formatted(Formatting.GOLD)
-                .append(Text.literal(recipe.displayName()).formatted(Formatting.AQUA, Formatting.BOLD)),
+        player.sendSystemMessage(
+            Component.literal("✦ Crafted: ").withStyle(ChatFormatting.GOLD)
+                .append(Component.literal(recipe.displayName()).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)),
             false);
 
         populateDetail(inv, player, recipe);
     }
 
-    private static boolean canCraft(ServerPlayerEntity player, PeakRecipe recipe) {
+    private static boolean canCraft(ServerPlayer player, PeakRecipe recipe) {
         for (Map.Entry<Item, Integer> entry : aggregateRequired(recipe).entrySet()) {
             if (countInInventory(player, entry.getKey()) < entry.getValue()) return false;
         }
@@ -230,7 +229,7 @@ public class PeakCraftingGui {
     }
 
     /** Sums counts for each unique item across all grid slots. */
-    private static Map<Item, Integer> aggregateRequired(PeakRecipe recipe) {
+    static Map<Item, Integer> aggregateRequired(PeakRecipe recipe) {
         Map<Item, Integer> totals = new HashMap<>();
         for (PeakIngredient ing : recipe.ingredients()) {
             totals.merge(ing.item(), ing.count(), Integer::sum);
@@ -238,22 +237,22 @@ public class PeakCraftingGui {
         return totals;
     }
 
-    private static int countInInventory(ServerPlayerEntity player, Item item) {
+    private static int countInInventory(ServerPlayer player, Item item) {
         int count = 0;
-        for (int i = 0; i < player.getInventory().size(); i++) {
-            ItemStack stack = player.getInventory().getStack(i);
-            if (stack.isOf(item)) count += stack.getCount();
+        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+            ItemStack stack = player.getInventory().getItem(i);
+            if (stack.is(item)) count += stack.getCount();
         }
         return count;
     }
 
-    private static void removeFromInventory(ServerPlayerEntity player, Item item, int amount) {
+    private static void removeFromInventory(ServerPlayer player, Item item, int amount) {
         int remaining = amount;
-        for (int i = 0; i < player.getInventory().size() && remaining > 0; i++) {
-            ItemStack stack = player.getInventory().getStack(i);
-            if (stack.isOf(item)) {
+        for (int i = 0; i < player.getInventory().getContainerSize() && remaining > 0; i++) {
+            ItemStack stack = player.getInventory().getItem(i);
+            if (stack.is(item)) {
                 int take = Math.min(stack.getCount(), remaining);
-                stack.decrement(take);
+                stack.shrink(take);
                 remaining -= take;
             }
         }
@@ -262,28 +261,28 @@ public class PeakCraftingGui {
     // ── Item builders ─────────────────────────────────────────────────────────
 
     /** Recipe icon for the list view — result item with ingredient summary in lore. */
-    private static ItemStack listIcon(PeakRecipe recipe, ServerPlayerEntity player) {
+    private static ItemStack listIcon(PeakRecipe recipe, ServerPlayer player) {
         boolean craftable = canCraft(player, recipe);
         ItemStack stack = recipe.buildResult().copy();
 
-        List<Text> lore = new ArrayList<>();
-        lore.add(Text.literal("  " + recipe.category() + " Recipe").formatted(Formatting.DARK_GRAY));
-        lore.add(Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").formatted(Formatting.DARK_GRAY));
+        List<Component> lore = new ArrayList<>();
+        lore.add(Component.literal("  " + recipe.category() + " Recipe").withStyle(ChatFormatting.DARK_GRAY));
+        lore.add(Component.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").withStyle(ChatFormatting.DARK_GRAY));
         for (Map.Entry<Item, Integer> entry : aggregateRequired(recipe).entrySet()) {
             int have = countInInventory(player, entry.getKey());
             boolean ok = have >= entry.getValue();
             lore.add(
-                Text.literal("  " + (ok ? "✔ " : "✗ ")).formatted(ok ? Formatting.GREEN : Formatting.RED)
-                    .append(Text.translatable(entry.getKey().getTranslationKey()).formatted(Formatting.WHITE))
-                    .append(Text.literal("  " + have + "/" + entry.getValue())
-                        .formatted(ok ? Formatting.GREEN : Formatting.RED))
+                Component.literal("  " + (ok ? "✔ " : "✗ ")).withStyle(ok ? ChatFormatting.GREEN : ChatFormatting.RED)
+                    .append(Component.translatable(entry.getKey().getDescriptionId()).withStyle(ChatFormatting.WHITE))
+                    .append(Component.literal("  " + have + "/" + entry.getValue())
+                        .withStyle(ok ? ChatFormatting.GREEN : ChatFormatting.RED))
             );
         }
-        lore.add(Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").formatted(Formatting.DARK_GRAY));
-        lore.add(Text.literal(craftable ? "  ► Click to view & craft" : "  ✗ Missing materials")
-            .formatted(craftable ? Formatting.GREEN : Formatting.RED));
+        lore.add(Component.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").withStyle(ChatFormatting.DARK_GRAY));
+        lore.add(Component.literal(craftable ? "  ► Click to view & craft" : "  ✗ Missing materials")
+            .withStyle(craftable ? ChatFormatting.GREEN : ChatFormatting.RED));
 
-        stack.set(DataComponentTypes.LORE, new LoreComponent(lore));
+        stack.set(DataComponents.LORE, new ItemLore(lore));
         return stack;
     }
 
@@ -292,43 +291,43 @@ public class PeakCraftingGui {
      * Stack count = required amount (shows as the corner number like Skyblock).
      * Name color = green if player has enough, red if not.
      */
-    private static ItemStack gridIngredientIcon(PeakIngredient ingredient, ServerPlayerEntity player) {
+    private static ItemStack gridIngredientIcon(PeakIngredient ingredient, ServerPlayer player) {
         // Aggregate total required for this item across all slots
         int have = countInInventory(player, ingredient.item());
         boolean ok = have >= ingredient.count();
 
         // Set count to required amount — this is what shows as the corner number
         ItemStack stack = new ItemStack(ingredient.item(), ingredient.count());
-        stack.set(DataComponentTypes.CUSTOM_NAME,
-            Text.translatable(ingredient.item().getTranslationKey())
-                .formatted(ok ? Formatting.GREEN : Formatting.RED));
-        stack.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-            Text.literal("  Have: ").formatted(Formatting.GRAY)
-                .append(Text.literal(String.valueOf(have))
-                    .formatted(ok ? Formatting.GREEN : Formatting.RED)),
-            Text.literal("  Need: ").formatted(Formatting.GRAY)
-                .append(Text.literal(String.valueOf(ingredient.count())).formatted(Formatting.WHITE))
+        stack.set(DataComponents.CUSTOM_NAME,
+            Component.translatable(ingredient.item().getDescriptionId())
+                .withStyle(ok ? ChatFormatting.GREEN : ChatFormatting.RED));
+        stack.set(DataComponents.LORE, new ItemLore(List.of(
+            Component.literal("  Have: ").withStyle(ChatFormatting.GRAY)
+                .append(Component.literal(String.valueOf(have))
+                    .withStyle(ok ? ChatFormatting.GREEN : ChatFormatting.RED)),
+            Component.literal("  Need: ").withStyle(ChatFormatting.GRAY)
+                .append(Component.literal(String.valueOf(ingredient.count())).withStyle(ChatFormatting.WHITE))
         )));
         return stack;
     }
 
     private static ItemStack craftButton(boolean canCraft) {
         ItemStack stack = new ItemStack(canCraft ? Items.LIME_DYE : Items.BARRIER);
-        stack.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal(canCraft ? "► Craft" : "✗ Missing Materials")
-                .formatted(canCraft ? Formatting.GREEN : Formatting.RED, Formatting.BOLD));
+        stack.set(DataComponents.CUSTOM_NAME,
+            Component.literal(canCraft ? "► Craft" : "✗ Missing Materials")
+                .withStyle(canCraft ? ChatFormatting.GREEN : ChatFormatting.RED, ChatFormatting.BOLD));
         return stack;
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private static void fill(SimpleInventory inv, ItemStack stack) {
-        for (int i = 0; i < 54; i++) inv.setStack(i, stack.copy());
+    private static void fill(SimpleContainer inv, ItemStack stack) {
+        for (int i = 0; i < 54; i++) inv.setItem(i, stack.copy());
     }
 
     private static ItemStack pane(String name) {
         ItemStack s = new ItemStack(Items.GRAY_STAINED_GLASS_PANE);
-        s.set(DataComponentTypes.CUSTOM_NAME, Text.literal(name));
+        s.set(DataComponents.CUSTOM_NAME, Component.literal(name));
         return s;
     }
 }

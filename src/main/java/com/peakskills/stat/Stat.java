@@ -1,9 +1,9 @@
 package com.peakskills.stat;
 
-import net.minecraft.entity.attribute.EntityAttribute;
-import net.minecraft.entity.attribute.EntityAttributes;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.Holder;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 
 /**
  * Shared stats that skills contribute to.
@@ -12,24 +12,24 @@ import net.minecraft.util.Formatting;
 public enum Stat {
 
     //                    name                 attribute                              raw/lvl  icon  color                      scale
-    STRENGTH            ("Strength",         EntityAttributes.ATTACK_DAMAGE,       0.02,   "⚔",  Formatting.RED,        100.0),
-    DEFENSE             ("Defense",          EntityAttributes.ARMOR,                0.04,   "❋",  Formatting.WHITE,      100.0),
-    TOUGHNESS           ("Toughness",        EntityAttributes.ARMOR_TOUGHNESS,      0.02,   "◈",  Formatting.GRAY,       100.0),
-    HEALTH              ("Health",           EntityAttributes.MAX_HEALTH,           0.1,    "❤",  Formatting.DARK_RED,    10.0),
-    SWIFTNESS           ("Swiftness",        EntityAttributes.MOVEMENT_SPEED,       0.0004, "⚡",  Formatting.AQUA,     10000.0),
-    KNOCKBACK_RESISTANCE("Knockback Resist", EntityAttributes.KNOCKBACK_RESISTANCE, 0.002,  "⚓",  Formatting.DARK_AQUA, 1000.0),
-    LUCK                ("Luck",             EntityAttributes.LUCK,                 0.02,   "✦",  Formatting.GOLD,       100.0);
+    STRENGTH            ("Strength",         Attributes.ATTACK_DAMAGE,       0.02,   "⚔",  ChatFormatting.RED,        100.0),
+    DEFENSE             ("Defense",          Attributes.ARMOR,                0.04,   "❋",  ChatFormatting.WHITE,      100.0),
+    TOUGHNESS           ("Toughness",        Attributes.ARMOR_TOUGHNESS,      0.02,   "◈",  ChatFormatting.GRAY,       100.0),
+    HEALTH              ("Health",           Attributes.MAX_HEALTH,           0.1,    "❤",  ChatFormatting.DARK_RED,    10.0),
+    SWIFTNESS           ("Swiftness",        Attributes.MOVEMENT_SPEED,       0.0004, "⚡",  ChatFormatting.AQUA,     10000.0),
+    KNOCKBACK_RESISTANCE("Knockback Resist", Attributes.KNOCKBACK_RESISTANCE, 0.002,  "⚓",  ChatFormatting.DARK_AQUA, 1000.0),
+    LUCK                ("Luck",             Attributes.LUCK,                 0.02,   "✦",  ChatFormatting.GOLD,       100.0);
 
     private final String displayName;
-    private final RegistryEntry<EntityAttribute> attribute;
+    private final Holder<Attribute> attribute;
     private final double valuePerLevel;
     private final String icon;
-    private final Formatting color;
+    private final ChatFormatting color;
     /** Multiply raw attribute value by this to get a human-readable display number. */
     private final double displayScale;
 
-    Stat(String displayName, RegistryEntry<EntityAttribute> attribute, double valuePerLevel,
-         String icon, Formatting color, double displayScale) {
+    Stat(String displayName, Holder<Attribute> attribute, double valuePerLevel,
+         String icon, ChatFormatting color, double displayScale) {
         this.displayName   = displayName;
         this.attribute     = attribute;
         this.valuePerLevel = valuePerLevel;
@@ -39,10 +39,10 @@ public enum Stat {
     }
 
     public String getDisplayName()                       { return displayName; }
-    public RegistryEntry<EntityAttribute> getAttribute() { return attribute; }
+    public Holder<Attribute> getAttribute() { return attribute; }
     public double getValuePerLevel()                     { return valuePerLevel; }
     public String getIcon()                              { return icon; }
-    public Formatting getColor()                         { return color; }
+    public ChatFormatting getColor()                         { return color; }
     public double getDisplayScale()                      { return displayScale; }
 
     /** Convert a raw attribute value to its display value. */

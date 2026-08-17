@@ -48,6 +48,10 @@ screens, rendering, or integrated-server behavior.
 - Logs, reports, crash reports, and screenshots are uploaded only when a job fails
   and expire after seven days.
 
-Minecraft 26.1 and newer require Java 25 and Mojang official mappings. When the mod is
-ported, update the Java version in both Gradle and the workflow together; the testing
-layout itself can remain the same.
+Minecraft 26.1 and newer require Java 25 and Mojang official names. PeakSkills targets
+Minecraft 26.1.2, so local verification and CI both run on Java 25. Manual and nightly
+failures open or update one `ci-failure` GitHub issue; a later successful run closes it.
+
+The wider ecosystem's invariants, ownership rules, definition of done, test strategy,
+backup expectations, and observability rules are recorded in
+[`docs/PEAKMOD_ENGINEERING_GUIDE.md`](docs/PEAKMOD_ENGINEERING_GUIDE.md).

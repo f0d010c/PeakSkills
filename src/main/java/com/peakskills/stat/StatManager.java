@@ -5,26 +5,25 @@ import com.peakskills.pet.PetAbility;
 import com.peakskills.pet.PetAbilityRegistry;
 import com.peakskills.player.PlayerData;
 import com.peakskills.player.PlayerDataManager;
-import net.minecraft.entity.attribute.EntityAttributeInstance;
-import net.minecraft.entity.attribute.EntityAttributeModifier;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Identifier;
-
 import java.util.HashMap;
 import java.util.Map;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 
 public class StatManager {
 
-    private static final Identifier MODIFIER_ID = Identifier.of(PeakSkills.MOD_ID, "skill_stats");
+    private static final Identifier MODIFIER_ID = Identifier.fromNamespaceAndPath(PeakSkills.MOD_ID, "skill_stats");
 
     /**
      * Recalculates and applies all stat bonuses to the player.
      * Call this whenever a skill levels up.
      */
-    public static void applyStats(ServerPlayerEntity player) {
+    public static void applyStats(ServerPlayer player) {
         float healthBefore = player.getMaxHealth();
 
-        PlayerData data = PlayerDataManager.get(player.getUuid());
+        PlayerData data = PlayerDataManager.get(player.getUUID());
 
         // Sum contributions per stat
         Map<Stat, Double> totals = new HashMap<>();
@@ -46,7 +45,7 @@ public class StatManager {
 
         // Apply to attributes
         for (Stat stat : Stat.values()) {
-            EntityAttributeInstance instance = player.getAttributeInstance(stat.getAttribute());
+            AttributeInstance instance = player.getAttribute(stat.getAttribute());
             if (instance == null) continue;
 
             // Remove old modifier first
@@ -55,10 +54,10 @@ public class StatManager {
             double value = totals.getOrDefault(stat, 0.0);
             if (value == 0.0) continue;
 
-            instance.addPersistentModifier(new EntityAttributeModifier(
+            instance.addPermanentModifier(new AttributeModifier(
                 MODIFIER_ID,
                 value,
-                EntityAttributeModifier.Operation.ADD_VALUE
+                AttributeModifier.Operation.ADD_VALUE
             ));
         }
 
@@ -76,9 +75,9 @@ public class StatManager {
     /**
      * Remove all PeakSkills stat modifiers from a player (e.g. on disconnect).
      */
-    public static void removeStats(ServerPlayerEntity player) {
+    public static void removeStats(ServerPlayer player) {
         for (Stat stat : Stat.values()) {
-            EntityAttributeInstance instance = player.getAttributeInstance(stat.getAttribute());
+            AttributeInstance instance = player.getAttribute(stat.getAttribute());
             if (instance != null) instance.removeModifier(MODIFIER_ID);
         }
     }

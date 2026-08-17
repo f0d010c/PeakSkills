@@ -1,6 +1,6 @@
 package com.peakskills.crafting;
 
-import net.minecraft.item.Item;
+import net.minecraft.world.item.Item;
 
 /**
  * A single ingredient slot in a custom recipe.

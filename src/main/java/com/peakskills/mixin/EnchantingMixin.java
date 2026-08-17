@@ -3,33 +3,33 @@ package com.peakskills.mixin;
 import com.peakskills.player.PlayerDataManager;
 import com.peakskills.skill.Skill;
 import com.peakskills.xp.XpManager;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.component.type.ItemEnchantmentsComponent;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.screen.EnchantmentScreenHandler;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.EnchantmentMenu;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(EnchantmentScreenHandler.class)
+@Mixin(EnchantmentMenu.class)
 public class EnchantingMixin {
 
-    @Inject(method = "onButtonClick", at = @At("RETURN"))
-    private void onEnchant(PlayerEntity player, int id, CallbackInfoReturnable<Boolean> cir) {
+    @Inject(method = "clickMenuButton", at = @At("RETURN"))
+    private void onEnchant(Player player, int id, CallbackInfoReturnable<Boolean> cir) {
         if (!cir.getReturnValue()) return;
-        if (!(player instanceof ServerPlayerEntity sp)) return;
+        if (!(player instanceof ServerPlayer sp)) return;
 
-        int enchLevel = PlayerDataManager.get(sp.getUuid()).getLevel(Skill.ENCHANTING);
+        int enchLevel = PlayerDataManager.get(sp.getUUID()).getLevel(Skill.ENCHANTING);
 
         // XP scales with skill level so early actions aren't explosive but end-game stays viable.
         // Tier 0: 100 + 7*level  →  L1: 107,  L50: 450,  L99: 793
@@ -48,46 +48,46 @@ public class EnchantingMixin {
         double upgradeChance = enchLevel * 0.004;
         if (upgradeChance <= 0 || sp.getRandom().nextDouble() >= upgradeChance) return;
 
-        EnchantmentScreenHandler handler = (EnchantmentScreenHandler)(Object) this;
-        ItemStack item = handler.getSlot(0).getStack();
+        EnchantmentMenu handler = (EnchantmentMenu)(Object) this;
+        ItemStack item = handler.getSlot(0).getItem();
         if (item.isEmpty()) return;
 
-        ItemEnchantmentsComponent enchants =
-            item.getOrDefault(DataComponentTypes.ENCHANTMENTS, ItemEnchantmentsComponent.DEFAULT);
+        ItemEnchantments enchants =
+            item.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
         if (enchants.isEmpty()) return;
 
-        ItemEnchantmentsComponent.Builder builder = new ItemEnchantmentsComponent.Builder(enchants);
-        RegistryEntry<Enchantment> upgradedEntry = null;
+        ItemEnchantments.Mutable builder = new ItemEnchantments.Mutable(enchants);
+        Holder<Enchantment> upgradedEntry = null;
         int newLevel = 0;
 
-        for (var entry : enchants.getEnchantments()) {
+        for (var entry : enchants.keySet()) {
             int current = enchants.getLevel(entry);
             int max     = entry.value().getMaxLevel();
             if (current < max) {
                 newLevel = current + 1;
-                builder.add(entry, newLevel);
+                builder.upgrade(entry, newLevel);
                 upgradedEntry = entry;
                 break; // one upgrade per enchant event
             }
         }
 
         if (upgradedEntry != null) {
-            item.set(DataComponentTypes.ENCHANTMENTS, builder.build());
+            item.set(DataComponents.ENCHANTMENTS, builder.toImmutable());
 
             // Chat message with enchantment name and level transition
             int oldLevel = newLevel - 1;
-            sp.sendMessage(
-                Text.literal("✦ Arcane Mastery!  ").formatted(Formatting.GOLD, Formatting.BOLD)
-                    .append(upgradedEntry.value().description().copy().formatted(Formatting.LIGHT_PURPLE, Formatting.BOLD))
-                    .append(Text.literal("  " + toRoman(oldLevel) + " → " + toRoman(newLevel))
-                        .formatted(Formatting.WHITE)),
+            sp.sendSystemMessage(
+                Component.literal("✦ Arcane Mastery!  ").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD)
+                    .append(upgradedEntry.value().description().copy().withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD))
+                    .append(Component.literal("  " + toRoman(oldLevel) + " → " + toRoman(newLevel))
+                        .withStyle(ChatFormatting.WHITE)),
                 false
             );
 
             // Distinct sound — higher pitch than skill level-up (1.0f)
-            sp.networkHandler.sendPacket(new PlaySoundS2CPacket(
-                RegistryEntry.of(SoundEvents.ENTITY_PLAYER_LEVELUP),
-                SoundCategory.PLAYERS,
+            sp.connection.send(new ClientboundSoundPacket(
+                Holder.direct(SoundEvents.PLAYER_LEVELUP),
+                SoundSource.PLAYERS,
                 sp.getX(), sp.getY(), sp.getZ(),
                 0.6f, 1.8f, 0L
             ));

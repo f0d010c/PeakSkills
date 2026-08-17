@@ -5,22 +5,20 @@ import com.peakskills.player.PlayerData;
 import com.peakskills.player.PlayerDataManager;
 import com.peakskills.stat.StatManager;
 import com.peakskills.skill.Skill;
-import com.peakskills.pet.PetDisplayManager;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.inventory.SimpleInventory;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.ItemLore;
 
 public class PetMenuGui {
 
@@ -37,17 +35,17 @@ public class PetMenuGui {
     private static final Skill[] COMBAT_SKILLS    = { Skill.SLAYING, Skill.RANGED, Skill.DEFENSE };
     private static final Skill[] MASTERY_SKILLS   = { Skill.ENCHANTING, Skill.ALCHEMY, Skill.COOKING, Skill.CRAFTING, Skill.AGILITY, Skill.TAMING, Skill.TRADING };
 
-    public static void open(ServerPlayerEntity player) {
+    public static void open(ServerPlayer player) {
         open(player, Category.ALL);
     }
 
-    public static void open(ServerPlayerEntity player, Category filter) {
-        open(player, filter, PlayerDataManager.get(player.getUuid()).isPetsVisible());
+    public static void open(ServerPlayer player, Category filter) {
+        open(player, filter, PlayerDataManager.get(player.getUUID()).isPetsVisible());
     }
 
-    public static void open(ServerPlayerEntity player, Category filter, boolean petsVisible) {
-        PlayerData data = PlayerDataManager.get(player.getUuid());
-        SimpleInventory inv = new SimpleInventory(54);
+    public static void open(ServerPlayer player, Category filter, boolean petsVisible) {
+        PlayerData data = PlayerDataManager.get(player.getUUID());
+        SimpleContainer inv = new SimpleContainer(54);
         Category[] currentFilter = { filter };
         boolean[] currentPetsVisible = { petsVisible };
         populate(inv, data, currentFilter[0], currentPetsVisible[0]);
@@ -56,23 +54,23 @@ public class PetMenuGui {
         Map<Integer, Runnable> rightHandlers   = buildRightClickHandlers(player, data, inv, currentFilter, currentPetsVisible);
         Map<Integer, Runnable> middleHandlers  = buildMiddleClickHandlers(player, data, inv, currentFilter, currentPetsVisible);
 
-        player.openHandledScreen(new SimpleNamedScreenHandlerFactory(
+        player.openMenu(new SimpleMenuProvider(
             (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers, rightHandlers, middleHandlers),
-            Text.literal("✦ Pet Roster").formatted(Formatting.LIGHT_PURPLE)
+            Component.literal("✦ Pet Roster").withStyle(ChatFormatting.LIGHT_PURPLE)
         ));
     }
 
     // ── Build ─────────────────────────────────────────────────────────────────
 
-    private static void populate(SimpleInventory inv, PlayerData data, Category filter, boolean petsVisible) {
+    private static void populate(SimpleContainer inv, PlayerData data, Category filter, boolean petsVisible) {
         ItemStack bg = pane(" ");
-        for (int i = 0; i < 54; i++) inv.setStack(i, bg.copy());
+        for (int i = 0; i < 54; i++) inv.setItem(i, bg.copy());
 
         // Filter tabs (slots 1-4)
-        inv.setStack(1, filterTab("All",       Items.WHITE_STAINED_GLASS_PANE,  filter == Category.ALL));
-        inv.setStack(2, filterTab("Gathering", Items.LIME_STAINED_GLASS_PANE,   filter == Category.GATHERING));
-        inv.setStack(3, filterTab("Combat",    Items.RED_STAINED_GLASS_PANE,    filter == Category.COMBAT));
-        inv.setStack(4, filterTab("Mastery",   Items.PURPLE_STAINED_GLASS_PANE, filter == Category.MASTERY));
+        inv.setItem(1, filterTab("All",       Items.WHITE_STAINED_GLASS_PANE,  filter == Category.ALL));
+        inv.setItem(2, filterTab("Gathering", Items.LIME_STAINED_GLASS_PANE,   filter == Category.GATHERING));
+        inv.setItem(3, filterTab("Combat",    Items.RED_STAINED_GLASS_PANE,    filter == Category.COMBAT));
+        inv.setItem(4, filterTab("Mastery",   Items.PURPLE_STAINED_GLASS_PANE, filter == Category.MASTERY));
 
         List<PetInstance> pets = data.getPetRoster().getPets().stream()
             .filter(p -> matchesFilter(p, filter))
@@ -80,57 +78,57 @@ public class PetMenuGui {
 
         // Craft Pets button — slot 6
         ItemStack craftBtn = new ItemStack(Items.BLAZE_POWDER);
-        craftBtn.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
-        craftBtn.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal("✦ Craft Pet Eggs").formatted(Formatting.LIGHT_PURPLE, Formatting.BOLD));
-        craftBtn.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-            Text.literal("  Craft Common pet eggs").formatted(Formatting.DARK_GRAY),
-            Text.literal("  using materials from your inventory").formatted(Formatting.DARK_GRAY)
+        craftBtn.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+        craftBtn.set(DataComponents.CUSTOM_NAME,
+            Component.literal("✦ Craft Pet Eggs").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD));
+        craftBtn.set(DataComponents.LORE, new ItemLore(List.of(
+            Component.literal("  Craft Common pet eggs").withStyle(ChatFormatting.DARK_GRAY),
+            Component.literal("  using materials from your inventory").withStyle(ChatFormatting.DARK_GRAY)
         )));
-        inv.setStack(6, craftBtn);
+        inv.setItem(6, craftBtn);
 
         // Visibility toggle — slot 7
         ItemStack visToggle = new ItemStack(petsVisible ? Items.ENDER_EYE : Items.FERMENTED_SPIDER_EYE);
-        visToggle.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal(petsVisible ? "✦ Pet Visuals: ON" : "✦ Pet Visuals: OFF")
-                .formatted(petsVisible ? Formatting.GREEN : Formatting.RED, Formatting.BOLD));
-        visToggle.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-            Text.literal("  Click to " + (petsVisible ? "hide" : "show") + " active pet display")
-                .formatted(Formatting.DARK_GRAY)
+        visToggle.set(DataComponents.CUSTOM_NAME,
+            Component.literal(petsVisible ? "✦ Pet Visuals: ON" : "✦ Pet Visuals: OFF")
+                .withStyle(petsVisible ? ChatFormatting.GREEN : ChatFormatting.RED, ChatFormatting.BOLD));
+        visToggle.set(DataComponents.LORE, new ItemLore(List.of(
+            Component.literal("  Click to " + (petsVisible ? "hide" : "show") + " active pet display")
+                .withStyle(ChatFormatting.DARK_GRAY)
         )));
-        inv.setStack(7, visToggle);
+        inv.setItem(7, visToggle);
 
         // Title — slot 8
         ItemStack title = new ItemStack(Items.LEAD);
-        title.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
-        title.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal("✦ Pet Roster  ").formatted(Formatting.LIGHT_PURPLE, Formatting.BOLD)
-                .append(Text.literal(pets.size() + " / " + PetRoster.MAX_SLOTS)
-                    .formatted(Formatting.GRAY)));
-        title.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-            Text.literal("  Left-click a pet to activate / deactivate").formatted(Formatting.DARK_GRAY),
-            Text.literal("  Shift-click a maxed pet to upgrade rarity").formatted(Formatting.DARK_GRAY),
-            Text.literal("  Active pet earns XP and grants bonuses").formatted(Formatting.DARK_GRAY)
+        title.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+        title.set(DataComponents.CUSTOM_NAME,
+            Component.literal("✦ Pet Roster  ").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD)
+                .append(Component.literal(pets.size() + " / " + PetRoster.MAX_SLOTS)
+                    .withStyle(ChatFormatting.GRAY)));
+        title.set(DataComponents.LORE, new ItemLore(List.of(
+            Component.literal("  Left-click a pet to activate / deactivate").withStyle(ChatFormatting.DARK_GRAY),
+            Component.literal("  Shift-click a maxed pet to upgrade rarity").withStyle(ChatFormatting.DARK_GRAY),
+            Component.literal("  Active pet earns XP and grants bonuses").withStyle(ChatFormatting.DARK_GRAY)
         )));
-        inv.setStack(8, title);
+        inv.setItem(8, title);
 
         // Pet icons
         for (int i = 0; i < pets.size() && i < PET_SLOTS.length; i++) {
-            inv.setStack(PET_SLOTS[i], petIcon(pets.get(i)));
+            inv.setItem(PET_SLOTS[i], petIcon(pets.get(i)));
         }
 
         // Empty slot indicators
         ItemStack empty = new ItemStack(Items.GRAY_STAINED_GLASS_PANE);
-        empty.set(DataComponentTypes.CUSTOM_NAME, Text.literal("Empty Slot").formatted(Formatting.DARK_GRAY));
+        empty.set(DataComponents.CUSTOM_NAME, Component.literal("Empty Slot").withStyle(ChatFormatting.DARK_GRAY));
         for (int i = pets.size(); i < PET_SLOTS.length; i++) {
-            inv.setStack(PET_SLOTS[i], empty.copy());
+            inv.setItem(PET_SLOTS[i], empty.copy());
         }
     }
 
     // ── Click handlers ────────────────────────────────────────────────────────
 
-    private static Map<Integer, Runnable> buildClickHandlers(ServerPlayerEntity player, PlayerData data,
-                                                             SimpleInventory inv, Category[] currentFilter,
+    private static Map<Integer, Runnable> buildClickHandlers(ServerPlayer player, PlayerData data,
+                                                             SimpleContainer inv, Category[] currentFilter,
                                                              boolean[] currentPetsVisible) {
         Map<Integer, Runnable> handlers = new HashMap<>();
 
@@ -151,7 +149,7 @@ public class PetMenuGui {
             if (nowVisible) {
                 PetDisplayManager.restoreDisplay(player);
             } else {
-                PetDisplayManager.killDisplay(player.getUuid(), PlayerDataManager.getServer());
+                PetDisplayManager.killDisplay(player.getUUID(), PlayerDataManager.getServer());
             }
             populate(inv, data, currentFilter[0], currentPetsVisible[0]);
         });
@@ -165,17 +163,17 @@ public class PetMenuGui {
                 PetRoster roster = data.getPetRoster();
                 if (pet.isActive()) {
                     roster.deactivate();
-                    PetDisplayManager.killDisplay(player.getUuid(), com.peakskills.player.PlayerDataManager.getServer());
+                    PetDisplayManager.killDisplay(player.getUUID(), com.peakskills.player.PlayerDataManager.getServer());
                     StatManager.applyStats(player);
-                    player.sendMessage(Text.literal("Pet deactivated.").formatted(Formatting.YELLOW), false);
+                    player.sendSystemMessage(Component.literal("Pet deactivated.").withStyle(ChatFormatting.YELLOW), false);
                 } else {
                     roster.setActivePet(pet.getId());
                     PetDisplayManager.spawnDisplay(player, pet.getType());
                     StatManager.applyStats(player);
-                    player.sendMessage(
-                        Text.literal("Active pet: ").formatted(Formatting.GREEN)
-                            .append(Text.literal(pet.getRarity().displayName + " " + pet.getType().displayName)
-                                .formatted(pet.getRarity().color)),
+                    player.sendSystemMessage(
+                        Component.literal("Active pet: ").withStyle(ChatFormatting.GREEN)
+                            .append(Component.literal(pet.getRarity().displayName + " " + pet.getType().displayName)
+                                .withStyle(pet.getRarity().color)),
                         false);
                 }
                 populate(inv, data, currentFilter[0], currentPetsVisible[0]);
@@ -184,7 +182,7 @@ public class PetMenuGui {
         return handlers;
     }
 
-    private static void refresh(SimpleInventory inv, PlayerData data, Category[] currentFilter,
+    private static void refresh(SimpleContainer inv, PlayerData data, Category[] currentFilter,
                                 boolean[] currentPetsVisible, Category filter) {
         currentFilter[0] = filter;
         currentPetsVisible[0] = data.isPetsVisible();
@@ -209,8 +207,8 @@ public class PetMenuGui {
 
     // ── Middle-click: upgrade pet ─────────────────────────────────────────────
 
-    private static Map<Integer, Runnable> buildMiddleClickHandlers(ServerPlayerEntity player, PlayerData data,
-                                                                   SimpleInventory inv, Category[] currentFilter,
+    private static Map<Integer, Runnable> buildMiddleClickHandlers(ServerPlayer player, PlayerData data,
+                                                                   SimpleContainer inv, Category[] currentFilter,
                                                                    boolean[] currentPetsVisible) {
         Map<Integer, Runnable> handlers = new HashMap<>();
 
@@ -228,8 +226,8 @@ public class PetMenuGui {
 
     // ── Right-click: remove pet ───────────────────────────────────────────────
 
-    private static Map<Integer, Runnable> buildRightClickHandlers(ServerPlayerEntity player, PlayerData data,
-                                                                  SimpleInventory inv, Category[] currentFilter,
+    private static Map<Integer, Runnable> buildRightClickHandlers(ServerPlayer player, PlayerData data,
+                                                                  SimpleContainer inv, Category[] currentFilter,
                                                                   boolean[] currentPetsVisible) {
         Map<Integer, Runnable> handlers = new HashMap<>();
 
@@ -239,23 +237,23 @@ public class PetMenuGui {
                 PetInstance pet = petAtSlot(data, currentFilter[0], slot);
                 if (pet == null) return;
                 if (pet.isActive()) {
-                    PetDisplayManager.killDisplay(player.getUuid(), com.peakskills.player.PlayerDataManager.getServer());
+                    PetDisplayManager.killDisplay(player.getUUID(), com.peakskills.player.PlayerDataManager.getServer());
                 }
                 data.getPetRoster().removePet(pet.getId());
                 StatManager.applyStats(player);
 
                 // Return the pet as an egg in the player's inventory
                 ItemStack egg = PetEggHandler.createEgg(pet.getType(), pet.getRarity(), pet.getXp());
-                if (!player.getInventory().insertStack(egg)) {
+                if (!player.getInventory().add(egg)) {
                     // Inventory full — drop at player's feet
-                    player.dropItem(egg, false);
+                    player.drop(egg, false);
                 }
 
-                player.sendMessage(
-                    Text.literal("Returned ").formatted(Formatting.YELLOW)
-                        .append(Text.literal(pet.getRarity().displayName + " " + pet.getType().displayName + " Egg")
-                            .formatted(pet.getRarity().color))
-                        .append(Text.literal(" to your inventory.").formatted(Formatting.YELLOW)),
+                player.sendSystemMessage(
+                    Component.literal("Returned ").withStyle(ChatFormatting.YELLOW)
+                        .append(Component.literal(pet.getRarity().displayName + " " + pet.getType().displayName + " Egg")
+                            .withStyle(pet.getRarity().color))
+                        .append(Component.literal(" to your inventory.").withStyle(ChatFormatting.YELLOW)),
                     false);
                 populate(inv, data, currentFilter[0], currentPetsVisible[0]);
             });
@@ -277,61 +275,61 @@ public class PetMenuGui {
         boolean active = pet.isActive();
 
         ItemStack stack = new ItemStack(pet.getType().icon);
-        if (active) stack.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
+        if (active) stack.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
 
-        stack.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal(rar.displayName + " " + pet.getType().displayName)
-                .formatted(rar.color, Formatting.BOLD));
+        stack.set(DataComponents.CUSTOM_NAME,
+            Component.literal(rar.displayName + " " + pet.getType().displayName)
+                .withStyle(rar.color, ChatFormatting.BOLD));
 
-        List<Text> lore = new ArrayList<>();
+        List<Component> lore = new ArrayList<>();
         lore.add(separator());
 
-        if (active) lore.add(Text.literal("  ✦ ACTIVE").formatted(Formatting.GOLD, Formatting.BOLD));
+        if (active) lore.add(Component.literal("  ✦ ACTIVE").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
 
-        lore.add(Text.literal("  Affinity: ").formatted(Formatting.GRAY)
-            .append(Text.literal(pet.getType().affinity.getDisplayName()).formatted(Formatting.WHITE)));
+        lore.add(Component.literal("  Affinity: ").withStyle(ChatFormatting.GRAY)
+            .append(Component.literal(pet.getType().affinity.getDisplayName()).withStyle(ChatFormatting.WHITE)));
 
-        lore.add(Text.empty());
+        lore.add(Component.empty());
 
-        lore.add(Text.literal("  Level  ").formatted(Formatting.GRAY)
-            .append(Text.literal(String.valueOf(level)).formatted(Formatting.WHITE, Formatting.BOLD))
-            .append(Text.literal(" / " + rar.levelCap).formatted(Formatting.DARK_GRAY)));
+        lore.add(Component.literal("  Level  ").withStyle(ChatFormatting.GRAY)
+            .append(Component.literal(String.valueOf(level)).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD))
+            .append(Component.literal(" / " + rar.levelCap).withStyle(ChatFormatting.DARK_GRAY)));
 
         if (maxed && pet.canUpgrade()) {
             PetRarity next = rar.next();
-            lore.add(Text.literal("  ✦ READY TO UPGRADE → ").formatted(Formatting.GREEN, Formatting.BOLD)
-                .append(Text.literal(next.displayName).formatted(next.color, Formatting.BOLD)));
-            lore.add(Text.literal("  Cost: " + upgradeCost(rar)).formatted(Formatting.GRAY));
+            lore.add(Component.literal("  ✦ READY TO UPGRADE → ").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD)
+                .append(Component.literal(next.displayName).withStyle(next.color, ChatFormatting.BOLD)));
+            lore.add(Component.literal("  Cost: " + upgradeCost(rar)).withStyle(ChatFormatting.GRAY));
         } else if (maxed && rar.isMax()) {
-            lore.add(Text.literal("  ✦ MAX RARITY & LEVEL").formatted(Formatting.GOLD, Formatting.BOLD));
+            lore.add(Component.literal("  ✦ MAX RARITY & LEVEL").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
         } else {
-            lore.add(Text.literal("  " + bar(prog, span, 16) + "  ").formatted(Formatting.LIGHT_PURPLE)
-                .append(Text.literal(String.format("%.1f%%", prog * 100.0 / span)).formatted(Formatting.GRAY)));
-            lore.add(Text.literal(String.format("  %,d / %,d XP", prog, span)).formatted(Formatting.DARK_GRAY));
+            lore.add(Component.literal("  " + bar(prog, span, 16) + "  ").withStyle(ChatFormatting.LIGHT_PURPLE)
+                .append(Component.literal(String.format("%.1f%%", prog * 100.0 / span)).withStyle(ChatFormatting.GRAY)));
+            lore.add(Component.literal(String.format("  %,d / %,d XP", prog, span)).withStyle(ChatFormatting.DARK_GRAY));
         }
 
         List<PetAbility> abilities = PetAbilityRegistry.getAbilities(pet.getType());
         if (!abilities.isEmpty()) {
-            lore.add(Text.empty());
-            lore.add(Text.literal("  Abilities:").formatted(Formatting.YELLOW));
+            lore.add(Component.empty());
+            lore.add(Component.literal("  Abilities:").withStyle(ChatFormatting.YELLOW));
             for (PetAbility ability : abilities) {
-                lore.add(Text.literal("   ✦ " + ability.displayLine(level, rar))
-                    .formatted(Formatting.GREEN));
+                lore.add(Component.literal("   ✦ " + ability.displayLine(level, rar))
+                    .withStyle(ChatFormatting.GREEN));
             }
         }
 
         lore.add(separator());
         if (!active) {
-            lore.add(Text.literal("  Left-click to activate").formatted(Formatting.DARK_GRAY));
+            lore.add(Component.literal("  Left-click to activate").withStyle(ChatFormatting.DARK_GRAY));
         } else {
-            lore.add(Text.literal("  Left-click to deactivate").formatted(Formatting.DARK_GRAY));
+            lore.add(Component.literal("  Left-click to deactivate").withStyle(ChatFormatting.DARK_GRAY));
         }
         if (pet.canUpgrade()) {
-            lore.add(Text.literal("  Shift-click to upgrade rarity").formatted(Formatting.GREEN));
+            lore.add(Component.literal("  Shift-click to upgrade rarity").withStyle(ChatFormatting.GREEN));
         }
-        lore.add(Text.literal("  Right-click to remove").formatted(Formatting.RED));
+        lore.add(Component.literal("  Right-click to remove").withStyle(ChatFormatting.RED));
 
-        stack.set(DataComponentTypes.LORE, new LoreComponent(lore));
+        stack.set(DataComponents.LORE, new ItemLore(lore));
         return stack;
     }
 
@@ -353,11 +351,11 @@ public class PetMenuGui {
 
     private static ItemStack filterTab(String label, Item item, boolean active) {
         ItemStack stack = new ItemStack(item);
-        stack.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal(label).formatted(
-                active ? Formatting.WHITE : Formatting.GRAY,
-                active ? Formatting.BOLD  : Formatting.ITALIC));
-        if (active) stack.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
+        stack.set(DataComponents.CUSTOM_NAME,
+            Component.literal(label).withStyle(
+                active ? ChatFormatting.WHITE : ChatFormatting.GRAY,
+                active ? ChatFormatting.BOLD  : ChatFormatting.ITALIC));
+        if (active) stack.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
         return stack;
     }
 
@@ -376,13 +374,13 @@ public class PetMenuGui {
         return "█".repeat(filled) + "░".repeat(length - filled);
     }
 
-    private static Text separator() {
-        return Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").formatted(Formatting.DARK_GRAY);
+    private static Component separator() {
+        return Component.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").withStyle(ChatFormatting.DARK_GRAY);
     }
 
     private static ItemStack pane(String name) {
         ItemStack s = new ItemStack(Items.BLACK_STAINED_GLASS_PANE);
-        s.set(DataComponentTypes.CUSTOM_NAME, Text.literal(name));
+        s.set(DataComponents.CUSTOM_NAME, Component.literal(name));
         return s;
     }
 }

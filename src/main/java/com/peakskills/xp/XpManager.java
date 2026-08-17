@@ -13,20 +13,19 @@ import com.peakskills.stat.SkillStatSource;
 import com.peakskills.stat.StatManager;
 import com.peakskills.stat.StatRegistry;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.attribute.EntityAttributes;
-import net.minecraft.item.Item;
-import net.minecraft.item.Items;
-import net.minecraft.entity.boss.BossBar;
-import net.minecraft.entity.boss.ServerBossBar;
-import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.Holder;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
+import net.minecraft.server.level.ServerBossEvent;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.BossEvent;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Map;
@@ -40,7 +39,7 @@ public class XpManager {
     private static final int LEVEL_UP_SOUND_LIMIT = 5;
     private static final long LEVEL_UP_SOUND_WINDOW_MS = 5 * 60 * 1000L;
 
-    private static final Map<UUID, ServerBossBar> activeBars   = new ConcurrentHashMap<>();
+    private static final Map<UUID, ServerBossEvent> activeBars   = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer>       barCountdown = new ConcurrentHashMap<>();
     private static final Map<UUID, Deque<Long>>   levelUpSoundWindow = new ConcurrentHashMap<>();
 
@@ -52,33 +51,33 @@ public class XpManager {
             // Remove any that have expired
             barCountdown.entrySet().removeIf(entry -> {
                 if (entry.getValue() <= 0) {
-                    ServerBossBar bar = activeBars.remove(entry.getKey());
-                    if (bar != null) bar.clearPlayers();
+                    ServerBossEvent bar = activeBars.remove(entry.getKey());
+                    if (bar != null) bar.removeAllPlayers();
                     return true;
                 }
                 return false;
             });
 
             // Refresh stat action bar every 2 seconds for all online players
-            if (server.getTicks() % 40 == 0) {
-                for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
+            if (server.getTickCount() % 40 == 0) {
+                for (ServerPlayer p : server.getPlayerList().getPlayers()) {
                     sendStatBar(p);
                 }
             }
         });
     }
 
-    private static void sendStatBar(ServerPlayerEntity player) {
+    private static void sendStatBar(ServerPlayer player) {
         long hp    = Math.round(player.getHealth());
         long maxHp = Math.round(player.getMaxHealth());
-        long armor = Math.round(player.getAttributeValue(EntityAttributes.ARMOR) * 10.0);
+        long armor = Math.round(player.getAttributeValue(Attributes.ARMOR) * 10.0);
 
-        Text bar = Text.literal("❤ ").formatted(Formatting.RED)
-            .append(Text.literal(hp + " / " + maxHp + "   ").formatted(Formatting.GREEN))
-            .append(Text.literal("❋ ").formatted(Formatting.WHITE))
-            .append(Text.literal(String.valueOf(armor)).formatted(Formatting.GREEN));
+        Component bar = Component.literal("❤ ").withStyle(ChatFormatting.RED)
+            .append(Component.literal(hp + " / " + maxHp + "   ").withStyle(ChatFormatting.GREEN))
+            .append(Component.literal("❋ ").withStyle(ChatFormatting.WHITE))
+            .append(Component.literal(String.valueOf(armor)).withStyle(ChatFormatting.GREEN));
 
-        player.sendMessage(bar, true);
+        player.sendOverlayMessage(bar);
     }
 
     private static String fmt1(double v) {
@@ -87,8 +86,8 @@ public class XpManager {
 
     // -------------------------------------------------------------------------
 
-    public static void addXp(ServerPlayerEntity player, Skill skill, long amount) {
-        PlayerData data   = PlayerDataManager.get(player.getUuid());
+    public static void addXp(ServerPlayer player, Skill skill, long amount) {
+        PlayerData data   = PlayerDataManager.get(player.getUUID());
 
         // Apply active pet XP bonus multiplier
         var activePet = data.getPetRoster().getActivePet();
@@ -140,38 +139,38 @@ public class XpManager {
                 StatManager.applyStats(player);
 
                 // Subtle pet level-up sound — soft XP ding, much quieter than skill level-up
-                player.networkHandler.sendPacket(new PlaySoundS2CPacket(
-                    RegistryEntry.of(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP),
-                    SoundCategory.PLAYERS,
+                player.connection.send(new ClientboundSoundPacket(
+                    Holder.direct(SoundEvents.EXPERIENCE_ORB_PICKUP),
+                    SoundSource.PLAYERS,
                     player.getX(), player.getY(), player.getZ(),
                     0.4f, 1.6f, 0L
                 ));
 
                 // Chat message — shows full range if multiple levels were gained at once
-                player.sendMessage(
-                    Text.literal("⬆ ").formatted(Formatting.GOLD)
-                        .append(Text.literal(pet.getRarity().displayName + " " + pet.getType().displayName)
-                            .formatted(pet.getRarity().color, Formatting.BOLD))
-                        .append(Text.literal(" leveled up! ").formatted(Formatting.WHITE))
-                        .append(Text.literal("Level " + petLevelBefore + " → " + petLevelAfter)
-                            .formatted(Formatting.GREEN)),
+                player.sendSystemMessage(
+                    Component.literal("⬆ ").withStyle(ChatFormatting.GOLD)
+                        .append(Component.literal(pet.getRarity().displayName + " " + pet.getType().displayName)
+                            .withStyle(pet.getRarity().color, ChatFormatting.BOLD))
+                        .append(Component.literal(" leveled up! ").withStyle(ChatFormatting.WHITE))
+                        .append(Component.literal("Level " + petLevelBefore + " → " + petLevelAfter)
+                            .withStyle(ChatFormatting.GREEN)),
                     false);
 
                 // Show updated ability values in chat
                 List<PetAbility> abilities = PetAbilityRegistry.getAbilities(pet.getType());
                 if (!abilities.isEmpty()) {
                     for (PetAbility ability : abilities) {
-                        player.sendMessage(
-                            Text.literal("  ✦ " + ability.displayLine(petLevelAfter, pet.getRarity()))
-                                .formatted(Formatting.GREEN),
+                        player.sendSystemMessage(
+                            Component.literal("  ✦ " + ability.displayLine(petLevelAfter, pet.getRarity()))
+                                .withStyle(ChatFormatting.GREEN),
                             false);
                     }
                 }
 
                 // Action bar flash
-                player.sendMessage(
-                    Text.literal("⬆ " + pet.getType().displayName + " is now level " + petLevelAfter + "!")
-                        .formatted(Formatting.LIGHT_PURPLE, Formatting.BOLD),
+                player.sendSystemMessage(
+                    Component.literal("⬆ " + pet.getType().displayName + " is now level " + petLevelAfter + "!")
+                        .withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD),
                     true);
             });
         }
@@ -181,7 +180,7 @@ public class XpManager {
     // Boss-bar XP display
     // -------------------------------------------------------------------------
 
-    private static void sendXpBar(ServerPlayerEntity player, PlayerData data,
+    private static void sendXpBar(ServerPlayer player, PlayerData data,
                                    Skill skill, long gained, boolean leveledUp) {
         int  level    = data.getLevel(skill);
         long currentXp = data.getXp(skill);
@@ -194,28 +193,29 @@ public class XpManager {
         float pct   = maxed ? 1f : (span > 0 ? (float) prog / span : 1f);
 
         // Title line:  Mining   +6 XP   127 / 332   Lv.2
-        Formatting nameColor = skillFormatting(skill);
-        Text title = Text.literal(skill.getDisplayName() + "  ")
-                         .formatted(nameColor, Formatting.BOLD)
-                .append(Text.literal((leveledUp ? "▲ LEVEL UP!  " : "+" + gained + " XP  "))
-                         .formatted(leveledUp ? Formatting.GOLD : Formatting.GREEN))
+        ChatFormatting nameColor = skillFormatting(skill);
+        Component title = Component.literal(skill.getDisplayName() + "  ")
+                         .withStyle(nameColor, ChatFormatting.BOLD)
+                .append(Component.literal((leveledUp ? "▲ LEVEL UP!  " : "+" + gained + " XP  "))
+                         .withStyle(leveledUp ? ChatFormatting.GOLD : ChatFormatting.GREEN))
                 .append(maxed
-                    ? Text.literal("MAX LEVEL").formatted(Formatting.GOLD)
-                    : Text.literal(String.format("%,d / %,d", prog, span)).formatted(Formatting.WHITE))
-                .append(Text.literal("  Lv." + level)
-                         .formatted(Formatting.AQUA));
+                    ? Component.literal("MAX LEVEL").withStyle(ChatFormatting.GOLD)
+                    : Component.literal(String.format("%,d / %,d", prog, span)).withStyle(ChatFormatting.WHITE))
+                .append(Component.literal("  Lv." + level)
+                         .withStyle(ChatFormatting.AQUA));
 
-        UUID uuid = player.getUuid();
+        UUID uuid = player.getUUID();
 
-        ServerBossBar bar = activeBars.computeIfAbsent(uuid, k -> {
-            ServerBossBar b = new ServerBossBar(title, skillBossColor(skill), BossBar.Style.PROGRESS);
+        ServerBossEvent bar = activeBars.computeIfAbsent(uuid, k -> {
+            ServerBossEvent b = new ServerBossEvent(UUID.randomUUID(), title,
+                skillBossColor(skill), BossEvent.BossBarOverlay.PROGRESS);
             b.addPlayer(player);
             return b;
         });
 
         bar.setName(title);
         bar.setColor(skillBossColor(skill));
-        bar.setPercent(Math.min(1f, Math.max(0f, pct)));
+        bar.setProgress(Math.min(1f, Math.max(0f, pct)));
 
         // Reset countdown
         barCountdown.put(uuid, BAR_DURATION);
@@ -225,36 +225,36 @@ public class XpManager {
     // Level-up chat message
     // -------------------------------------------------------------------------
 
-    private static void onLevelUp(ServerPlayerEntity player, Skill skill, int from, int to) {
+    private static void onLevelUp(ServerPlayer player, Skill skill, int from, int to) {
         StatManager.applyStats(player);
 
         if (shouldPlayLevelUpSound(player, from, to)) {
             // Level-up sound (plays only for this player)
-            player.networkHandler.sendPacket(new PlaySoundS2CPacket(
-                RegistryEntry.of(SoundEvents.ENTITY_PLAYER_LEVELUP),
-                SoundCategory.PLAYERS,
+            player.connection.send(new ClientboundSoundPacket(
+                Holder.direct(SoundEvents.PLAYER_LEVELUP),
+                SoundSource.PLAYERS,
                 player.getX(), player.getY(), player.getZ(),
                 1.0f, 1.0f, 0L
             ));
         }
 
-        Formatting skillColor = skillFormatting(skill);
+        ChatFormatting skillColor = skillFormatting(skill);
         String sep = "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬";
 
         // Top separator
-        player.sendMessage(Text.literal(sep).formatted(Formatting.GOLD, Formatting.BOLD), false);
+        player.sendSystemMessage(Component.literal(sep).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
 
         // Header: "SKILL LEVEL UP  Mining  4 → 5"
-        player.sendMessage(
-            Text.literal(" SKILL LEVEL UP  ").formatted(Formatting.WHITE, Formatting.BOLD)
-                .append(Text.literal(skill.getDisplayName()).formatted(skillColor, Formatting.BOLD))
-                .append(Text.literal("  " + from + " ").formatted(Formatting.GRAY))
-                .append(Text.literal("▶").formatted(Formatting.GOLD))
-                .append(Text.literal(" " + to).formatted(Formatting.GREEN, Formatting.BOLD)),
+        player.sendSystemMessage(
+            Component.literal(" SKILL LEVEL UP  ").withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD)
+                .append(Component.literal(skill.getDisplayName()).withStyle(skillColor, ChatFormatting.BOLD))
+                .append(Component.literal("  " + from + " ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("▶").withStyle(ChatFormatting.GOLD))
+                .append(Component.literal(" " + to).withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD)),
             false);
 
         // REWARDS header
-        player.sendMessage(Text.literal(" REWARDS").formatted(Formatting.GREEN, Formatting.BOLD), false);
+        player.sendSystemMessage(Component.literal(" REWARDS").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD), false);
 
         // One line per stat this skill grants
         List<SkillStatSource> sources = StatRegistry.SOURCES.stream()
@@ -268,13 +268,13 @@ public class XpManager {
             String gainStr  = formatVal(gained);
             String totalStr = formatVal(total);
 
-            player.sendMessage(
-                Text.literal("  +").formatted(Formatting.GREEN)
-                    .append(Text.literal(gainStr + " ").formatted(Formatting.GREEN))
-                    .append(Text.literal(src.stat().getIcon() + " " + src.stat().getDisplayName())
-                        .formatted(src.stat().getColor(), Formatting.BOLD))
-                    .append(Text.literal("  (Total: " + totalStr + ")")
-                        .formatted(Formatting.DARK_GRAY)),
+            player.sendSystemMessage(
+                Component.literal("  +").withStyle(ChatFormatting.GREEN)
+                    .append(Component.literal(gainStr + " ").withStyle(ChatFormatting.GREEN))
+                    .append(Component.literal(src.stat().getIcon() + " " + src.stat().getDisplayName())
+                        .withStyle(src.stat().getColor(), ChatFormatting.BOLD))
+                    .append(Component.literal("  (Total: " + totalStr + ")")
+                        .withStyle(ChatFormatting.DARK_GRAY)),
                 false);
         }
 
@@ -287,37 +287,37 @@ public class XpManager {
         grantMilestoneReward(player, skill, to);
 
         // Bottom separator
-        player.sendMessage(Text.literal(sep).formatted(Formatting.GOLD, Formatting.BOLD), false);
+        player.sendSystemMessage(Component.literal(sep).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
     }
 
-    private static void grantMilestoneReward(ServerPlayerEntity player, Skill skill, int level) {
+    private static void grantMilestoneReward(ServerPlayer player, Skill skill, int level) {
         if (level != 25 && level != 50 && level != 75 && level != 99) return;
 
-        net.minecraft.item.ItemStack reward = milestoneReward(skill, level);
+        net.minecraft.world.item.ItemStack reward = milestoneReward(skill, level);
         if (reward == null || reward.isEmpty()) return;
 
         // ServerPlayerEntity.getEntityWorld() returns ServerWorld directly
-        net.minecraft.server.world.ServerWorld sw = player.getEntityWorld();
-        sw.spawnEntity(new ItemEntity(
+        net.minecraft.server.level.ServerLevel sw = player.level();
+        sw.addFreshEntity(new ItemEntity(
             sw,
             player.getX(), player.getY(), player.getZ(),
             reward.copy()
         ));
 
-        player.sendMessage(
-            Text.literal("  ✦ Milestone Reward: ").formatted(Formatting.GOLD)
-                .append(reward.getName().copy().formatted(Formatting.YELLOW))
-                .append(Text.literal(" x" + reward.getCount()).formatted(Formatting.WHITE)),
+        player.sendSystemMessage(
+            Component.literal("  ✦ Milestone Reward: ").withStyle(ChatFormatting.GOLD)
+                .append(reward.getHoverName().copy().withStyle(ChatFormatting.YELLOW))
+                .append(Component.literal(" x" + reward.getCount()).withStyle(ChatFormatting.WHITE)),
             false);
     }
 
-    private static boolean shouldPlayLevelUpSound(ServerPlayerEntity player, int from, int to) {
-        PlayerData data = PlayerDataManager.get(player.getUuid());
+    private static boolean shouldPlayLevelUpSound(ServerPlayer player, int from, int to) {
+        PlayerData data = PlayerDataManager.get(player.getUUID());
         if (!data.shouldLimitBurstLevelUpSounds()) return true;
 
         int levelsGained = Math.max(1, to - from);
         long now = System.currentTimeMillis();
-        Deque<Long> timestamps = levelUpSoundWindow.computeIfAbsent(player.getUuid(),
+        Deque<Long> timestamps = levelUpSoundWindow.computeIfAbsent(player.getUUID(),
             uuid -> new ArrayDeque<>());
 
         while (!timestamps.isEmpty() && now - timestamps.peekFirst() > LEVEL_UP_SOUND_WINDOW_MS) {
@@ -331,7 +331,7 @@ public class XpManager {
         return timestamps.size() <= LEVEL_UP_SOUND_LIMIT;
     }
 
-    private static net.minecraft.item.ItemStack milestoneReward(Skill skill, int level) {
+    private static net.minecraft.world.item.ItemStack milestoneReward(Skill skill, int level) {
         // Each entry: [item, count] — counts are tuned per item type so nothing absurd drops.
         // Armor/tools = always 1. Materials scale with rarity.
         record R(Item item, int count) {}
@@ -437,7 +437,7 @@ public class XpManager {
             };
         };
 
-        return new net.minecraft.item.ItemStack(r.item(), r.count());
+        return new net.minecraft.world.item.ItemStack(r.item(), r.count());
     }
 
     private static String formatVal(double v) {
@@ -450,45 +450,45 @@ public class XpManager {
     // Skill → color mappings
     // -------------------------------------------------------------------------
 
-    private static BossBar.Color skillBossColor(Skill skill) {
+    private static BossEvent.BossBarColor skillBossColor(Skill skill) {
         return switch (skill) {
-            case MINING      -> BossBar.Color.WHITE;
-            case WOODCUTTING -> BossBar.Color.GREEN;
-            case EXCAVATING  -> BossBar.Color.YELLOW;
-            case FARMING     -> BossBar.Color.GREEN;
-            case FISHING     -> BossBar.Color.BLUE;
-            case DEFENSE     -> BossBar.Color.WHITE;
-            case SLAYING     -> BossBar.Color.RED;
-            case RANGED      -> BossBar.Color.YELLOW;
-            case ENCHANTING  -> BossBar.Color.PURPLE;
-            case ALCHEMY     -> BossBar.Color.PURPLE;
-            case SMITHING    -> BossBar.Color.WHITE;
-            case COOKING     -> BossBar.Color.PINK;
-            case CRAFTING    -> BossBar.Color.WHITE;
-            case AGILITY     -> BossBar.Color.BLUE;
-            case TAMING      -> BossBar.Color.GREEN;
-            case TRADING     -> BossBar.Color.GREEN;
+            case MINING      -> BossEvent.BossBarColor.WHITE;
+            case WOODCUTTING -> BossEvent.BossBarColor.GREEN;
+            case EXCAVATING  -> BossEvent.BossBarColor.YELLOW;
+            case FARMING     -> BossEvent.BossBarColor.GREEN;
+            case FISHING     -> BossEvent.BossBarColor.BLUE;
+            case DEFENSE     -> BossEvent.BossBarColor.WHITE;
+            case SLAYING     -> BossEvent.BossBarColor.RED;
+            case RANGED      -> BossEvent.BossBarColor.YELLOW;
+            case ENCHANTING  -> BossEvent.BossBarColor.PURPLE;
+            case ALCHEMY     -> BossEvent.BossBarColor.PURPLE;
+            case SMITHING    -> BossEvent.BossBarColor.WHITE;
+            case COOKING     -> BossEvent.BossBarColor.PINK;
+            case CRAFTING    -> BossEvent.BossBarColor.WHITE;
+            case AGILITY     -> BossEvent.BossBarColor.BLUE;
+            case TAMING      -> BossEvent.BossBarColor.GREEN;
+            case TRADING     -> BossEvent.BossBarColor.GREEN;
         };
     }
 
-    private static Formatting skillFormatting(Skill skill) {
+    private static ChatFormatting skillFormatting(Skill skill) {
         return switch (skill) {
-            case MINING      -> Formatting.GRAY;
-            case WOODCUTTING -> Formatting.GREEN;
-            case EXCAVATING  -> Formatting.YELLOW;
-            case FARMING     -> Formatting.DARK_GREEN;
-            case FISHING     -> Formatting.AQUA;
-            case DEFENSE     -> Formatting.WHITE;
-            case SLAYING     -> Formatting.RED;
-            case RANGED      -> Formatting.GOLD;
-            case ENCHANTING  -> Formatting.LIGHT_PURPLE;
-            case ALCHEMY     -> Formatting.DARK_PURPLE;
-            case SMITHING    -> Formatting.DARK_GRAY;
-            case COOKING     -> Formatting.YELLOW;
-            case CRAFTING    -> Formatting.WHITE;
-            case AGILITY     -> Formatting.BLUE;
-            case TAMING      -> Formatting.DARK_GREEN;
-            case TRADING     -> Formatting.GREEN;
+            case MINING      -> ChatFormatting.GRAY;
+            case WOODCUTTING -> ChatFormatting.GREEN;
+            case EXCAVATING  -> ChatFormatting.YELLOW;
+            case FARMING     -> ChatFormatting.DARK_GREEN;
+            case FISHING     -> ChatFormatting.AQUA;
+            case DEFENSE     -> ChatFormatting.WHITE;
+            case SLAYING     -> ChatFormatting.RED;
+            case RANGED      -> ChatFormatting.GOLD;
+            case ENCHANTING  -> ChatFormatting.LIGHT_PURPLE;
+            case ALCHEMY     -> ChatFormatting.DARK_PURPLE;
+            case SMITHING    -> ChatFormatting.DARK_GRAY;
+            case COOKING     -> ChatFormatting.YELLOW;
+            case CRAFTING    -> ChatFormatting.WHITE;
+            case AGILITY     -> ChatFormatting.BLUE;
+            case TAMING      -> ChatFormatting.DARK_GREEN;
+            case TRADING     -> ChatFormatting.GREEN;
         };
     }
 }
