@@ -74,7 +74,7 @@ public class SkillsGui {
         handlers.put(39, () -> CollectionsGui.open(viewer, PlayerDataManager.get(viewer.getUUID())));
         handlers.put(40, () -> PetMenuGui.open(viewer));
         handlers.put(41, () -> SettingsGui.open(viewer));
-        handlers.put(42, () -> populate(inv, PlayerDataManager.get(viewer.getUUID()), ownerName));
+        handlers.put(42, () -> FishingJournalGui.open(viewer));
 
         com.peakskills.gui.core.LegacyContainerGui.open(viewer,
             Component.literal("Your Skills").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), inv, handlers);
@@ -152,11 +152,11 @@ public class SkillsGui {
         )));
         inv.setItem(41, settings);
 
-        ItemStack refresh = new ItemStack(Items.ARROW);
+        ItemStack refresh = new ItemStack(Items.FISHING_ROD);
         refresh.set(DataComponents.CUSTOM_NAME,
-            Component.literal("Refresh").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD));
+            Component.literal("Watersense Journal").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
         refresh.set(DataComponents.LORE, new ItemLore(List.of(
-            Component.literal("  Click to reload your skill data").withStyle(ChatFormatting.DARK_GRAY)
+            Component.literal("  Explore catches, depths, moods, and biomes").withStyle(ChatFormatting.DARK_GRAY)
         )));
         inv.setItem(42, refresh);
     }

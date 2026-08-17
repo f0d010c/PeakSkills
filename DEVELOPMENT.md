@@ -39,6 +39,11 @@ problem. Prefer unit tests for calculations and data invariants, server GameTest
 commands/world/entity behavior, and client GameTests only for actual client input,
 screens, rendering, or integrated-server behavior.
 
+Fishing tests specifically cover level/depth eligibility, bounded Luck behavior,
+water classification, exact caught-stack journal quantities, journal persistence,
+and command registration. Collection tests enforce that progress represents the
+quantity of matching generated items rather than nearby entities or action count.
+
 ## CI policy
 
 - Pushes and pull requests run `build`, which includes unit and server GameTests.

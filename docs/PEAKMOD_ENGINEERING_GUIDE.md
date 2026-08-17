@@ -30,6 +30,8 @@ PeakMod-wide invariants include:
   explicitly authorized operator command does so.
 - XP, collection counts, pet XP, item stats, quantities, durations, and command
   arguments remain within documented bounds; additions saturate instead of wrapping.
+- Collection progress counts the quantity of legitimate generated items exactly once,
+  never the number of actions and never unrelated nearby item entities.
 - A player-placed resource cannot be broken repeatedly for progression rewards.
 - A reward-consuming action checks the live inventory state and cannot execute twice
   because of rapid clicks, retries, or duplicate events.

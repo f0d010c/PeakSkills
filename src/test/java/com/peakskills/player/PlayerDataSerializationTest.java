@@ -8,6 +8,9 @@ import com.peakskills.pet.PetInstance;
 import com.peakskills.pet.PetRarity;
 import com.peakskills.pet.PetType;
 import com.peakskills.skill.Skill;
+import com.peakskills.fishing.FishingDepth;
+import com.peakskills.fishing.FishingMood;
+import com.peakskills.fishing.FishingOutcomeCategory;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -44,6 +47,12 @@ class PlayerDataSerializationTest {
         CollectionType collection = CollectionType.values()[0];
         original.getCollections().getCounts().put(collection, 321L);
         original.getCollections().getUnlockedTiers().put(collection, 1);
+        original.getFishingJournal().loadTotals(12, 27);
+        original.getFishingJournal().loadCategory(FishingOutcomeCategory.FISH, 9);
+        original.getFishingJournal().loadDepth(FishingDepth.DEEP_WATER);
+        original.getFishingJournal().loadMood(FishingMood.TREASURE_RIPPLE);
+        original.getFishingJournal().loadLoot("sea_crystal");
+        original.getFishingJournal().loadBiome("minecraft:ocean");
 
         PlayerData restored = PlayerDataManager.fromJson(playerId, PlayerDataManager.toJson(original));
 
@@ -53,6 +62,13 @@ class PlayerDataSerializationTest {
         assertFalse(restored.shouldLimitBurstLevelUpSounds());
         assertEquals(321, restored.getCollections().getCount(collection));
         assertEquals(1, restored.getCollections().getUnlockedTier(collection));
+        assertEquals(12, restored.getFishingJournal().getTotalCatches());
+        assertEquals(27, restored.getFishingJournal().getTotalItems());
+        assertEquals(9, restored.getFishingJournal().getCategoryCatches(FishingOutcomeCategory.FISH));
+        assertTrue(restored.getFishingJournal().getDepths().contains(FishingDepth.DEEP_WATER));
+        assertTrue(restored.getFishingJournal().getMoods().contains(FishingMood.TREASURE_RIPPLE));
+        assertTrue(restored.getFishingJournal().hasDiscovered("sea_crystal"));
+        assertTrue(restored.getFishingJournal().getBiomes().contains("minecraft:ocean"));
 
         PetInstance restoredPet = restored.getPetRoster().getActivePet().orElseThrow();
         assertEquals(pet.getId(), restoredPet.getId());

@@ -44,6 +44,11 @@ public class PlacedBlocksState extends SavedData {
         return wasPlaced;
     }
 
+    /** Read-only check used while Minecraft is generating the block's real drop list. */
+    public boolean isPlaced(long posKey) {
+        return blocks.contains(posKey);
+    }
+
     // ── Codec (1.21.x PersistentState uses Codec instead of writeNbt) ─────────
 
     // Serialise as a flat list of longs — compact and fast.

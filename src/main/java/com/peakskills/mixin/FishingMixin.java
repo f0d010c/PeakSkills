@@ -5,6 +5,8 @@ import com.peakskills.collection.CollectionTier;
 import com.peakskills.collection.CollectionType;
 import com.peakskills.config.PeakConfig;
 import com.peakskills.fishing.FishingLootTable;
+import com.peakskills.fishing.FishingContext;
+import com.peakskills.fishing.FishingEnvironment;
 import com.peakskills.fishing.event.FishingCommunityEventManager;
 import com.peakskills.player.PlayerData;
 import com.peakskills.player.PlayerDataManager;
@@ -20,15 +22,19 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.List;
 import net.minecraft.ChatFormatting;
+import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.stats.Stats;
 
 @Mixin(FishingHook.class)
 public class FishingMixin {
@@ -42,10 +48,9 @@ public class FishingMixin {
 
         if (!PeakConfig.get().fishingOverhaulEnabled) return;
 
-        if (self.getHookedIn() != null) {
-            cancelAndRemove(self, cir, 0);
-            return;
-        }
+        // The overhaul replaces successful loot catches only. Entity pulling,
+        // empty reels, and other vanilla rod behavior remain vanilla-owned.
+        if (self.getHookedIn() != null) return;
 
         if (!biting) return;
 
@@ -53,52 +58,47 @@ public class FishingMixin {
             BlockPos pos = self.blockPosition();
             boolean waterBelow = self.level().getFluidState(pos).is(FluidTags.WATER)
                 || self.level().getFluidState(pos.below()).is(FluidTags.WATER);
-            if (!waterBelow) {
-                cancelAndRemove(self, cir, 0);
-                return;
-            }
+            if (!waterBelow) return;
         }
 
-        if (!(self.getPlayerOwner() instanceof ServerPlayer player)) {
-            cancelAndRemove(self, cir, 0);
-            return;
-        }
-        net.minecraft.server.MinecraftServer mcServer = PlayerDataManager.getServer();
-        if (mcServer == null) {
-            cancelAndRemove(self, cir, 0);
-            return;
-        }
-        if (!(self.level() instanceof ServerLevel sw)) {
-            cancelAndRemove(self, cir, 0);
-            return;
-        }
+        if (!(self.getPlayerOwner() instanceof ServerPlayer player)) return;
+        if (!(self.level() instanceof ServerLevel sw)) return;
+        net.minecraft.server.MinecraftServer mcServer = sw.getServer();
 
         PlayerData data = PlayerDataManager.get(player.getUUID());
         int fishingLevel = data.getLevel(Skill.FISHING);
-        int effectiveLevelBonus = 0;
         int eventContribution = 1;
 
         double luckRaw = 0;
         var luckAttr = player.getAttribute(Stat.LUCK.getAttribute());
         if (luckAttr != null) luckRaw = luckAttr.getValue();
 
-        FishingLootTable.RollResult result = FishingLootTable.roll(fishingLevel + effectiveLevelBonus, luckRaw, sw.getRandom());
-        if (result == null || result.stack().isEmpty()) {
-            cancelAndRemove(self, cir, 1);
-            return;
-        }
+        int enchantmentLuck = EnchantmentHelper.getFishingLuckBonus(sw, usedItem, player);
+        FishingEnvironment.Environment environment = FishingEnvironment.inspect(sw, self.blockPosition());
+        FishingContext context = new FishingContext(
+            fishingLevel, luckRaw, enchantmentLuck,
+            environment.depth(), environment.mood(), environment.biome(),
+            environment.raining(), environment.night(),
+            environment.waterDepth(), environment.sampledWaterBlocks()
+        );
+        FishingLootTable.RollResult result = FishingLootTable.roll(context, sw.getRandom());
+        if (result == null || result.stack().isEmpty()) return;
 
         ItemStack loot = result.stack();
 
         double abilityMult = SkillAbilityRegistry.getFlatXpMultiplier(Skill.FISHING, fishingLevel);
         double configMult = PeakConfig.get().fishingXpMultiplier;
-        long fishingXp = Math.max(1L, Math.round(result.xp() * abilityMult * configMult));
-        XpManager.addXp(player, Skill.FISHING, fishingXp);
+        long fishingXp = configMult <= 0 ? 0L
+            : Math.max(1L, Math.round(result.xp() * abilityMult * configMult));
+        if (fishingXp > 0) XpManager.addXp(player, Skill.FISHING, fishingXp);
         FishingCommunityEventManager.recordCatch(player, eventContribution);
+
+        boolean newDiscovery = !data.getFishingJournal().hasDiscovered(result.entryId());
+        data.getFishingJournal().record(context, result);
 
         CollectionType fishCol = fishCollection(loot);
         if (fishCol != null) {
-            List<CollectionTier> newTiers = data.getCollections().increment(fishCol, 1);
+            List<CollectionTier> newTiers = data.getCollections().increment(fishCol, loot.getCount());
             CollectionRewardHandler.apply(player, fishCol, newTiers, mcServer);
         }
 
@@ -117,10 +117,20 @@ public class FishingMixin {
         );
         sw.addFreshEntity(ie);
 
+        CriteriaTriggers.FISHING_ROD_HOOKED.trigger(player, usedItem, self, List.of(loot));
+        player.awardStat(Stats.CUSTOM.get(Stats.FISH_CAUGHT), 1);
+        ExperienceOrb.award(sw, player.position(), sw.getRandom().nextInt(1, 7));
+
         player.sendSystemMessage(
             Component.literal("* ").withStyle(ChatFormatting.GOLD)
                 .append(Component.literal("Caught: ").withStyle(ChatFormatting.GRAY))
-                .append(loot.getHoverName()),
+                .append(loot.getHoverName())
+                .append(Component.literal(" x" + loot.getCount()).withStyle(ChatFormatting.WHITE))
+                .append(Component.literal(" · " + environment.depth().displayName
+                    + " · " + environment.mood().displayName).withStyle(ChatFormatting.DARK_AQUA))
+                .append(newDiscovery
+                    ? Component.literal(" · NEW").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD)
+                    : Component.empty()),
             true
         );
 

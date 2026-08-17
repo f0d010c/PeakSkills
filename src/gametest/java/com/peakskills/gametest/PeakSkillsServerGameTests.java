@@ -15,11 +15,16 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
 import java.util.List;
 import java.util.UUID;
+import com.peakskills.collection.CollectionRegistry;
+import com.peakskills.collection.CollectionType;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 public class PeakSkillsServerGameTests {
 
     private static final List<String> PLAYER_COMMANDS = List.of(
-        "skills", "profile", "collections", "pets", "craft", "settings", "skilltop", "skillrank"
+        "skills", "profile", "collections", "pets", "craft", "settings", "fishing",
+        "fishingjournal", "skilltop", "skillrank"
     );
 
     @GameTest
@@ -105,6 +110,15 @@ public class PeakSkillsServerGameTests {
         String status = FishingCommunityEventManager.statusText().getString();
         context.assertTrue(status.contains("0 / 1000000"), "Goal was not clamped: " + status);
         context.assertTrue(FishingCommunityEventManager.stop(server), "Expected the event to stop cleanly");
+        context.succeed();
+    }
+
+    @GameTest
+    public void collectionDropMatchingUsesTheGeneratedItem(GameTestHelper context) {
+        context.assertTrue(CollectionRegistry.matchesItem(CollectionType.OAK_WOOD,
+            new ItemStack(Items.STRIPPED_OAK_LOG, 2)), "Stripped log did not map to oak collection");
+        context.assertFalse(CollectionRegistry.matchesItem(CollectionType.GRAVEL,
+            new ItemStack(Items.FLINT)), "Flint incorrectly counted as gravel quantity");
         context.succeed();
     }
 

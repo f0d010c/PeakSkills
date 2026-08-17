@@ -5,6 +5,9 @@ import com.peakskills.PeakLog;
 import com.peakskills.PeakSkills;
 import com.peakskills.collection.CollectionRegistry;
 import com.peakskills.collection.CollectionType;
+import com.peakskills.fishing.FishingDepth;
+import com.peakskills.fishing.FishingMood;
+import com.peakskills.fishing.FishingOutcomeCategory;
 import com.peakskills.pet.PetInstance;
 import com.peakskills.pet.PetRarity;
 import com.peakskills.pet.PetType;
@@ -269,6 +272,23 @@ public class PlayerDataManager {
         root.add("collections", colCounts);
         root.add("collectionTiers", colTiers);
 
+        JsonObject journal = new JsonObject();
+        journal.addProperty("totalCatches", data.getFishingJournal().getTotalCatches());
+        journal.addProperty("totalItems", data.getFishingJournal().getTotalItems());
+        JsonObject categories = new JsonObject();
+        for (FishingOutcomeCategory category : FishingOutcomeCategory.values()) {
+            long count = data.getFishingJournal().getCategoryCatches(category);
+            if (count > 0) categories.addProperty(category.name(), count);
+        }
+        journal.add("categories", categories);
+        journal.add("depths", GSON.toJsonTree(data.getFishingJournal().getDepths().stream()
+            .map(Enum::name).toList()));
+        journal.add("moods", GSON.toJsonTree(data.getFishingJournal().getMoods().stream()
+            .map(Enum::name).toList()));
+        journal.add("loot", GSON.toJsonTree(data.getFishingJournal().getLootDiscoveries()));
+        journal.add("biomes", GSON.toJsonTree(data.getFishingJournal().getBiomes()));
+        root.add("fishingJournal", journal);
+
         return root;
     }
 
@@ -336,6 +356,50 @@ public class PlayerDataManager {
             }
         }
 
+        if (json.has("fishingJournal") && json.get("fishingJournal").isJsonObject()) {
+            JsonObject journal = json.getAsJsonObject("fishingJournal");
+            try {
+                long catches = journal.has("totalCatches") ? journal.get("totalCatches").getAsLong() : 0;
+                long items = journal.has("totalItems") ? journal.get("totalItems").getAsLong() : 0;
+                data.getFishingJournal().loadTotals(catches, items);
+            } catch (Exception ignored) {}
+            if (journal.has("categories") && journal.get("categories").isJsonObject()) {
+                JsonObject categories = journal.getAsJsonObject("categories");
+                for (FishingOutcomeCategory category : FishingOutcomeCategory.values()) {
+                    try {
+                        if (categories.has(category.name())) {
+                            data.getFishingJournal().loadCategory(category,
+                                Math.max(0, categories.get(category.name()).getAsLong()));
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+            loadEnumArray(journal, "depths", FishingDepth.class, data.getFishingJournal()::loadDepth);
+            loadEnumArray(journal, "moods", FishingMood.class, data.getFishingJournal()::loadMood);
+            loadStringArray(journal, "loot", data.getFishingJournal()::loadLoot);
+            loadStringArray(journal, "biomes", data.getFishingJournal()::loadBiome);
+        }
+
         return data;
+    }
+
+    private static <E extends Enum<E>> void loadEnumArray(JsonObject parent, String key, Class<E> type,
+                                                           java.util.function.Consumer<E> consumer) {
+        if (!parent.has(key) || !parent.get(key).isJsonArray()) return;
+        int read = 0;
+        for (JsonElement element : parent.getAsJsonArray(key)) {
+            if (read++ >= com.peakskills.fishing.FishingJournal.MAX_DISCOVERIES) break;
+            try { consumer.accept(Enum.valueOf(type, element.getAsString())); } catch (Exception ignored) {}
+        }
+    }
+
+    private static void loadStringArray(JsonObject parent, String key,
+                                        java.util.function.Consumer<String> consumer) {
+        if (!parent.has(key) || !parent.get(key).isJsonArray()) return;
+        int read = 0;
+        for (JsonElement element : parent.getAsJsonArray(key)) {
+            if (read++ >= com.peakskills.fishing.FishingJournal.MAX_DISCOVERIES) break;
+            try { consumer.accept(element.getAsString()); } catch (Exception ignored) {}
+        }
     }
 }

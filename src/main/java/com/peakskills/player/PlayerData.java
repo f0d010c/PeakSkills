@@ -1,6 +1,7 @@
 package com.peakskills.player;
 
 import com.peakskills.collection.CollectionData;
+import com.peakskills.fishing.FishingJournal;
 import com.peakskills.pet.PetRoster;
 import com.peakskills.skill.Skill;
 import com.peakskills.skill.XPTable;
@@ -11,12 +12,13 @@ import java.util.UUID;
 
 public class PlayerData {
 
-    public static final int DATA_VERSION = 2;
+    public static final int DATA_VERSION = 3;
 
     private final UUID uuid;
     private final Map<Skill, Long> xp = new EnumMap<>(Skill.class);
     private final PetRoster petRoster = new PetRoster();
     private final CollectionData collections = new CollectionData();
+    private final FishingJournal fishingJournal = new FishingJournal();
     private double mana;
     private double maxMana = 100;
     private boolean petsVisible = true;
@@ -93,6 +95,7 @@ public class PlayerData {
     // --- Collections ---
 
     public CollectionData getCollections() { return collections; }
+    public FishingJournal getFishingJournal() { return fishingJournal; }
 
     // --- Serialization helpers ---
 
