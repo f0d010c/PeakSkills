@@ -1,8 +1,8 @@
 package com.peakskills.crafting;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.commands.Commands;
+import net.minecraft.server.level.ServerPlayer;
 
 /**
  * Registers /craft — opens the custom recipe GUI.
@@ -12,9 +12,9 @@ public class PeakCraftingCommand {
 
     public static void register() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
-            dispatcher.register(CommandManager.literal("craft")
+            dispatcher.register(Commands.literal("craft")
                 .executes(ctx -> {
-                    ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
+                    ServerPlayer player = ctx.getSource().getPlayerOrException();
                     PeakCraftingGui.open(player);
                     return 1;
                 })

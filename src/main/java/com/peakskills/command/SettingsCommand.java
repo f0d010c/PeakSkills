@@ -2,17 +2,17 @@ package com.peakskills.command;
 
 import com.peakskills.gui.SettingsGui;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.commands.Commands;
+import net.minecraft.server.level.ServerPlayer;
 
 public class SettingsCommand {
 
     public static void register() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
             dispatcher.register(
-                CommandManager.literal("settings")
+                Commands.literal("settings")
                     .executes(ctx -> {
-                        ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
+                        ServerPlayer player = ctx.getSource().getPlayerOrException();
                         SettingsGui.open(player);
                         return 1;
                     })

@@ -1,8 +1,8 @@
 package com.peakskills.collection;
 
 import com.peakskills.stat.Stat;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * A reward granted when a collection tier is first reached.

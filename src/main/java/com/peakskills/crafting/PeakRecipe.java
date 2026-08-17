@@ -1,9 +1,8 @@
 package com.peakskills.crafting;
 
-import net.minecraft.item.ItemStack;
-
 import java.util.List;
 import java.util.function.Supplier;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * A custom recipe with per-ingredient quantity requirements and a 3×3 grid layout.

@@ -7,21 +7,20 @@ import com.peakskills.skill.SkillAbility;
 import com.peakskills.skill.SkillAbilityRegistry;
 import com.peakskills.stat.SkillStatSource;
 import com.peakskills.stat.StatRegistry;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.inventory.SimpleInventory;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.ItemLore;
 
 public class SkillDetailGui {
 
@@ -52,29 +51,29 @@ public class SkillDetailGui {
 
     // ── Open ──────────────────────────────────────────────────────────────────
 
-    public static void open(ServerPlayerEntity player, PlayerData data, Skill skill) {
+    public static void open(ServerPlayer player, PlayerData data, Skill skill) {
         int playerLevel = data.getLevel(skill);
         int page        = Math.max(0, (playerLevel - 1) / LEVELS_PER_PAGE);
         open(player, data, skill, page);
     }
 
-    public static void open(ServerPlayerEntity player, PlayerData data, Skill skill, int page) {
-        SimpleInventory inv = new SimpleInventory(54);
+    public static void open(ServerPlayer player, PlayerData data, Skill skill, int page) {
+        SimpleContainer inv = new SimpleContainer(54);
         populate(inv, data, skill, page);
 
         Map<Integer, Runnable> handlers = new HashMap<>();
         configureHandlers(inv, handlers, player, skill, page);
 
-        player.openHandledScreen(new SimpleNamedScreenHandlerFactory(
+        player.openMenu(new SimpleMenuProvider(
             (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers),
-            Text.literal(skill.getDisplayName() + " Skill").formatted(nameColor(skill), Formatting.BOLD)
+            Component.literal(skill.getDisplayName() + " Skill").withStyle(nameColor(skill), ChatFormatting.BOLD)
         ));
     }
 
     // ── Populate ──────────────────────────────────────────────────────────────
 
-    private static void configureHandlers(SimpleInventory inv, Map<Integer, Runnable> handlers,
-                                          ServerPlayerEntity player, Skill skill, int page) {
+    private static void configureHandlers(SimpleContainer inv, Map<Integer, Runnable> handlers,
+                                          ServerPlayer player, Skill skill, int page) {
         handlers.clear();
         handlers.put(0, () -> SkillsGui.open(player));
         if (page > 0) {
@@ -85,93 +84,93 @@ public class SkillDetailGui {
         }
     }
 
-    private static void refreshPage(SimpleInventory inv, Map<Integer, Runnable> handlers,
-                                    ServerPlayerEntity player, Skill skill, int page) {
-        populate(inv, PlayerDataManager.get(player.getUuid()), skill, page);
+    private static void refreshPage(SimpleContainer inv, Map<Integer, Runnable> handlers,
+                                    ServerPlayer player, Skill skill, int page) {
+        populate(inv, PlayerDataManager.get(player.getUUID()), skill, page);
         configureHandlers(inv, handlers, player, skill, page);
-        inv.markDirty();
+        inv.setChanged();
     }
 
-    private static void populate(SimpleInventory inv, PlayerData data, Skill skill, int page) {
+    private static void populate(SimpleContainer inv, PlayerData data, Skill skill, int page) {
         // Gray background everywhere
         for (int i = 0; i < 54; i++)
-            inv.setStack(i, pane(Items.GRAY_STAINED_GLASS_PANE, " "));
+            inv.setItem(i, pane(Items.GRAY_STAINED_GLASS_PANE, " "));
 
         // Skill-coloured header stripe (slots 1-3, 5-7)
         Item hPane = skillPane(skill);
         for (int col : new int[]{1, 2, 3, 5, 6, 7})
-            inv.setStack(col, pane(hPane, " "));
+            inv.setItem(col, pane(hPane, " "));
 
         int playerLevel = data.getLevel(skill);
         int startLevel  = page * LEVELS_PER_PAGE + 1;
 
         // ── Slot 0: barrier block as back button ─────────────────────────────
         ItemStack back = new ItemStack(Items.BARRIER);
-        back.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal("← Back to Skills").formatted(nameColor(skill), Formatting.BOLD));
-        back.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-            Text.literal("  Click to return").formatted(Formatting.DARK_GRAY))));
-        inv.setStack(0, back);
+        back.set(DataComponents.CUSTOM_NAME,
+            Component.literal("← Back to Skills").withStyle(nameColor(skill), ChatFormatting.BOLD));
+        back.set(DataComponents.LORE, new ItemLore(List.of(
+            Component.literal("  Click to return").withStyle(ChatFormatting.DARK_GRAY))));
+        inv.setItem(0, back);
 
         // ── Skill title (slot 4) ─────────────────────────────────────────────
         ItemStack title = new ItemStack(iconFor(skill));
-        title.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
-        title.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal(skill.getDisplayName() + " Skill").formatted(nameColor(skill), Formatting.BOLD));
-        title.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-            Text.literal("Level ").formatted(Formatting.GRAY)
-                .append(Text.literal(String.valueOf(playerLevel)).formatted(Formatting.WHITE, Formatting.BOLD))
-                .append(Text.literal(" / " + Skill.MAX_LEVEL).formatted(Formatting.DARK_GRAY)),
-            Text.empty(),
-            Text.literal(skill.getDescription()).formatted(Formatting.GRAY),
-            Text.empty(),
-            Text.literal(skill.getTrainingTip()).formatted(Formatting.YELLOW)
+        title.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+        title.set(DataComponents.CUSTOM_NAME,
+            Component.literal(skill.getDisplayName() + " Skill").withStyle(nameColor(skill), ChatFormatting.BOLD));
+        title.set(DataComponents.LORE, new ItemLore(List.of(
+            Component.literal("Level ").withStyle(ChatFormatting.GRAY)
+                .append(Component.literal(String.valueOf(playerLevel)).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD))
+                .append(Component.literal(" / " + Skill.MAX_LEVEL).withStyle(ChatFormatting.DARK_GRAY)),
+            Component.empty(),
+            Component.literal(skill.getDescription()).withStyle(ChatFormatting.GRAY),
+            Component.empty(),
+            Component.literal(skill.getTrainingTip()).withStyle(ChatFormatting.YELLOW)
         )));
-        inv.setStack(4, title);
+        inv.setItem(4, title);
 
         // ── Page label (slot 8) ──────────────────────────────────────────────
         int endLevel = Math.min(startLevel + LEVELS_PER_PAGE - 1, Skill.MAX_LEVEL);
         ItemStack pageInfo = new ItemStack(Items.PAPER);
-        pageInfo.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal("Page " + (page + 1) + " / " + (MAX_PAGE + 1)).formatted(Formatting.WHITE, Formatting.BOLD));
-        pageInfo.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-            Text.literal("Levels " + startLevel + " \u2013 " + endLevel).formatted(Formatting.GRAY))));
-        inv.setStack(8, pageInfo);
+        pageInfo.set(DataComponents.CUSTOM_NAME,
+            Component.literal("Page " + (page + 1) + " / " + (MAX_PAGE + 1)).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD));
+        pageInfo.set(DataComponents.LORE, new ItemLore(List.of(
+            Component.literal("Levels " + startLevel + " \u2013 " + endLevel).withStyle(ChatFormatting.GRAY))));
+        inv.setItem(8, pageInfo);
 
         // ── Connector panes — glow skill colour as path is reached ───────────
         for (int[] conn : CONNECTOR_SLOTS) {
             int slot     = conn[0];
             int laterIdx = conn[1];
             boolean lit  = playerLevel >= startLevel + laterIdx;
-            inv.setStack(slot, pane(lit ? hPane : Items.GRAY_STAINED_GLASS_PANE, " "));
+            inv.setItem(slot, pane(lit ? hPane : Items.GRAY_STAINED_GLASS_PANE, " "));
         }
 
         // ── Level items ──────────────────────────────────────────────────────
         for (int i = 0; i < LEVEL_SLOTS.length; i++) {
             int level = startLevel + i;
             if (level > Skill.MAX_LEVEL) break;
-            inv.setStack(LEVEL_SLOTS[i], levelItem(skill, level, playerLevel));
+            inv.setItem(LEVEL_SLOTS[i], levelItem(skill, level, playerLevel));
         }
 
         // ── Navigation ───────────────────────────────────────────────────────
         if (page > 0) {
             ItemStack prev = new ItemStack(Items.ARROW);
-            prev.set(DataComponentTypes.CUSTOM_NAME,
-                Text.literal("Previous Page").formatted(Formatting.YELLOW, Formatting.BOLD));
-            prev.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-                Text.literal("Levels " + ((page-1)*LEVELS_PER_PAGE+1) + " \u2013 " + (page*LEVELS_PER_PAGE))
-                    .formatted(Formatting.DARK_GRAY))));
-            inv.setStack(45, prev);
+            prev.set(DataComponents.CUSTOM_NAME,
+                Component.literal("Previous Page").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD));
+            prev.set(DataComponents.LORE, new ItemLore(List.of(
+                Component.literal("Levels " + ((page-1)*LEVELS_PER_PAGE+1) + " \u2013 " + (page*LEVELS_PER_PAGE))
+                    .withStyle(ChatFormatting.DARK_GRAY))));
+            inv.setItem(45, prev);
         }
         if (page < MAX_PAGE) {
             ItemStack next = new ItemStack(Items.ARROW);
-            next.set(DataComponentTypes.CUSTOM_NAME,
-                Text.literal("Next Page").formatted(Formatting.YELLOW, Formatting.BOLD));
-            next.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-                Text.literal("Levels " + (startLevel+LEVELS_PER_PAGE) + " \u2013 " +
+            next.set(DataComponents.CUSTOM_NAME,
+                Component.literal("Next Page").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD));
+            next.set(DataComponents.LORE, new ItemLore(List.of(
+                Component.literal("Levels " + (startLevel+LEVELS_PER_PAGE) + " \u2013 " +
                     Math.min(startLevel+LEVELS_PER_PAGE*2-1, Skill.MAX_LEVEL))
-                    .formatted(Formatting.DARK_GRAY))));
-            inv.setStack(49, next);
+                    .withStyle(ChatFormatting.DARK_GRAY))));
+            inv.setItem(49, next);
         }
     }
 
@@ -205,88 +204,88 @@ public class SkillDetailGui {
 
         ItemStack stack = new ItemStack(icon);
         // ── Level number in bottom-right corner ──────────────────────────
-        stack.set(DataComponentTypes.MAX_STACK_SIZE, Skill.MAX_LEVEL);
+        stack.set(DataComponents.MAX_STACK_SIZE, Skill.MAX_LEVEL);
         stack.setCount(level);
 
         // Glow current level and reached-special slots
         if (isCurrent || (reached && (isSpecial || isMilestone)))
-            stack.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
+            stack.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
 
         // ── Hover name ────────────────────────────────────────────────────
-        Formatting nameFmt = isCurrent ? Formatting.GOLD
-                           : reached   ? Formatting.GREEN
-                                       : Formatting.DARK_GRAY;
+        ChatFormatting nameFmt = isCurrent ? ChatFormatting.GOLD
+                           : reached   ? ChatFormatting.GREEN
+                                       : ChatFormatting.DARK_GRAY;
 
         if (isCurrent) {
-            stack.set(DataComponentTypes.CUSTOM_NAME,
-                Text.literal("Level " + level + " — Current").formatted(Formatting.GOLD, Formatting.BOLD));
+            stack.set(DataComponents.CUSTOM_NAME,
+                Component.literal("Level " + level + " — Current").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
         } else if (isSpecial) {
             String spName = gearIcon != null
                 ? (gearUnlockNames(skill, level).isEmpty() ? "Gear Unlock" : gearUnlockNames(skill, level).get(0))
                 : abilities.get(0).name();
-            Formatting spFmt = reached
-                ? (gearIcon != null ? Formatting.GREEN : Formatting.LIGHT_PURPLE)
-                : Formatting.GRAY;
-            stack.set(DataComponentTypes.CUSTOM_NAME,
-                Text.literal("Level " + level + "  ").formatted(Formatting.DARK_GRAY)
-                    .append(Text.literal(spName).formatted(spFmt, Formatting.BOLD)));
+            ChatFormatting spFmt = reached
+                ? (gearIcon != null ? ChatFormatting.GREEN : ChatFormatting.LIGHT_PURPLE)
+                : ChatFormatting.GRAY;
+            stack.set(DataComponents.CUSTOM_NAME,
+                Component.literal("Level " + level + "  ").withStyle(ChatFormatting.DARK_GRAY)
+                    .append(Component.literal(spName).withStyle(spFmt, ChatFormatting.BOLD)));
         } else if (isMilestone) {
-            stack.set(DataComponentTypes.CUSTOM_NAME,
-                Text.literal("Level " + level + "  ★ Milestone")
-                    .formatted(reached ? Formatting.GOLD : Formatting.YELLOW, Formatting.BOLD));
+            stack.set(DataComponents.CUSTOM_NAME,
+                Component.literal("Level " + level + "  ★ Milestone")
+                    .withStyle(reached ? ChatFormatting.GOLD : ChatFormatting.YELLOW, ChatFormatting.BOLD));
         } else {
-            stack.set(DataComponentTypes.CUSTOM_NAME,
-                Text.literal("Level " + level).formatted(nameFmt, Formatting.BOLD));
+            stack.set(DataComponents.CUSTOM_NAME,
+                Component.literal("Level " + level).withStyle(nameFmt, ChatFormatting.BOLD));
         }
 
         // ── Lore ─────────────────────────────────────────────────────────
-        List<Text> lore = new ArrayList<>();
+        List<Component> lore = new ArrayList<>();
         lore.add(separator());
 
         if (isSpecial && gearIcon != null) {
-            lore.add(Text.literal("  ⚔ GEAR UNLOCK").formatted(Formatting.YELLOW, Formatting.BOLD));
+            lore.add(Component.literal("  ⚔ GEAR UNLOCK").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD));
             for (String name : gearUnlockNames(skill, level))
-                lore.add(reached ? Text.literal("  ✔ " + name).formatted(Formatting.GREEN)
-                                 : Text.literal("  ◆ " + name).formatted(Formatting.YELLOW));
-            lore.add(Text.empty());
+                lore.add(reached ? Component.literal("  ✔ " + name).withStyle(ChatFormatting.GREEN)
+                                 : Component.literal("  ◆ " + name).withStyle(ChatFormatting.YELLOW));
+            lore.add(Component.empty());
         }
 
         if (!abilities.isEmpty()) {
-            lore.add(Text.literal("  ✦ NEW ABILITY").formatted(Formatting.LIGHT_PURPLE, Formatting.BOLD));
+            lore.add(Component.literal("  ✦ NEW ABILITY").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD));
             for (SkillAbility ab : abilities) {
-                lore.add(Text.literal("  " + ab.name()).formatted(Formatting.LIGHT_PURPLE, Formatting.BOLD));
-                lore.add(Text.literal("  " + ab.description()).formatted(Formatting.GRAY));
+                lore.add(Component.literal("  " + ab.name()).withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD));
+                lore.add(Component.literal("  " + ab.description()).withStyle(ChatFormatting.GRAY));
             }
-            lore.add(Text.empty());
+            lore.add(Component.empty());
         }
 
         if (isMilestone) {
-            lore.add(Text.literal("  ★ MILESTONE REWARD").formatted(Formatting.GOLD, Formatting.BOLD));
-            lore.add(Text.literal("  A special item drops on first reach.").formatted(Formatting.GRAY));
-            lore.add(Text.empty());
+            lore.add(Component.literal("  ★ MILESTONE REWARD").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+            lore.add(Component.literal("  A special item drops on first reach.").withStyle(ChatFormatting.GRAY));
+            lore.add(Component.empty());
         }
 
         // Stat bonuses this level provides
-        lore.add(Text.literal("  Stat Bonuses:").formatted(Formatting.YELLOW));
+        lore.add(Component.literal("  Stat Bonuses:").withStyle(ChatFormatting.YELLOW));
         for (SkillStatSource src : StatRegistry.SOURCES.stream().filter(s -> s.skill() == skill).toList()) {
             double perLvl = src.stat().toDisplay(src.valuePerLevel());
             double total  = src.stat().toDisplay(src.compute(level));
-            lore.add(Text.literal("  +" + fmtVal(perLvl) + " " + src.stat().getIcon()
-                    + " " + src.stat().getDisplayName()).formatted(Formatting.GREEN)
-                .append(Text.literal("  (Total: " + fmtVal(total) + ")").formatted(Formatting.DARK_GRAY)));
+            lore.add(Component.literal("  +" + fmtVal(perLvl) + " " + src.stat().getIcon()
+                    + " " + src.stat().getDisplayName()).withStyle(ChatFormatting.GREEN)
+                .append(Component.literal("  (Total: " + fmtVal(total) + ")").withStyle(ChatFormatting.DARK_GRAY)));
         }
 
-        lore.add(Text.empty());
+        lore.add(Component.empty());
         lore.add(separator());
         if (reached) {
             lore.add(isCurrent
-                ? Text.literal("  ▶ YOUR CURRENT LEVEL").formatted(Formatting.GOLD, Formatting.BOLD)
-                : Text.literal("  ✔ UNLOCKED").formatted(Formatting.GREEN, Formatting.BOLD));
+                ? Component.literal("  ▶ YOUR CURRENT LEVEL").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD)
+                : Component.literal("  ✔ UNLOCKED").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD));
         } else {
-            lore.add(Text.literal("  ✗ " + (level - playerLevel) + " levels to go").formatted(Formatting.RED));
+            lore.add(Component.literal("  ✗ " + (level - playerLevel) + " levels to go").withStyle(ChatFormatting.RED));
         }
 
-        stack.set(DataComponentTypes.LORE, new LoreComponent(lore));
+        stack.set(DataComponents.LORE, new ItemLore(lore));
         return stack;
     }
 
@@ -386,14 +385,14 @@ public class SkillDetailGui {
             : String.format("%.1f", v).replaceAll("\\.0$", "");
     }
 
-    private static Text separator() {
-        return Text.literal(" \u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac")
-            .formatted(Formatting.DARK_GRAY);
+    private static Component separator() {
+        return Component.literal(" \u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac\u25ac")
+            .withStyle(ChatFormatting.DARK_GRAY);
     }
 
     private static ItemStack pane(Item item, String name) {
         ItemStack s = new ItemStack(item);
-        s.set(DataComponentTypes.CUSTOM_NAME, Text.literal(name));
+        s.set(DataComponents.CUSTOM_NAME, Component.literal(name));
         return s;
     }
 
@@ -422,24 +421,24 @@ public class SkillDetailGui {
 
     // ── Skill name colour ─────────────────────────────────────────────────────
 
-    private static Formatting nameColor(Skill skill) {
+    private static ChatFormatting nameColor(Skill skill) {
         return switch (skill) {
-            case MINING      -> Formatting.GRAY;
-            case WOODCUTTING -> Formatting.GREEN;
-            case EXCAVATING  -> Formatting.YELLOW;
-            case FARMING     -> Formatting.DARK_GREEN;
-            case FISHING     -> Formatting.AQUA;
-            case DEFENSE     -> Formatting.WHITE;
-            case SLAYING     -> Formatting.RED;
-            case RANGED      -> Formatting.GOLD;
-            case ENCHANTING  -> Formatting.LIGHT_PURPLE;
-            case ALCHEMY     -> Formatting.DARK_PURPLE;
-            case SMITHING    -> Formatting.GRAY;
-            case COOKING     -> Formatting.YELLOW;
-            case CRAFTING    -> Formatting.WHITE;
-            case AGILITY     -> Formatting.BLUE;
-            case TAMING      -> Formatting.GREEN;
-            case TRADING     -> Formatting.GREEN;
+            case MINING      -> ChatFormatting.GRAY;
+            case WOODCUTTING -> ChatFormatting.GREEN;
+            case EXCAVATING  -> ChatFormatting.YELLOW;
+            case FARMING     -> ChatFormatting.DARK_GREEN;
+            case FISHING     -> ChatFormatting.AQUA;
+            case DEFENSE     -> ChatFormatting.WHITE;
+            case SLAYING     -> ChatFormatting.RED;
+            case RANGED      -> ChatFormatting.GOLD;
+            case ENCHANTING  -> ChatFormatting.LIGHT_PURPLE;
+            case ALCHEMY     -> ChatFormatting.DARK_PURPLE;
+            case SMITHING    -> ChatFormatting.GRAY;
+            case COOKING     -> ChatFormatting.YELLOW;
+            case CRAFTING    -> ChatFormatting.WHITE;
+            case AGILITY     -> ChatFormatting.BLUE;
+            case TAMING      -> ChatFormatting.GREEN;
+            case TRADING     -> ChatFormatting.GREEN;
         };
     }
 

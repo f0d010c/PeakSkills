@@ -5,8 +5,7 @@ import com.peakskills.PeakLog;
 import com.peakskills.PeakSkills;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.WorldSavePath;
-
+import net.minecraft.world.level.storage.LevelResource;
 import java.io.*;
 import java.nio.file.*;
 import java.time.LocalDateTime;
@@ -36,9 +35,9 @@ public class PlayerDataFailsafe {
 
     public static void register() {
         ServerTickEvents.END_SERVER_TICK.register(server -> {
-            if (server.getTicks() % AUTO_BACKUP_INTERVAL != 0) return;
+            if (server.getTickCount() % AUTO_BACKUP_INTERVAL != 0) return;
             // Skip tick 0 (server just started — PlayerDataManager handles initial load)
-            if (server.getTicks() == 0) return;
+            if (server.getTickCount() == 0) return;
 
             PeakLog.info("[Failsafe] Running hourly auto-backup...");
             int count = 0;
@@ -57,7 +56,7 @@ public class PlayerDataFailsafe {
     // ── Directory ─────────────────────────────────────────────────────────────
 
     public static Path backupDir(MinecraftServer server) {
-        return server.getSavePath(WorldSavePath.ROOT)
+        return server.getWorldPath(LevelResource.ROOT)
             .resolve("peakskills").resolve("backup");
     }
 

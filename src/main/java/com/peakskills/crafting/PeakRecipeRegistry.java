@@ -1,11 +1,10 @@
 package com.peakskills.crafting;
 
-import net.minecraft.item.Items;
-
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.world.item.Items;
 
 /**
  * Central registry for all custom quantity-based recipes.
@@ -63,7 +62,7 @@ public class PeakRecipeRegistry {
 
     private static void reg(String id, String displayName, String category,
                              List<PeakIngredient> ingredients,
-                             java.util.function.Supplier<net.minecraft.item.ItemStack> resultFactory) {
+                             java.util.function.Supplier<net.minecraft.world.item.ItemStack> resultFactory) {
         // Validate at registration time — catches config mistakes before runtime
         if (id == null || id.isBlank())          throw new IllegalArgumentException("Recipe id must not be blank");
         if (displayName == null || displayName.isBlank()) throw new IllegalArgumentException("Recipe displayName must not be blank: " + id);

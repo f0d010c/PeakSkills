@@ -12,16 +12,6 @@ import com.peakskills.skill.Skill;
 import com.peakskills.skill.SkillAbilityRegistry;
 import com.peakskills.stat.Stat;
 import com.peakskills.xp.XpManager;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.projectile.FishingBobberEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.registry.tag.FluidTags;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.math.BlockPos;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -29,37 +19,47 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.List;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.FluidTags;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.projectile.FishingHook;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
-@Mixin(FishingBobberEntity.class)
+@Mixin(FishingHook.class)
 public class FishingMixin {
 
     @Shadow
-    private boolean caughtFish;
+    private boolean biting;
 
-    @Inject(method = "use", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "retrieve", at = @At("HEAD"), cancellable = true)
     private void onReel(ItemStack usedItem, CallbackInfoReturnable<Integer> cir) {
-        FishingBobberEntity self = (FishingBobberEntity)(Object) this;
+        FishingHook self = (FishingHook)(Object) this;
 
         if (!PeakConfig.get().fishingOverhaulEnabled) return;
 
-        if (self.getHookedEntity() != null) {
+        if (self.getHookedIn() != null) {
             cancelAndRemove(self, cir, 0);
             return;
         }
 
-        if (!caughtFish) return;
+        if (!biting) return;
 
-        if (!self.isTouchingWater()) {
-            BlockPos pos = self.getBlockPos();
-            boolean waterBelow = self.getEntityWorld().getFluidState(pos).isIn(FluidTags.WATER)
-                || self.getEntityWorld().getFluidState(pos.down()).isIn(FluidTags.WATER);
+        if (!self.isInWater()) {
+            BlockPos pos = self.blockPosition();
+            boolean waterBelow = self.level().getFluidState(pos).is(FluidTags.WATER)
+                || self.level().getFluidState(pos.below()).is(FluidTags.WATER);
             if (!waterBelow) {
                 cancelAndRemove(self, cir, 0);
                 return;
             }
         }
 
-        if (!(self.getPlayerOwner() instanceof ServerPlayerEntity player)) {
+        if (!(self.getPlayerOwner() instanceof ServerPlayer player)) {
             cancelAndRemove(self, cir, 0);
             return;
         }
@@ -68,18 +68,18 @@ public class FishingMixin {
             cancelAndRemove(self, cir, 0);
             return;
         }
-        if (!(self.getEntityWorld() instanceof ServerWorld sw)) {
+        if (!(self.level() instanceof ServerLevel sw)) {
             cancelAndRemove(self, cir, 0);
             return;
         }
 
-        PlayerData data = PlayerDataManager.get(player.getUuid());
+        PlayerData data = PlayerDataManager.get(player.getUUID());
         int fishingLevel = data.getLevel(Skill.FISHING);
         int effectiveLevelBonus = 0;
         int eventContribution = 1;
 
         double luckRaw = 0;
-        var luckAttr = player.getAttributeInstance(Stat.LUCK.getAttribute());
+        var luckAttr = player.getAttribute(Stat.LUCK.getAttribute());
         if (luckAttr != null) luckRaw = luckAttr.getValue();
 
         FishingLootTable.RollResult result = FishingLootTable.roll(fishingLevel + effectiveLevelBonus, luckRaw, sw.getRandom());
@@ -110,37 +110,37 @@ public class FishingMixin {
         double dy = player.getY() - y + 0.5;
         double dz = player.getZ() - z;
         double speed = 0.1;
-        ie.setVelocity(
+        ie.setDeltaMovement(
             dx * speed,
             dy * speed + Math.sqrt(Math.sqrt(dx * dx + dy * dy + dz * dz)) * 0.08,
             dz * speed
         );
-        sw.spawnEntity(ie);
+        sw.addFreshEntity(ie);
 
-        player.sendMessage(
-            Text.literal("* ").formatted(Formatting.GOLD)
-                .append(Text.literal("Caught: ").formatted(Formatting.GRAY))
-                .append(loot.getName()),
+        player.sendSystemMessage(
+            Component.literal("* ").withStyle(ChatFormatting.GOLD)
+                .append(Component.literal("Caught: ").withStyle(ChatFormatting.GRAY))
+                .append(loot.getHoverName()),
             true
         );
 
         cancelAndRemove(self, cir, 1);
     }
 
-    private static void cancelAndRemove(FishingBobberEntity bobber, CallbackInfoReturnable<Integer> cir, int returnValue) {
+    private static void cancelAndRemove(FishingHook bobber, CallbackInfoReturnable<Integer> cir, int returnValue) {
         cir.setReturnValue(returnValue);
         bobber.discard();
     }
 
     private static CollectionType fishCollection(ItemStack stack) {
-        if (stack.isOf(Items.COD)) return CollectionType.COD;
-        if (stack.isOf(Items.SALMON)) return CollectionType.SALMON;
-        if (stack.isOf(Items.PUFFERFISH)) return CollectionType.PUFFERFISH;
-        if (stack.isOf(Items.TROPICAL_FISH)) return CollectionType.TROPICAL_FISH;
-        if (stack.isOf(Items.LILY_PAD)) return CollectionType.LILY_PAD;
-        if (stack.isOf(Items.INK_SAC)) return CollectionType.INK_SAC;
-        if (stack.isOf(Items.NAUTILUS_SHELL)) return CollectionType.NAUTILUS_SHELL;
-        if (stack.isOf(Items.PRISMARINE_SHARD)) return CollectionType.PRISMARINE;
+        if (stack.is(Items.COD)) return CollectionType.COD;
+        if (stack.is(Items.SALMON)) return CollectionType.SALMON;
+        if (stack.is(Items.PUFFERFISH)) return CollectionType.PUFFERFISH;
+        if (stack.is(Items.TROPICAL_FISH)) return CollectionType.TROPICAL_FISH;
+        if (stack.is(Items.LILY_PAD)) return CollectionType.LILY_PAD;
+        if (stack.is(Items.INK_SAC)) return CollectionType.INK_SAC;
+        if (stack.is(Items.NAUTILUS_SHELL)) return CollectionType.NAUTILUS_SHELL;
+        if (stack.is(Items.PRISMARINE_SHARD)) return CollectionType.PRISMARINE;
         return null;
     }
 }

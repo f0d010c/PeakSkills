@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: peakskills-ci-${{ github.workflow }}-${{ github.ref }}
+  group: peakskills-ci-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
@@ -24,14 +24,29 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
-      - name: Set up Java 21
+      - name: Set up Java 25
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: 21
+          java-version: 25
 
       - name: Set up Gradle cache
         uses: gradle/actions/setup-gradle@v6
+
+      - name: Run static command-permission checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          if rg -n 'hasPermissionLevel|DefaultPermissions|LongArgumentType\.longArg\(1\)|IntegerArgumentType\.integer\(1\)' src/main/java; then
+            echo "A forbidden command-permission or unbounded argument pattern was found."
+            exit 1
+          fi
+          unexpected="$(rg -n '\.requires\(' src/main/java | rg -v '::isOp' || true)"
+          if [ -n "$unexpected" ]; then
+            echo "$unexpected"
+            echo "A command gate does not use the OperatorList-backed isOp helper."
+            exit 1
+          fi
 
       - name: Build, run unit tests, and run server GameTests
         run: ./gradlew build stageProductionServer --stacktrace
@@ -59,11 +74,11 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
-      - name: Set up Java 21
+      - name: Set up Java 25
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: 21
+          java-version: 25
 
       - name: Set up Gradle cache
         uses: gradle/actions/setup-gradle@v6
@@ -92,11 +107,11 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
-      - name: Set up Java 21
+      - name: Set up Java 25
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: 21
+          java-version: 25
 
       - name: Set up Gradle cache
         uses: gradle/actions/setup-gradle@v6
@@ -127,7 +142,7 @@ jobs:
               --env ONLINE_MODE=FALSE \
               --env MEMORY=2G \
               --volume "$PWD/build/production-server:/data" \
-              itzg/minecraft-server:stable-java21
+              itzg/minecraft-server:stable-java25
           }
 
           wait_for_server() {
@@ -174,3 +189,40 @@ jobs:
             build/production-server/server.log
             build/production-server/logs/
             build/production-server/crash-reports/
+
+  report-nightly-status:
+    if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    needs: [build-and-server-tests, nightly-client-tests, nightly-production-server]
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Open, update, or close the CI failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BUILD_RESULT: ${{ needs.build-and-server-tests.result }}
+          CLIENT_RESULT: ${{ needs.nightly-client-tests.result }}
+          SERVER_RESULT: ${{ needs.nightly-production-server.result }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh label create ci-failure --repo "$REPOSITORY" --color B60205 \
+            --description "Automated verification needs attention" --force
+          issue_number="$(gh issue list --repo "$REPOSITORY" --label ci-failure --state open \
+            --json number --jq '.[0].number // empty')"
+
+          if [ "$CLIENT_RESULT" = failure ] || [ "$SERVER_RESULT" = failure ] || [ "$BUILD_RESULT" = failure ]; then
+            body="Automated verification failed. Build: $BUILD_RESULT; client: $CLIENT_RESULT; production server: $SERVER_RESULT. Run: $RUN_URL"
+            if [ -n "$issue_number" ]; then
+              gh issue comment "$issue_number" --repo "$REPOSITORY" --body "$body"
+            else
+              gh issue create --repo "$REPOSITORY" --label ci-failure \
+                --title "CI verification is failing" --body "$body"
+            fi
+          elif [ -n "$issue_number" ]; then
+            gh issue comment "$issue_number" --repo "$REPOSITORY" \
+              --body "Automated verification recovered. Run: $RUN_URL"
+            gh issue close "$issue_number" --repo "$REPOSITORY" --reason completed
+          fi

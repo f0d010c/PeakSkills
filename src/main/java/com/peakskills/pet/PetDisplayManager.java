@@ -4,14 +4,13 @@ import com.peakskills.player.PlayerDataManager;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.decoration.DisplayEntity;
-import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Display;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.ItemStack;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -41,13 +40,13 @@ public class PetDisplayManager {
             // Clean up orphaned display entities when a player joins and their chunks load.
             // Matches entities tagged by us OR carrying our specific combination of flags
             // (covers pre-tag entities from older sessions).
-            for (ServerWorld world : server.getWorlds()) {
+            for (ServerLevel world : server.getAllLevels()) {
                 List<Entity> orphans = new ArrayList<>();
-                for (Entity e : world.iterateEntities()) {
-                    if (!(e instanceof DisplayEntity.ItemDisplayEntity)) continue;
-                    boolean isOurs = e.getCommandTags().contains(TAG)
-                        || (e.isInvulnerable() && e.hasNoGravity() && e.isSilent());
-                    if (isOurs && !displays.containsValue(e.getUuid())) {
+                for (Entity e : world.getAllEntities()) {
+                    if (!(e instanceof Display.ItemDisplay)) continue;
+                    boolean isOurs = e.entityTags().contains(TAG)
+                        || (e.isInvulnerable() && e.isNoGravity() && e.isSilent());
+                    if (isOurs && !displays.containsValue(e.getUUID())) {
                         orphans.add(e);
                     }
                 }
@@ -57,17 +56,17 @@ public class PetDisplayManager {
         });
 
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
-            killDisplay(handler.player.getUuid(), server)
+            killDisplay(handler.player.getUUID(), server)
         );
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             List<UUID> toKill    = new ArrayList<>();
-            List<ServerPlayerEntity> toRestore = new ArrayList<>();
+            List<ServerPlayer> toRestore = new ArrayList<>();
 
             for (UUID playerUuid : displays.keySet()) {
-                ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerUuid);
+                ServerPlayer player = server.getPlayerList().getPlayer(playerUuid);
                 if (player == null) { toKill.add(playerUuid); continue; }
-                if (!(player.getEntityWorld() instanceof ServerWorld sw)) continue;
+                if (!(player.level() instanceof ServerLevel sw)) continue;
 
                 UUID displayId = displays.get(playerUuid);
                 if (displayId == null) continue;
@@ -79,10 +78,10 @@ public class PetDisplayManager {
                     continue;
                 }
 
-                float yaw     = player.getYaw();
+                float yaw     = player.getYRot();
                 double rightX = Math.cos(Math.toRadians(yaw));
                 double rightZ = Math.sin(Math.toRadians(yaw));
-                entity.setPos(
+                entity.setPosRaw(
                     player.getX() + rightX * SIDE_DIST,
                     player.getY() + HEIGHT,
                     player.getZ() + rightZ * SIDE_DIST
@@ -90,7 +89,7 @@ public class PetDisplayManager {
             }
 
             for (UUID uuid : toKill)               killDisplay(uuid, server);
-            for (ServerPlayerEntity p : toRestore) restoreDisplay(p);
+            for (ServerPlayer p : toRestore) restoreDisplay(p);
         });
 
         // Kill all display entities before the world is saved on shutdown,
@@ -102,46 +101,46 @@ public class PetDisplayManager {
 
     // ── Public API ────────────────────────────────────────────────────────────
 
-    public static void spawnDisplay(ServerPlayerEntity player, PetType petType) {
-        if (!(player.getEntityWorld() instanceof ServerWorld sw)) return;
+    public static void spawnDisplay(ServerPlayer player, PetType petType) {
+        if (!(player.level() instanceof ServerLevel sw)) return;
 
-        killDisplay(player.getUuid(), sw.getServer());
+        killDisplay(player.getUUID(), sw.getServer());
 
-        DisplayEntity.ItemDisplayEntity display =
-            new DisplayEntity.ItemDisplayEntity(EntityType.ITEM_DISPLAY, sw);
+        Display.ItemDisplay display =
+            new Display.ItemDisplay(EntityType.ITEM_DISPLAY, sw);
 
-        float yaw    = player.getYaw();
+        float yaw    = player.getYRot();
         double rightX = Math.cos(Math.toRadians(yaw));
         double rightZ = Math.sin(Math.toRadians(yaw));
-        display.setPos(
+        display.setPosRaw(
             player.getX() + rightX * SIDE_DIST,
             player.getY() + HEIGHT,
             player.getZ() + rightZ * SIDE_DIST
         );
 
         display.setItemStack(new ItemStack(petType.spawnEgg));
-        display.setBillboardMode(DisplayEntity.BillboardMode.CENTER);
-        display.setTeleportDuration(3);
+        display.setBillboardConstraints(Display.BillboardConstraints.CENTER);
+        display.setPosRotInterpolationDuration(3);
         display.setInvulnerable(true);
         display.setNoGravity(true);
         display.setSilent(true);
-        display.addCommandTag(TAG); // mark for orphan cleanup on next startup
+        display.addTag(TAG); // mark for orphan cleanup on next startup
 
-        sw.spawnEntity(display);
-        displays.put(player.getUuid(), display.getUuid());
+        sw.addFreshEntity(display);
+        displays.put(player.getUUID(), display.getUUID());
     }
 
     public static void killDisplay(UUID playerUuid, MinecraftServer server) {
         UUID displayId = displays.remove(playerUuid);
         if (displayId == null || server == null) return;
-        for (ServerWorld w : server.getWorlds()) {
+        for (ServerLevel w : server.getAllLevels()) {
             Entity e = w.getEntity(displayId);
             if (e != null) { e.remove(Entity.RemovalReason.DISCARDED); break; }
         }
     }
 
-    public static void restoreDisplay(ServerPlayerEntity player) {
-        com.peakskills.player.PlayerData data = PlayerDataManager.get(player.getUuid());
+    public static void restoreDisplay(ServerPlayer player) {
+        com.peakskills.player.PlayerData data = PlayerDataManager.get(player.getUUID());
         if (!data.isPetsVisible()) return;
         Optional<PetInstance> active = data.getPetRoster().getActivePet();
         active.ifPresent(pet -> spawnDisplay(player, pet.getType()));

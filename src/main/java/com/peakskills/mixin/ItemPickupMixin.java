@@ -6,9 +6,6 @@ import com.peakskills.collection.CollectionTier;
 import com.peakskills.collection.CollectionType;
 import com.peakskills.combat.CombatDropTracker;
 import com.peakskills.player.PlayerDataManager;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.server.network.ServerPlayerEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -17,6 +14,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
 
 /**
  * Tracks combat collections by item pickup.
@@ -29,24 +29,24 @@ import java.util.UUID;
 @Mixin(ItemEntity.class)
 public class ItemPickupMixin {
 
-    @Inject(method = "onPlayerCollision", at = @At("HEAD"))
-    private void onItemPickup(PlayerEntity playerEntity, CallbackInfo ci) {
-        if (!(playerEntity instanceof ServerPlayerEntity player)) return;
+    @Inject(method = "playerTouch", at = @At("HEAD"))
+    private void onItemPickup(Player playerEntity, CallbackInfo ci) {
+        if (!(playerEntity instanceof ServerPlayer player)) return;
 
         ItemEntity self = (ItemEntity)(Object) this;
 
         Optional<CollectionType> col = CollectionRegistry.fromCombatDrop(
-            self.getStack().getItem());
+            self.getItem().getItem());
         if (col.isEmpty()) return;
 
         // Only count if this item was tagged as a drop from a mob killed by this player.
         // ItemEntity.getOwner() is null for mob loot drops, so we tag item entities
         // by UUID in CombatDropTracker right after the mob dies (in AFTER_DEATH).
-        UUID killer = CombatDropTracker.getKillerForItem(self.getUuid());
-        if (killer == null || !killer.equals(player.getUuid())) return;
+        UUID killer = CombatDropTracker.getKillerForItem(self.getUUID());
+        if (killer == null || !killer.equals(player.getUUID())) return;
 
-        int count = self.getStack().getCount();
-        List<CollectionTier> newTiers = PlayerDataManager.get(player.getUuid())
+        int count = self.getItem().getCount();
+        List<CollectionTier> newTiers = PlayerDataManager.get(player.getUUID())
             .getCollections().increment(col.get(), count);
         CollectionRewardHandler.apply(player, col.get(), newTiers, PlayerDataManager.getServer());
     }

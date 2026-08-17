@@ -11,14 +11,13 @@ import com.peakskills.skill.Skill;
 import com.peakskills.xp.XpManager;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.WorldSavePath;
-
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.storage.LevelResource;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
@@ -41,7 +40,7 @@ public class FishingCommunityEventManager {
 
     public static void register() {
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-            file = server.getSavePath(WorldSavePath.ROOT).resolve("peakskills").resolve("fishing_event.json");
+            file = server.getWorldPath(LevelResource.ROOT).resolve("peakskills").resolve("fishing_event.json");
             load();
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> save());
@@ -60,10 +59,10 @@ public class FishingCommunityEventManager {
         endsAtMs = System.currentTimeMillis() + clamp(minutes, 1, 1440) * 60_000L;
         lastAnnouncedQuarter = 0;
         contributions.clear();
-        broadcast(server, Text.literal("Fishing Event started! Catch ")
-            .formatted(Formatting.AQUA, Formatting.BOLD)
-            .append(Text.literal(String.valueOf(goal)).formatted(Formatting.WHITE, Formatting.BOLD))
-            .append(Text.literal(" fish before time runs out.").formatted(Formatting.AQUA)));
+        broadcast(server, Component.literal("Fishing Event started! Catch ")
+            .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)
+            .append(Component.literal(String.valueOf(goal)).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD))
+            .append(Component.literal(" fish before time runs out.").withStyle(ChatFormatting.AQUA)));
         save();
         return true;
     }
@@ -74,21 +73,21 @@ public class FishingCommunityEventManager {
         return true;
     }
 
-    public static void recordCatch(ServerPlayerEntity player, int contribution) {
+    public static void recordCatch(ServerPlayer player, int contribution) {
         if (!active || contribution <= 0) return;
         MinecraftServer server = PlayerDataManager.getServer();
         if (server == null) return;
 
         int safeContribution = Math.min(contribution, 100);
         progress = Math.min(goal, progress + safeContribution);
-        contributions.merge(player.getUuid(), safeContribution, Integer::sum);
+        contributions.merge(player.getUUID(), safeContribution, Integer::sum);
 
         int quarter = goal <= 0 ? 4 : Math.min(4, (progress * 4) / goal);
         if (quarter > lastAnnouncedQuarter && quarter < 4) {
             lastAnnouncedQuarter = quarter;
-            broadcast(server, Text.literal("Fishing Event: ")
-                .formatted(Formatting.AQUA)
-                .append(Text.literal(progress + " / " + goal).formatted(Formatting.WHITE, Formatting.BOLD)));
+            broadcast(server, Component.literal("Fishing Event: ")
+                .withStyle(ChatFormatting.AQUA)
+                .append(Component.literal(progress + " / " + goal).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD)));
         }
 
         if (progress >= goal) {
@@ -98,22 +97,22 @@ public class FishingCommunityEventManager {
         }
     }
 
-    public static Text statusText() {
-        if (!active) return Text.literal("No Fishing Event is active.").formatted(Formatting.GRAY);
+    public static Component statusText() {
+        if (!active) return Component.literal("No Fishing Event is active.").withStyle(ChatFormatting.GRAY);
         long remaining = Math.max(0, endsAtMs - System.currentTimeMillis()) / 1000L;
-        return Text.literal("Fishing Event: ").formatted(Formatting.AQUA)
-            .append(Text.literal(progress + " / " + goal).formatted(Formatting.WHITE, Formatting.BOLD))
-            .append(Text.literal(" (" + remaining + "s left)").formatted(Formatting.GRAY));
+        return Component.literal("Fishing Event: ").withStyle(ChatFormatting.AQUA)
+            .append(Component.literal(progress + " / " + goal).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD))
+            .append(Component.literal(" (" + remaining + "s left)").withStyle(ChatFormatting.GRAY));
     }
 
     private static void finish(MinecraftServer server, boolean completed) {
         if (completed) {
-            broadcast(server, Text.literal("Fishing Event complete! Rewards granted to contributors.")
-                .formatted(Formatting.GREEN, Formatting.BOLD));
+            broadcast(server, Component.literal("Fishing Event complete! Rewards granted to contributors.")
+                .withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD));
             rewardContributors(server);
         } else {
-            broadcast(server, Text.literal("Fishing Event ended at " + progress + " / " + goal + ".")
-                .formatted(Formatting.YELLOW));
+            broadcast(server, Component.literal("Fishing Event ended at " + progress + " / " + goal + ".")
+                .withStyle(ChatFormatting.YELLOW));
         }
         active = false;
         progress = 0;
@@ -125,23 +124,23 @@ public class FishingCommunityEventManager {
     }
 
     private static void rewardContributors(MinecraftServer server) {
-        for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
-            int count = contributions.getOrDefault(player.getUuid(), 0);
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            int count = contributions.getOrDefault(player.getUUID(), 0);
             if (count <= 0) continue;
 
             long xp = Math.min(10_000_000L, PeakConfig.get().communityFishingRewardXp + (long) count * 25L);
             XpManager.addXp(player, Skill.FISHING, xp);
             ItemStack reward = new ItemStack(Items.PRISMARINE_CRYSTALS, Math.min(64, Math.max(1, count / 10)));
-            if (!player.getInventory().insertStack(reward)) player.dropItem(reward, false);
-            player.sendMessage(Text.literal("Fishing Event reward: ")
-                .formatted(Formatting.AQUA)
-                .append(Text.literal(String.format("%,d Fishing XP", xp)).formatted(Formatting.GREEN))
-                .append(Text.literal(" and Prismarine Crystals").formatted(Formatting.GRAY)), false);
+            if (!player.getInventory().add(reward)) player.drop(reward, false);
+            player.sendSystemMessage(Component.literal("Fishing Event reward: ")
+                .withStyle(ChatFormatting.AQUA)
+                .append(Component.literal(String.format("%,d Fishing XP", xp)).withStyle(ChatFormatting.GREEN))
+                .append(Component.literal(" and Prismarine Crystals").withStyle(ChatFormatting.GRAY)), false);
         }
     }
 
-    private static void broadcast(MinecraftServer server, Text text) {
-        server.getPlayerManager().broadcast(text, false);
+    private static void broadcast(MinecraftServer server, Component text) {
+        server.getPlayerList().broadcastSystemMessage(text, false);
     }
 
     private static void load() {

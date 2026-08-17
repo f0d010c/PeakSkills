@@ -2,9 +2,9 @@ package com.peakskills.world;
 
 import com.mojang.serialization.Codec;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.PersistentState;
-import net.minecraft.world.PersistentStateType;
-
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Breaking it removes the record and awards NO XP.
  * Natural world blocks (not in the set) award XP normally.
  */
-public class PlacedBlocksState extends PersistentState {
+public class PlacedBlocksState extends SavedData {
 
     private static final String ID = "peakskills_placed_blocks";
 
@@ -30,7 +30,7 @@ public class PlacedBlocksState extends PersistentState {
     /** Record that a player placed a block at this packed BlockPos. */
     public void markPlaced(long posKey) {
         blocks.add(posKey);
-        markDirty();
+        setDirty();
     }
 
     /**
@@ -40,7 +40,7 @@ public class PlacedBlocksState extends PersistentState {
      */
     public boolean consumeIfPlaced(long posKey) {
         boolean wasPlaced = blocks.remove(posKey);
-        if (wasPlaced) markDirty();
+        if (wasPlaced) setDirty();
         return wasPlaced;
     }
 
@@ -57,13 +57,13 @@ public class PlacedBlocksState extends PersistentState {
             s -> new ArrayList<>(s.blocks)
         );
 
-    public static final PersistentStateType<PlacedBlocksState> TYPE =
-        new PersistentStateType<>(ID, PlacedBlocksState::new, CODEC, null);
+    public static final SavedDataType<PlacedBlocksState> TYPE =
+        new SavedDataType<>(Identifier.parse(ID), PlacedBlocksState::new, CODEC, null);
 
     // ── Accessor ──────────────────────────────────────────────────────────────
 
     /** Retrieve (or create) the shared instance for this server. */
     public static PlacedBlocksState get(MinecraftServer server) {
-        return server.getOverworld().getPersistentStateManager().getOrCreate(TYPE);
+        return server.overworld().getDataStorage().computeIfAbsent(TYPE);
     }
 }

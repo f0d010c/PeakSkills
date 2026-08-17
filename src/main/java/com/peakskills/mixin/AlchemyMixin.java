@@ -1,6 +1,6 @@
 package com.peakskills.mixin;
 
-import net.minecraft.block.entity.BrewingStandBlockEntity;
+import net.minecraft.world.level.block.entity.BrewingStandBlockEntity;
 import org.spongepowered.asm.mixin.Mixin;
 
 /**

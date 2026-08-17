@@ -32,7 +32,7 @@ public class PlayerDataManager {
     public static void register() {
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             PlayerDataManager.server = server;
-            dataDir = server.getSavePath(net.minecraft.util.WorldSavePath.ROOT)
+            dataDir = server.getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT)
                     .resolve("peakskills").resolve("players");
             try {
                 Files.createDirectories(dataDir);
@@ -42,13 +42,13 @@ public class PlayerDataManager {
         });
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            UUID uuid = handler.player.getUuid();
+            UUID uuid = handler.player.getUUID();
             cache.put(uuid, load(uuid));
             StatManager.applyStats(handler.player);
         });
 
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-            UUID uuid = handler.player.getUuid();
+            UUID uuid = handler.player.getUUID();
             StatManager.removeStats(handler.player);
             PlayerData data = cache.remove(uuid);
             if (data != null) save(data);

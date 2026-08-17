@@ -1,14 +1,13 @@
 package com.peakskills.collection;
 
 import com.peakskills.stat.StatManager;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
 import java.util.List;
 
 /**
@@ -16,7 +15,7 @@ import java.util.List;
  */
 public class CollectionRewardHandler {
 
-    public static void apply(ServerPlayerEntity player,
+    public static void apply(ServerPlayer player,
                              CollectionType type,
                              List<CollectionTier> newTiers,
                              MinecraftServer server) {
@@ -26,10 +25,10 @@ public class CollectionRewardHandler {
 
         for (CollectionTier tier : newTiers) {
             // ── Announcement ──────────────────────────────────────────────────
-            player.sendMessage(
-                Text.literal("  ★ ").formatted(Formatting.GOLD)
-                    .append(Text.literal(type.displayName + " Collection ").formatted(type.color, Formatting.BOLD))
-                    .append(Text.literal("Tier " + tier.tierLabel() + " Unlocked!").formatted(Formatting.YELLOW)),
+            player.sendSystemMessage(
+                Component.literal("  ★ ").withStyle(ChatFormatting.GOLD)
+                    .append(Component.literal(type.displayName + " Collection ").withStyle(type.color, ChatFormatting.BOLD))
+                    .append(Component.literal("Tier " + tier.tierLabel() + " Unlocked!").withStyle(ChatFormatting.YELLOW)),
                 false
             );
 
@@ -39,42 +38,42 @@ public class CollectionRewardHandler {
 
                     case CollectionReward.ItemReward ir -> {
                         ItemStack stack = ir.stack().copy();
-                        boolean inserted = player.getInventory().insertStack(stack);
-                        if (!inserted) player.dropItem(ir.stack().copy(), false);
+                        boolean inserted = player.getInventory().add(stack);
+                        if (!inserted) player.drop(ir.stack().copy(), false);
 
-                        player.sendMessage(
-                            Text.literal("    → ").formatted(Formatting.DARK_GRAY)
-                                .append(Text.literal("Reward: ").formatted(Formatting.GRAY))
-                                .append(Text.literal("x" + ir.stack().getCount() + " "
-                                    + ir.stack().getName().getString()).formatted(Formatting.GREEN)),
+                        player.sendSystemMessage(
+                            Component.literal("    → ").withStyle(ChatFormatting.DARK_GRAY)
+                                .append(Component.literal("Reward: ").withStyle(ChatFormatting.GRAY))
+                                .append(Component.literal("x" + ir.stack().getCount() + " "
+                                    + ir.stack().getHoverName().getString()).withStyle(ChatFormatting.GREEN)),
                             false
                         );
                     }
 
                     case CollectionReward.StatBonus sb -> {
                         statChanged = true;
-                        player.sendMessage(
-                            Text.literal("    → ").formatted(Formatting.DARK_GRAY)
-                                .append(Text.literal("Reward: ").formatted(Formatting.GRAY))
-                                .append(Text.literal("+" + sb.displayValue()
+                        player.sendSystemMessage(
+                            Component.literal("    → ").withStyle(ChatFormatting.DARK_GRAY)
+                                .append(Component.literal("Reward: ").withStyle(ChatFormatting.GRAY))
+                                .append(Component.literal("+" + sb.displayValue()
                                     + " " + sb.stat().getIcon()
-                                    + " " + sb.stat().getDisplayName()).formatted(Formatting.GREEN)),
+                                    + " " + sb.stat().getDisplayName()).withStyle(ChatFormatting.GREEN)),
                             false
                         );
                     }
 
                     case CollectionReward.RecipeUnlock ru -> {
-                        RegistryKey<net.minecraft.recipe.Recipe<?>> key =
-                            RegistryKey.of(RegistryKeys.RECIPE, ru.recipeId());
+                        ResourceKey<net.minecraft.world.item.crafting.Recipe<?>> key =
+                            ResourceKey.create(Registries.RECIPE, ru.recipeId());
                         server.getRecipeManager()
-                            .get(key)
-                            .ifPresent(entry -> player.unlockRecipes(List.of(entry)));
+                            .byKey(key)
+                            .ifPresent(entry -> player.awardRecipes(List.of(entry)));
 
                         String name = formatPath(ru.recipeId().getPath());
-                        player.sendMessage(
-                            Text.literal("    → ").formatted(Formatting.DARK_GRAY)
-                                .append(Text.literal("Recipe Unlocked: ").formatted(Formatting.GRAY))
-                                .append(Text.literal(name).formatted(Formatting.AQUA)),
+                        player.sendSystemMessage(
+                            Component.literal("    → ").withStyle(ChatFormatting.DARK_GRAY)
+                                .append(Component.literal("Recipe Unlocked: ").withStyle(ChatFormatting.GRAY))
+                                .append(Component.literal(name).withStyle(ChatFormatting.AQUA)),
                             false
                         );
                     }

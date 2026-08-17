@@ -1,12 +1,11 @@
 package com.peakskills.gear;
 
 import com.peakskills.skill.Skill;
-import net.minecraft.item.Item;
-import net.minecraft.item.Items;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Predicate;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 
 /**
  * Defines skill level requirements for tools and armor.

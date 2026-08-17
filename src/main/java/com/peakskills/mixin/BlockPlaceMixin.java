@@ -1,10 +1,10 @@
 package com.peakskills.mixin;
 
 import com.peakskills.world.PlacedBlocksState;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.ItemPlacementContext;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.ActionResult;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -17,13 +17,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(BlockItem.class)
 public class BlockPlaceMixin {
 
-    @Inject(method = "place(Lnet/minecraft/item/ItemPlacementContext;)Lnet/minecraft/util/ActionResult;",
+    @Inject(method = "place(Lnet/minecraft/world/item/context/BlockPlaceContext;)Lnet/minecraft/world/InteractionResult;",
             at = @At("RETURN"))
-    private void onPlace(ItemPlacementContext ctx, CallbackInfoReturnable<ActionResult> cir) {
+    private void onPlace(BlockPlaceContext ctx, CallbackInfoReturnable<InteractionResult> cir) {
         // Only care about successful placements on the server
-        if (!cir.getReturnValue().isAccepted()) return;
-        if (!(ctx.getWorld() instanceof ServerWorld sw)) return;
+        if (!cir.getReturnValue().consumesAction()) return;
+        if (!(ctx.getLevel() instanceof ServerLevel sw)) return;
 
-        PlacedBlocksState.get(sw.getServer()).markPlaced(ctx.getBlockPos().asLong());
+        PlacedBlocksState.get(sw.getServer()).markPlaced(ctx.getClickedPos().asLong());
     }
 }

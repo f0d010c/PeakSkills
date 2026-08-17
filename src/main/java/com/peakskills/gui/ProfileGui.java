@@ -8,22 +8,21 @@ import com.peakskills.skill.Skill;
 import com.peakskills.skill.XPTable;
 import com.peakskills.stat.Stat;
 import com.peakskills.stat.StatRegistry;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.inventory.SimpleInventory;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.ItemLore;
 
 /**
  * /profile [player] — a compact read-only overview of a player's skills and stats.
@@ -48,12 +47,12 @@ public class ProfileGui {
 
     private static final int TOTAL_SKILLS = 16;
 
-    public static void open(ServerPlayerEntity viewer) {
-        open(viewer, PlayerDataManager.get(viewer.getUuid()), viewer.getName().getString());
+    public static void open(ServerPlayer viewer) {
+        open(viewer, PlayerDataManager.get(viewer.getUUID()), viewer.getName().getString());
     }
 
-    public static void open(ServerPlayerEntity viewer, PlayerData data, String ownerName) {
-        SimpleInventory inv = new SimpleInventory(54);
+    public static void open(ServerPlayer viewer, PlayerData data, String ownerName) {
+        SimpleContainer inv = new SimpleContainer(54);
         populate(inv, data, ownerName);
 
         Map<Integer, Runnable> handlers = new HashMap<>();
@@ -75,76 +74,76 @@ public class ProfileGui {
         // Slot 49 — open full skills GUI
         handlers.put(49, () -> SkillsGui.open(viewer, data, ownerName));
 
-        viewer.openHandledScreen(new SimpleNamedScreenHandlerFactory(
+        viewer.openMenu(new SimpleMenuProvider(
             (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers),
-            Text.literal("✦ " + ownerName + "'s Profile").formatted(Formatting.GOLD)
+            Component.literal("✦ " + ownerName + "'s Profile").withStyle(ChatFormatting.GOLD)
         ));
     }
 
     // ── Build ─────────────────────────────────────────────────────────────────
 
-    private static void populate(SimpleInventory inv, PlayerData data, String ownerName) {
+    private static void populate(SimpleContainer inv, PlayerData data, String ownerName) {
         ItemStack bg = pane(Items.GRAY_STAINED_GLASS_PANE, " ");
-        for (int i = 0; i < 54; i++) inv.setStack(i, bg.copy());
+        for (int i = 0; i < 54; i++) inv.setItem(i, bg.copy());
 
         // ── Header (slot 4) ──────────────────────────────────────────────────
         int total = data.getTotalLevel();
         int max   = TOTAL_SKILLS * Skill.MAX_LEVEL;
         ItemStack header = new ItemStack(Items.PLAYER_HEAD);
-        header.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal("✦ " + ownerName).formatted(Formatting.GOLD, Formatting.BOLD));
-        header.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-            Text.literal("  Total Level  ").formatted(Formatting.GRAY)
-                .append(Text.literal(total + " / " + max).formatted(Formatting.AQUA, Formatting.BOLD)),
-            Text.literal("  " + bar(total, max, 20)).formatted(Formatting.AQUA)
-                .append(Text.literal("  " + String.format("%.1f%%", total * 100.0 / max)).formatted(Formatting.WHITE)),
-            Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").formatted(Formatting.DARK_GRAY),
-            Text.literal("  Click a skill to view its details").formatted(Formatting.DARK_GRAY)
+        header.set(DataComponents.CUSTOM_NAME,
+            Component.literal("✦ " + ownerName).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+        header.set(DataComponents.LORE, new ItemLore(List.of(
+            Component.literal("  Total Level  ").withStyle(ChatFormatting.GRAY)
+                .append(Component.literal(total + " / " + max).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)),
+            Component.literal("  " + bar(total, max, 20)).withStyle(ChatFormatting.AQUA)
+                .append(Component.literal("  " + String.format("%.1f%%", total * 100.0 / max)).withStyle(ChatFormatting.WHITE)),
+            Component.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").withStyle(ChatFormatting.DARK_GRAY),
+            Component.literal("  Click a skill to view its details").withStyle(ChatFormatting.DARK_GRAY)
         )));
-        inv.setStack(4, header);
+        inv.setItem(4, header);
 
         // ── Stat summary items (left column: 9, 18, 27, 36) ─────────────────
         Map<Stat, Double> statTotals = computeStatTotals(data);
 
-        inv.setStack(9,  statItem(Items.APPLE, "Health & Sustain", Formatting.RED,
+        inv.setItem(9,  statItem(Items.APPLE, "Health & Sustain", ChatFormatting.RED,
             statTotals, Stat.HEALTH));
-        inv.setStack(18, statItem(Items.IRON_SWORD, "Offense", Formatting.YELLOW,
+        inv.setItem(18, statItem(Items.IRON_SWORD, "Offense", ChatFormatting.YELLOW,
             statTotals, Stat.STRENGTH, Stat.SWIFTNESS));
-        inv.setStack(27, statItem(Items.SHIELD, "Defense", Formatting.WHITE,
+        inv.setItem(27, statItem(Items.SHIELD, "Defense", ChatFormatting.WHITE,
             statTotals, Stat.DEFENSE, Stat.TOUGHNESS, Stat.KNOCKBACK_RESISTANCE));
-        inv.setStack(36, statItem(Items.RABBIT_FOOT, "Luck", Formatting.GREEN,
+        inv.setItem(36, statItem(Items.RABBIT_FOOT, "Luck", ChatFormatting.GREEN,
             statTotals, Stat.LUCK));
 
         // ── Skill icons ──────────────────────────────────────────────────────
         for (int i = 0; i < GATHERING.length; i++)
-            inv.setStack(GATHER_SLOTS[i],  compactSkillIcon(GATHERING[i], data));
+            inv.setItem(GATHER_SLOTS[i],  compactSkillIcon(GATHERING[i], data));
         for (int i = 0; i < COMBAT.length; i++)
-            inv.setStack(COMBAT_SLOTS[i],  compactSkillIcon(COMBAT[i],    data));
+            inv.setItem(COMBAT_SLOTS[i],  compactSkillIcon(COMBAT[i],    data));
         for (int i = 0; i < MASTERY.length; i++)
-            inv.setStack(MASTERY_SLOTS[i], compactSkillIcon(MASTERY[i],   data));
+            inv.setItem(MASTERY_SLOTS[i], compactSkillIcon(MASTERY[i],   data));
 
         // ── Total level (slot 40) ────────────────────────────────────────────
         ItemStack totalItem = new ItemStack(Items.EXPERIENCE_BOTTLE);
-        totalItem.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal("Total Level  " + total + " / " + max)
-                .formatted(Formatting.AQUA, Formatting.BOLD));
-        totalItem.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-            Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").formatted(Formatting.DARK_GRAY),
-            Text.literal("  " + bar(total, max, 20) + "  ").formatted(Formatting.AQUA)
-                .append(Text.literal(String.format("%.1f%%", total * 100.0 / max)).formatted(Formatting.WHITE)),
-            Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").formatted(Formatting.DARK_GRAY)
+        totalItem.set(DataComponents.CUSTOM_NAME,
+            Component.literal("Total Level  " + total + " / " + max)
+                .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
+        totalItem.set(DataComponents.LORE, new ItemLore(List.of(
+            Component.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").withStyle(ChatFormatting.DARK_GRAY),
+            Component.literal("  " + bar(total, max, 20) + "  ").withStyle(ChatFormatting.AQUA)
+                .append(Component.literal(String.format("%.1f%%", total * 100.0 / max)).withStyle(ChatFormatting.WHITE)),
+            Component.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").withStyle(ChatFormatting.DARK_GRAY)
         )));
-        inv.setStack(40, totalItem);
+        inv.setItem(40, totalItem);
 
         // ── Skills GUI button (slot 49) ──────────────────────────────────────
         ItemStack skillsBtn = new ItemStack(Items.BOOK);
-        skillsBtn.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal("View Full Skills").formatted(Formatting.YELLOW, Formatting.BOLD));
-        skillsBtn.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-            Text.literal("  Opens the detailed skills menu").formatted(Formatting.DARK_GRAY),
-            Text.literal("  with XP progress and bonuses").formatted(Formatting.DARK_GRAY)
+        skillsBtn.set(DataComponents.CUSTOM_NAME,
+            Component.literal("View Full Skills").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD));
+        skillsBtn.set(DataComponents.LORE, new ItemLore(List.of(
+            Component.literal("  Opens the detailed skills menu").withStyle(ChatFormatting.DARK_GRAY),
+            Component.literal("  with XP progress and bonuses").withStyle(ChatFormatting.DARK_GRAY)
         )));
-        inv.setStack(49, skillsBtn);
+        inv.setItem(49, skillsBtn);
     }
 
     // ── Stat helpers ──────────────────────────────────────────────────────────
@@ -175,25 +174,25 @@ public class ProfileGui {
         return totals;
     }
 
-    private static ItemStack statItem(Item item, String title, Formatting color,
+    private static ItemStack statItem(Item item, String title, ChatFormatting color,
                                       Map<Stat, Double> totals, Stat... stats) {
         ItemStack s = new ItemStack(item);
-        s.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal(title).formatted(color, Formatting.BOLD));
-        List<Text> lore = new ArrayList<>();
-        lore.add(Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").formatted(Formatting.DARK_GRAY));
+        s.set(DataComponents.CUSTOM_NAME,
+            Component.literal(title).withStyle(color, ChatFormatting.BOLD));
+        List<Component> lore = new ArrayList<>();
+        lore.add(Component.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").withStyle(ChatFormatting.DARK_GRAY));
         for (Stat stat : stats) {
             double raw = totals.getOrDefault(stat, 0.0);
             double display = stat.toDisplay(raw);
             String num = display < 10
                 ? String.format("%.1f", display).replaceAll("0+$", "").replaceAll("\\.$", "")
                 : String.format("%.0f", display);
-            lore.add(Text.literal("  " + stat.getIcon() + " ").formatted(Formatting.GRAY)
-                .append(Text.literal(num).formatted(Formatting.WHITE, Formatting.BOLD))
-                .append(Text.literal("  " + stat.getDisplayName()).formatted(Formatting.GRAY)));
+            lore.add(Component.literal("  " + stat.getIcon() + " ").withStyle(ChatFormatting.GRAY)
+                .append(Component.literal(num).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD))
+                .append(Component.literal("  " + stat.getDisplayName()).withStyle(ChatFormatting.GRAY)));
         }
-        lore.add(Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").formatted(Formatting.DARK_GRAY));
-        s.set(DataComponentTypes.LORE, new LoreComponent(lore));
+        lore.add(Component.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").withStyle(ChatFormatting.DARK_GRAY));
+        s.set(DataComponents.LORE, new ItemLore(lore));
         return s;
     }
 
@@ -208,29 +207,29 @@ public class ProfileGui {
         boolean maxed = level >= Skill.MAX_LEVEL;
 
         ItemStack stack = new ItemStack(iconFor(skill));
-        if (level > 1) stack.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
+        if (level > 1) stack.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
 
-        stack.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal(skill.getDisplayName()).formatted(nameColor(skill), Formatting.BOLD));
+        stack.set(DataComponents.CUSTOM_NAME,
+            Component.literal(skill.getDisplayName()).withStyle(nameColor(skill), ChatFormatting.BOLD));
 
-        List<Text> lore = new ArrayList<>();
-        lore.add(Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").formatted(Formatting.DARK_GRAY));
-        lore.add(Text.literal("  Level  ").formatted(Formatting.GRAY)
-            .append(Text.literal(String.valueOf(level)).formatted(Formatting.WHITE, Formatting.BOLD))
-            .append(Text.literal(" / " + Skill.MAX_LEVEL).formatted(Formatting.DARK_GRAY)));
+        List<Component> lore = new ArrayList<>();
+        lore.add(Component.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").withStyle(ChatFormatting.DARK_GRAY));
+        lore.add(Component.literal("  Level  ").withStyle(ChatFormatting.GRAY)
+            .append(Component.literal(String.valueOf(level)).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD))
+            .append(Component.literal(" / " + Skill.MAX_LEVEL).withStyle(ChatFormatting.DARK_GRAY)));
 
         if (maxed) {
-            lore.add(Text.literal("  ✦ MAX LEVEL ✦").formatted(Formatting.GOLD, Formatting.BOLD));
+            lore.add(Component.literal("  ✦ MAX LEVEL ✦").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
         } else {
             long progress = xp - floor;
             float pct = (float) progress / span * 100f;
-            lore.add(Text.literal("  " + bar(progress, span, 14) + "  ").formatted(Formatting.GREEN)
-                .append(Text.literal(String.format("%.1f%%", pct)).formatted(Formatting.GRAY)));
+            lore.add(Component.literal("  " + bar(progress, span, 14) + "  ").withStyle(ChatFormatting.GREEN)
+                .append(Component.literal(String.format("%.1f%%", pct)).withStyle(ChatFormatting.GRAY)));
         }
 
-        lore.add(Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").formatted(Formatting.DARK_GRAY));
-        lore.add(Text.literal("  Click to view details").formatted(Formatting.DARK_GRAY));
-        stack.set(DataComponentTypes.LORE, new LoreComponent(lore));
+        lore.add(Component.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").withStyle(ChatFormatting.DARK_GRAY));
+        lore.add(Component.literal("  Click to view details").withStyle(ChatFormatting.DARK_GRAY));
+        stack.set(DataComponents.LORE, new ItemLore(lore));
         return stack;
     }
 
@@ -238,7 +237,7 @@ public class ProfileGui {
 
     private static ItemStack pane(Item item, String name) {
         ItemStack s = new ItemStack(item);
-        s.set(DataComponentTypes.CUSTOM_NAME, Text.literal(name));
+        s.set(DataComponents.CUSTOM_NAME, Component.literal(name));
         return s;
     }
 
@@ -247,24 +246,24 @@ public class ProfileGui {
         return "█".repeat(filled) + "░".repeat(length - filled);
     }
 
-    private static Formatting nameColor(Skill skill) {
+    private static ChatFormatting nameColor(Skill skill) {
         return switch (skill) {
-            case MINING      -> Formatting.GRAY;
-            case WOODCUTTING -> Formatting.GREEN;
-            case EXCAVATING  -> Formatting.YELLOW;
-            case FARMING     -> Formatting.DARK_GREEN;
-            case FISHING     -> Formatting.AQUA;
-            case DEFENSE     -> Formatting.WHITE;
-            case SLAYING     -> Formatting.RED;
-            case RANGED      -> Formatting.GOLD;
-            case ENCHANTING  -> Formatting.LIGHT_PURPLE;
-            case ALCHEMY     -> Formatting.DARK_PURPLE;
-            case SMITHING    -> Formatting.DARK_GRAY;
-            case COOKING     -> Formatting.YELLOW;
-            case CRAFTING    -> Formatting.WHITE;
-            case AGILITY     -> Formatting.BLUE;
-            case TAMING      -> Formatting.GREEN;
-            case TRADING     -> Formatting.GREEN;
+            case MINING      -> ChatFormatting.GRAY;
+            case WOODCUTTING -> ChatFormatting.GREEN;
+            case EXCAVATING  -> ChatFormatting.YELLOW;
+            case FARMING     -> ChatFormatting.DARK_GREEN;
+            case FISHING     -> ChatFormatting.AQUA;
+            case DEFENSE     -> ChatFormatting.WHITE;
+            case SLAYING     -> ChatFormatting.RED;
+            case RANGED      -> ChatFormatting.GOLD;
+            case ENCHANTING  -> ChatFormatting.LIGHT_PURPLE;
+            case ALCHEMY     -> ChatFormatting.DARK_PURPLE;
+            case SMITHING    -> ChatFormatting.DARK_GRAY;
+            case COOKING     -> ChatFormatting.YELLOW;
+            case CRAFTING    -> ChatFormatting.WHITE;
+            case AGILITY     -> ChatFormatting.BLUE;
+            case TAMING      -> ChatFormatting.GREEN;
+            case TRADING     -> ChatFormatting.GREEN;
         };
     }
 

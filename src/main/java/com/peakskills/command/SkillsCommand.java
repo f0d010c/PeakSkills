@@ -15,39 +15,39 @@ import com.peakskills.skill.XPTable;
 import com.peakskills.stat.StatManager;
 import com.peakskills.xp.XpManager;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.server.PlayerConfigEntry;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.players.NameAndId;
 
 public class SkillsCommand {
 
     public static void register() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
             dispatcher.register(
-                CommandManager.literal("skills")
+                Commands.literal("skills")
 
                     // /skills — open your own GUI
                     .executes(ctx -> {
-                        ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
+                        ServerPlayer player = ctx.getSource().getPlayerOrException();
                         SkillsGui.open(player);
                         return 1;
                     })
 
                     // /skills <player> — view another player's skills
-                    .then(CommandManager.argument("player", StringArgumentType.word())
+                    .then(Commands.argument("player", StringArgumentType.word())
                         .executes(ctx -> {
-                            ServerPlayerEntity viewer = ctx.getSource().getPlayerOrThrow();
+                            ServerPlayer viewer = ctx.getSource().getPlayerOrException();
                             String name = StringArgumentType.getString(ctx, "player");
-                            ServerPlayerEntity target = ctx.getSource().getServer()
-                                .getPlayerManager().getPlayer(name);
+                            ServerPlayer target = ctx.getSource().getServer()
+                                .getPlayerList().getPlayerByName(name);
                             if (target == null) {
-                                ctx.getSource().sendError(Text.literal("Player not found: " + name));
+                                ctx.getSource().sendFailure(Component.literal("Player not found: " + name));
                                 return 0;
                             }
-                            SkillsGui.open(viewer, PlayerDataManager.get(target.getUuid()),
+                            SkillsGui.open(viewer, PlayerDataManager.get(target.getUUID()),
                                 target.getName().getString());
                             return 1;
                         })
@@ -56,20 +56,20 @@ public class SkillsCommand {
                     // --- ADMIN SUBCOMMANDS (requires op level 2) ---
 
                     // /skills addxp <player> <skill> <amount>
-                    .then(CommandManager.literal("addxp")
+                    .then(Commands.literal("addxp")
                         .requires(SkillsCommand::isOp)
-                        .then(CommandManager.argument("player", StringArgumentType.word())
-                            .then(CommandManager.argument("skill", StringArgumentType.word())
-                                .then(CommandManager.argument("amount", LongArgumentType.longArg(1, 10_000_000L))
+                        .then(Commands.argument("player", StringArgumentType.word())
+                            .then(Commands.argument("skill", StringArgumentType.word())
+                                .then(Commands.argument("amount", LongArgumentType.longArg(1, 10_000_000L))
                                     .executes(ctx -> {
-                                        ServerPlayerEntity target = resolvePlayer(ctx.getSource().getServer(),
+                                        ServerPlayer target = resolvePlayer(ctx.getSource().getServer(),
                                             StringArgumentType.getString(ctx, "player"));
-                                        if (target == null) { ctx.getSource().sendError(Text.literal("Player not found")); return 0; }
+                                        if (target == null) { ctx.getSource().sendFailure(Component.literal("Player not found")); return 0; }
                                         Skill skill = resolveSkill(StringArgumentType.getString(ctx, "skill"));
-                                        if (skill == null) { ctx.getSource().sendError(Text.literal("Unknown skill")); return 0; }
+                                        if (skill == null) { ctx.getSource().sendFailure(Component.literal("Unknown skill")); return 0; }
                                         long amount = LongArgumentType.getLong(ctx, "amount");
                                         XpManager.addXp(target, skill, amount);
-                                        ctx.getSource().sendFeedback(() -> Text.literal("Added " + amount + " " + skill.getDisplayName() + " XP to " + target.getName().getString()).formatted(Formatting.GREEN), true);
+                                        ctx.getSource().sendSuccess(() -> Component.literal("Added " + amount + " " + skill.getDisplayName() + " XP to " + target.getName().getString()).withStyle(ChatFormatting.GREEN), true);
                                         return 1;
                                     })
                                 )
@@ -78,26 +78,26 @@ public class SkillsCommand {
                     )
 
                     // /skills setlevel <player> <skill> <level>
-                    .then(CommandManager.literal("setlevel")
+                    .then(Commands.literal("setlevel")
                         .requires(SkillsCommand::isOp)
-                        .then(CommandManager.argument("player", StringArgumentType.word())
-                            .then(CommandManager.argument("skill", StringArgumentType.word())
-                                .then(CommandManager.argument("level", IntegerArgumentType.integer(1, Skill.MAX_LEVEL))
+                        .then(Commands.argument("player", StringArgumentType.word())
+                            .then(Commands.argument("skill", StringArgumentType.word())
+                                .then(Commands.argument("level", IntegerArgumentType.integer(1, Skill.MAX_LEVEL))
                                     .executes(ctx -> {
-                                        ServerPlayerEntity target = resolvePlayer(ctx.getSource().getServer(),
+                                        ServerPlayer target = resolvePlayer(ctx.getSource().getServer(),
                                             StringArgumentType.getString(ctx, "player"));
-                                        if (target == null) { ctx.getSource().sendError(Text.literal("Player not found")); return 0; }
+                                        if (target == null) { ctx.getSource().sendFailure(Component.literal("Player not found")); return 0; }
                                         Skill skill = resolveSkill(StringArgumentType.getString(ctx, "skill"));
-                                        if (skill == null) { ctx.getSource().sendError(Text.literal("Unknown skill")); return 0; }
+                                        if (skill == null) { ctx.getSource().sendFailure(Component.literal("Unknown skill")); return 0; }
                                         int level = IntegerArgumentType.getInteger(ctx, "level");
-                                        PlayerData data = PlayerDataManager.get(target.getUuid());
+                                        PlayerData data = PlayerDataManager.get(target.getUUID());
                                         // Set XP to exactly what's needed for this level (works up and down)
                                         long needed = XPTable.xpForLevel(level);
                                         long current = data.getXp(skill);
                                         long delta = needed - current;
                                         if (delta != 0) data.addXp(skill, delta);
                                         StatManager.applyStats(target);
-                                        ctx.getSource().sendFeedback(() -> Text.literal("Set " + target.getName().getString() + "'s " + skill.getDisplayName() + " to level " + level).formatted(Formatting.GREEN), true);
+                                        ctx.getSource().sendSuccess(() -> Component.literal("Set " + target.getName().getString() + "'s " + skill.getDisplayName() + " to level " + level).withStyle(ChatFormatting.GREEN), true);
                                         return 1;
                                     })
                                 )
@@ -106,36 +106,36 @@ public class SkillsCommand {
                     )
 
                     // /skills reset <player> [skill]
-                    .then(CommandManager.literal("reset")
+                    .then(Commands.literal("reset")
                         .requires(SkillsCommand::isOp)
-                        .then(CommandManager.argument("player", StringArgumentType.word())
+                        .then(Commands.argument("player", StringArgumentType.word())
                             // /skills reset <player> — reset ALL skills
                             .executes(ctx -> {
-                                ServerPlayerEntity target = resolvePlayer(ctx.getSource().getServer(),
+                                ServerPlayer target = resolvePlayer(ctx.getSource().getServer(),
                                     StringArgumentType.getString(ctx, "player"));
-                                if (target == null) { ctx.getSource().sendError(Text.literal("Player not found")); return 0; }
-                                PlayerData data = PlayerDataManager.get(target.getUuid());
+                                if (target == null) { ctx.getSource().sendFailure(Component.literal("Player not found")); return 0; }
+                                PlayerData data = PlayerDataManager.get(target.getUUID());
                                 for (Skill skill : Skill.values()) {
                                     long xp = data.getXp(skill);
                                     if (xp > 0) data.addXp(skill, -xp);
                                 }
                                 StatManager.applyStats(target);
-                                ctx.getSource().sendFeedback(() -> Text.literal("Reset all skills for " + target.getName().getString()).formatted(Formatting.YELLOW), true);
+                                ctx.getSource().sendSuccess(() -> Component.literal("Reset all skills for " + target.getName().getString()).withStyle(ChatFormatting.YELLOW), true);
                                 return 1;
                             })
                             // /skills reset <player> <skill> — reset ONE skill
-                            .then(CommandManager.argument("skill", StringArgumentType.word())
+                            .then(Commands.argument("skill", StringArgumentType.word())
                                 .executes(ctx -> {
-                                    ServerPlayerEntity target = resolvePlayer(ctx.getSource().getServer(),
+                                    ServerPlayer target = resolvePlayer(ctx.getSource().getServer(),
                                         StringArgumentType.getString(ctx, "player"));
-                                    if (target == null) { ctx.getSource().sendError(Text.literal("Player not found")); return 0; }
+                                    if (target == null) { ctx.getSource().sendFailure(Component.literal("Player not found")); return 0; }
                                     Skill skill = resolveSkill(StringArgumentType.getString(ctx, "skill"));
-                                    if (skill == null) { ctx.getSource().sendError(Text.literal("Unknown skill")); return 0; }
-                                    PlayerData data = PlayerDataManager.get(target.getUuid());
+                                    if (skill == null) { ctx.getSource().sendFailure(Component.literal("Unknown skill")); return 0; }
+                                    PlayerData data = PlayerDataManager.get(target.getUUID());
                                     long xp = data.getXp(skill);
                                     if (xp > 0) data.addXp(skill, -xp);
                                     StatManager.applyStats(target);
-                                    ctx.getSource().sendFeedback(() -> Text.literal("Reset " + skill.getDisplayName() + " for " + target.getName().getString()).formatted(Formatting.YELLOW), true);
+                                    ctx.getSource().sendSuccess(() -> Component.literal("Reset " + skill.getDisplayName() + " for " + target.getName().getString()).withStyle(ChatFormatting.YELLOW), true);
                                     return 1;
                                 })
                             )
@@ -143,24 +143,24 @@ public class SkillsCommand {
                     )
 
                     // /skills removexp <player> <skill> <amount>
-                    .then(CommandManager.literal("removexp")
+                    .then(Commands.literal("removexp")
                         .requires(SkillsCommand::isOp)
-                        .then(CommandManager.argument("player", StringArgumentType.word())
-                            .then(CommandManager.argument("skill", StringArgumentType.word())
-                                .then(CommandManager.argument("amount", LongArgumentType.longArg(1, 10_000_000L))
+                        .then(Commands.argument("player", StringArgumentType.word())
+                            .then(Commands.argument("skill", StringArgumentType.word())
+                                .then(Commands.argument("amount", LongArgumentType.longArg(1, 10_000_000L))
                                     .executes(ctx -> {
-                                        ServerPlayerEntity target = resolvePlayer(ctx.getSource().getServer(),
+                                        ServerPlayer target = resolvePlayer(ctx.getSource().getServer(),
                                             StringArgumentType.getString(ctx, "player"));
-                                        if (target == null) { ctx.getSource().sendError(Text.literal("Player not found")); return 0; }
+                                        if (target == null) { ctx.getSource().sendFailure(Component.literal("Player not found")); return 0; }
                                         Skill skill = resolveSkill(StringArgumentType.getString(ctx, "skill"));
-                                        if (skill == null) { ctx.getSource().sendError(Text.literal("Unknown skill")); return 0; }
+                                        if (skill == null) { ctx.getSource().sendFailure(Component.literal("Unknown skill")); return 0; }
                                         long amount = LongArgumentType.getLong(ctx, "amount");
-                                        PlayerData data = PlayerDataManager.get(target.getUuid());
+                                        PlayerData data = PlayerDataManager.get(target.getUUID());
                                         long current = data.getXp(skill);
                                         long remove = Math.min(amount, current); // can't go below 0
                                         if (remove > 0) data.addXp(skill, -remove);
                                         StatManager.applyStats(target);
-                                        ctx.getSource().sendFeedback(() -> Text.literal("Removed " + remove + " " + skill.getDisplayName() + " XP from " + target.getName().getString()).formatted(Formatting.YELLOW), true);
+                                        ctx.getSource().sendSuccess(() -> Component.literal("Removed " + remove + " " + skill.getDisplayName() + " XP from " + target.getName().getString()).withStyle(ChatFormatting.YELLOW), true);
                                         return 1;
                                     })
                                 )
@@ -168,68 +168,68 @@ public class SkillsCommand {
                         )
                     )
                     // /skills backup [player]
-                    .then(CommandManager.literal("backup")
+                    .then(Commands.literal("backup")
                         .requires(SkillsCommand::isOp)
                         // /skills backup — back up ALL online players
                         .executes(ctx -> {
                             var source = ctx.getSource();
                             int count = 0;
-                            for (ServerPlayerEntity p : source.getServer().getPlayerManager().getPlayerList()) {
+                            for (ServerPlayer p : source.getServer().getPlayerList().getPlayers()) {
                                 if (doBackup(source, p) == 1) count++;
                             }
                             int finalCount = count;
-                            source.sendFeedback(() -> Text.literal("Backed up " + finalCount + " player(s).").formatted(Formatting.GREEN), true);
+                            source.sendSuccess(() -> Component.literal("Backed up " + finalCount + " player(s).").withStyle(ChatFormatting.GREEN), true);
                             return finalCount;
                         })
                         // /skills backup <player> — back up a specific player
-                        .then(CommandManager.argument("player", StringArgumentType.word())
+                        .then(Commands.argument("player", StringArgumentType.word())
                             .executes(ctx -> {
                                 String name = StringArgumentType.getString(ctx, "player");
-                                ServerPlayerEntity target = resolvePlayer(ctx.getSource().getServer(), name);
-                                if (target == null) { ctx.getSource().sendError(Text.literal("Player not found: " + name)); return 0; }
+                                ServerPlayer target = resolvePlayer(ctx.getSource().getServer(), name);
+                                if (target == null) { ctx.getSource().sendFailure(Component.literal("Player not found: " + name)); return 0; }
                                 return doBackup(ctx.getSource(), target);
                             })
                         )
                     )
 
                     // /skills restore <player>
-                    .then(CommandManager.literal("restore")
+                    .then(Commands.literal("restore")
                         .requires(SkillsCommand::isOp)
-                        .then(CommandManager.argument("player", StringArgumentType.word())
+                        .then(Commands.argument("player", StringArgumentType.word())
                             .executes(ctx -> {
                                 String name = StringArgumentType.getString(ctx, "player");
-                                ServerPlayerEntity target = resolvePlayer(ctx.getSource().getServer(), name);
-                                if (target == null) { ctx.getSource().sendError(Text.literal("Player not found: " + name)); return 0; }
+                                ServerPlayer target = resolvePlayer(ctx.getSource().getServer(), name);
+                                if (target == null) { ctx.getSource().sendFailure(Component.literal("Player not found: " + name)); return 0; }
                                 return doRestore(ctx.getSource(), target);
                             })
                         )
                     )
                     // /skills fishingevent <status|start|stop>
-                    .then(CommandManager.literal("fishingevent")
+                    .then(Commands.literal("fishingevent")
                         .requires(SkillsCommand::isOp)
-                        .then(CommandManager.literal("status")
+                        .then(Commands.literal("status")
                             .executes(ctx -> {
-                                ctx.getSource().sendFeedback(FishingCommunityEventManager::statusText, false);
+                                ctx.getSource().sendSuccess(FishingCommunityEventManager::statusText, false);
                                 return 1;
                             })
                         )
-                        .then(CommandManager.literal("start")
+                        .then(Commands.literal("start")
                             .executes(ctx -> startFishingEvent(ctx.getSource(),
                                 PeakConfig.get().defaultCommunityFishingGoal,
                                 PeakConfig.get().defaultCommunityFishingMinutes))
-                            .then(CommandManager.argument("goal", IntegerArgumentType.integer(1, 1_000_000))
-                                .then(CommandManager.argument("minutes", IntegerArgumentType.integer(1, 1440))
+                            .then(Commands.argument("goal", IntegerArgumentType.integer(1, 1_000_000))
+                                .then(Commands.argument("minutes", IntegerArgumentType.integer(1, 1440))
                                     .executes(ctx -> startFishingEvent(ctx.getSource(),
                                         IntegerArgumentType.getInteger(ctx, "goal"),
                                         IntegerArgumentType.getInteger(ctx, "minutes")))
                                 )
                             )
                         )
-                        .then(CommandManager.literal("stop")
+                        .then(Commands.literal("stop")
                             .executes(ctx -> {
                                 boolean stopped = FishingCommunityEventManager.stop(ctx.getSource().getServer());
                                 if (!stopped) {
-                                    ctx.getSource().sendError(Text.literal("No Fishing Event is active."));
+                                    ctx.getSource().sendFailure(Component.literal("No Fishing Event is active."));
                                     return 0;
                                 }
                                 return 1;
@@ -242,9 +242,9 @@ public class SkillsCommand {
         // /skilltop [count] — top players by combined skill level
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
             dispatcher.register(
-                CommandManager.literal("skilltop")
+                Commands.literal("skilltop")
                     .executes(ctx -> sendSkillTop(ctx.getSource(), 10))
-                    .then(CommandManager.argument("count", IntegerArgumentType.integer(1, 50))
+                    .then(Commands.argument("count", IntegerArgumentType.integer(1, 50))
                         .executes(ctx -> sendSkillTop(ctx.getSource(),
                             IntegerArgumentType.getInteger(ctx, "count")))
                     )
@@ -254,7 +254,7 @@ public class SkillsCommand {
         // /skillrank — show the calling player's rank in every skill
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
             dispatcher.register(
-                CommandManager.literal("skillrank")
+                Commands.literal("skillrank")
                     .executes(ctx -> sendSkillRank(ctx.getSource()))
             )
         );
@@ -262,24 +262,24 @@ public class SkillsCommand {
 
     // ── /skilltop ─────────────────────────────────────────────────────────────
 
-    private static int sendSkillTop(net.minecraft.server.command.ServerCommandSource source, int count) {
+    private static int sendSkillTop(net.minecraft.commands.CommandSourceStack source, int count) {
         var entries = PlayerDataManager.getLeaderboardByLevel(count);
         net.minecraft.server.MinecraftServer server = source.getServer();
         int total = entries.size();
 
-        source.sendFeedback(() -> Text.literal(" "), false);
-        source.sendFeedback(() -> Text.literal("  ✦ Skill Leaderboard ✦")
-            .formatted(Formatting.GOLD, Formatting.BOLD), false);
-        source.sendFeedback(() -> Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬")
-            .formatted(Formatting.DARK_GRAY), false);
+        source.sendSuccess(() -> Component.literal(" "), false);
+        source.sendSuccess(() -> Component.literal("  ✦ Skill Leaderboard ✦")
+            .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
+        source.sendSuccess(() -> Component.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬")
+            .withStyle(ChatFormatting.DARK_GRAY), false);
 
         if (entries.isEmpty()) {
-            source.sendFeedback(() -> Text.literal("  No data yet.").formatted(Formatting.DARK_GRAY), false);
+            source.sendSuccess(() -> Component.literal("  No data yet.").withStyle(ChatFormatting.DARK_GRAY), false);
             return 1;
         }
 
         String[] medals = { "✦", "✦", "✦" };
-        Formatting[] rankColors = { Formatting.GOLD, Formatting.GRAY, Formatting.RED };
+        ChatFormatting[] rankColors = { ChatFormatting.GOLD, ChatFormatting.GRAY, ChatFormatting.RED };
 
         for (int i = 0; i < entries.size(); i++) {
             var entry = entries.get(i);
@@ -287,40 +287,40 @@ public class SkillsCommand {
             int level = entry.getValue();
             String name = resolveDisplayName(server, entry.getKey());
 
-            Text line;
+            Component line;
             if (rank <= 3) {
-                Formatting col = rankColors[rank - 1];
-                line = Text.literal("  " + medals[rank - 1] + " #" + rank + "  ").formatted(col, Formatting.BOLD)
-                    .append(Text.literal(name).formatted(Formatting.WHITE))
-                    .append(Text.literal("  ").formatted(Formatting.DARK_GRAY))
-                    .append(Text.literal("Lvl " + String.format("%,d", level)).formatted(col));
+                ChatFormatting col = rankColors[rank - 1];
+                line = Component.literal("  " + medals[rank - 1] + " #" + rank + "  ").withStyle(col, ChatFormatting.BOLD)
+                    .append(Component.literal(name).withStyle(ChatFormatting.WHITE))
+                    .append(Component.literal("  ").withStyle(ChatFormatting.DARK_GRAY))
+                    .append(Component.literal("Lvl " + String.format("%,d", level)).withStyle(col));
             } else {
-                line = Text.literal("  #" + rank + "  ").formatted(Formatting.DARK_GRAY)
-                    .append(Text.literal(name).formatted(Formatting.WHITE))
-                    .append(Text.literal("  Lvl " + String.format("%,d", level)).formatted(Formatting.DARK_GRAY));
+                line = Component.literal("  #" + rank + "  ").withStyle(ChatFormatting.DARK_GRAY)
+                    .append(Component.literal(name).withStyle(ChatFormatting.WHITE))
+                    .append(Component.literal("  Lvl " + String.format("%,d", level)).withStyle(ChatFormatting.DARK_GRAY));
             }
-            Text finalLine = line;
-            source.sendFeedback(() -> finalLine, false);
+            Component finalLine = line;
+            source.sendSuccess(() -> finalLine, false);
         }
-        source.sendFeedback(() -> Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬")
-            .formatted(Formatting.DARK_GRAY), false);
-        source.sendFeedback(() -> Text.literal(" "), false);
+        source.sendSuccess(() -> Component.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬")
+            .withStyle(ChatFormatting.DARK_GRAY), false);
+        source.sendSuccess(() -> Component.literal(" "), false);
         return 1;
     }
 
     // ── /skillrank ────────────────────────────────────────────────────────────
 
-    private static int sendSkillRank(net.minecraft.server.command.ServerCommandSource source) {
-        ServerPlayerEntity player;
-        try { player = source.getPlayerOrThrow(); } catch (Exception e) { return 0; }
-        UUID uuid = player.getUuid();
+    private static int sendSkillRank(net.minecraft.commands.CommandSourceStack source) {
+        ServerPlayer player;
+        try { player = source.getPlayerOrException(); } catch (Exception e) { return 0; }
+        UUID uuid = player.getUUID();
         net.minecraft.server.MinecraftServer server = source.getServer();
 
-        source.sendFeedback(() -> Text.literal(" "), false);
-        source.sendFeedback(() -> Text.literal("  ✦ Your Skill Rankings ✦")
-            .formatted(Formatting.GOLD, Formatting.BOLD), false);
-        source.sendFeedback(() -> Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬")
-            .formatted(Formatting.DARK_GRAY), false);
+        source.sendSuccess(() -> Component.literal(" "), false);
+        source.sendSuccess(() -> Component.literal("  ✦ Your Skill Rankings ✦")
+            .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
+        source.sendSuccess(() -> Component.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬")
+            .withStyle(ChatFormatting.DARK_GRAY), false);
 
         for (Skill skill : Skill.values()) {
             var board = PlayerDataManager.getSkillLeaderboard(skill);
@@ -337,26 +337,26 @@ public class SkillsCommand {
             if (rank == -1) { rank = total + 1; }
 
             String ordinal = ordinal(rank);
-            Formatting rankColor = rank == 1 ? Formatting.GOLD : rank <= 3 ? Formatting.YELLOW : rank <= 10 ? Formatting.GREEN : Formatting.GRAY;
+            ChatFormatting rankColor = rank == 1 ? ChatFormatting.GOLD : rank <= 3 ? ChatFormatting.YELLOW : rank <= 10 ? ChatFormatting.GREEN : ChatFormatting.GRAY;
             int finalRank = rank;
             int finalLevel = myLevel;
-            source.sendFeedback(() ->
-                Text.literal("  " + padRight(skill.getDisplayName(), 12)).formatted(Formatting.WHITE)
-                    .append(Text.literal(ordinal + " / " + total).formatted(rankColor))
-                    .append(Text.literal("  (Lv " + finalLevel + ")").formatted(Formatting.DARK_GRAY)),
+            source.sendSuccess(() ->
+                Component.literal("  " + padRight(skill.getDisplayName(), 12)).withStyle(ChatFormatting.WHITE)
+                    .append(Component.literal(ordinal + " / " + total).withStyle(rankColor))
+                    .append(Component.literal("  (Lv " + finalLevel + ")").withStyle(ChatFormatting.DARK_GRAY)),
             false);
         }
 
-        source.sendFeedback(() -> Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬")
-            .formatted(Formatting.DARK_GRAY), false);
-        source.sendFeedback(() -> Text.literal(" "), false);
+        source.sendSuccess(() -> Component.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬")
+            .withStyle(ChatFormatting.DARK_GRAY), false);
+        source.sendSuccess(() -> Component.literal(" "), false);
         return 1;
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static String resolveDisplayName(net.minecraft.server.MinecraftServer server, UUID uuid) {
-        ServerPlayerEntity online = server.getPlayerManager().getPlayer(uuid);
+        ServerPlayer online = server.getPlayerList().getPlayer(uuid);
         if (online != null) return online.getName().getString();
         // Fallback: short UUID prefix (user cache API varies by version)
         return uuid.toString().substring(0, 8);
@@ -376,54 +376,54 @@ public class SkillsCommand {
         return s.length() >= length ? s : s + " ".repeat(length - s.length());
     }
 
-    private static int doBackup(net.minecraft.server.command.ServerCommandSource src, ServerPlayerEntity target) {
+    private static int doBackup(net.minecraft.commands.CommandSourceStack src, ServerPlayer target) {
         try {
-            java.nio.file.Path file = PlayerDataFailsafe.backup(target.getUuid(), src.getServer());
-            src.sendFeedback(() -> Text.literal("Backed up " + target.getName().getString()
-                + " → " + file.getFileName()).formatted(Formatting.GREEN), true);
+            java.nio.file.Path file = PlayerDataFailsafe.backup(target.getUUID(), src.getServer());
+            src.sendSuccess(() -> Component.literal("Backed up " + target.getName().getString()
+                + " → " + file.getFileName()).withStyle(ChatFormatting.GREEN), true);
             return 1;
         } catch (Exception e) {
-            src.sendError(Text.literal("Backup failed: " + e.getMessage()));
+            src.sendFailure(Component.literal("Backup failed: " + e.getMessage()));
             return 0;
         }
     }
 
-    private static int doRestore(net.minecraft.server.command.ServerCommandSource src, ServerPlayerEntity target) {
+    private static int doRestore(net.minecraft.commands.CommandSourceStack src, ServerPlayer target) {
         try {
-            var result = PlayerDataFailsafe.restore(target.getUuid(), src.getServer());
+            var result = PlayerDataFailsafe.restore(target.getUUID(), src.getServer());
             if (result.isEmpty()) {
-                src.sendError(Text.literal("No backup found for " + target.getName().getString()));
+                src.sendFailure(Component.literal("No backup found for " + target.getName().getString()));
                 return 0;
             }
             StatManager.applyStats(target);
             java.nio.file.Path file = result.get();
-            src.sendFeedback(() -> Text.literal("Restored " + target.getName().getString()
-                + " from " + file.getFileName()).formatted(Formatting.GREEN), true);
+            src.sendSuccess(() -> Component.literal("Restored " + target.getName().getString()
+                + " from " + file.getFileName()).withStyle(ChatFormatting.GREEN), true);
             return 1;
         } catch (Exception e) {
-            src.sendError(Text.literal("Restore failed: " + e.getMessage()));
+            src.sendFailure(Component.literal("Restore failed: " + e.getMessage()));
             return 0;
         }
     }
 
-    private static int startFishingEvent(ServerCommandSource source, int goal, int minutes) {
+    private static int startFishingEvent(CommandSourceStack source, int goal, int minutes) {
         boolean started = FishingCommunityEventManager.start(source.getServer(), goal, minutes);
         if (!started) {
-            source.sendError(Text.literal("Fishing Event could not start. It may already be active or disabled."));
+            source.sendFailure(Component.literal("Fishing Event could not start. It may already be active or disabled."));
             return 0;
         }
         return 1;
     }
 
-    private static boolean isOp(ServerCommandSource src) {
-        ServerPlayerEntity player = src.getPlayer();
-        if (player == null) return !src.isExecutedByPlayer();
-        PlayerConfigEntry entry = new PlayerConfigEntry(player.getGameProfile());
-        return src.getServer().getPlayerManager().getOpList().get(entry) != null;
+    private static boolean isOp(CommandSourceStack src) {
+        ServerPlayer player = src.getPlayer();
+        if (player == null) return !src.isPlayer();
+        NameAndId entry = new NameAndId(player.getGameProfile());
+        return src.getServer().getPlayerList().getOps().get(entry) != null;
     }
 
-    private static ServerPlayerEntity resolvePlayer(net.minecraft.server.MinecraftServer server, String name) {
-        return server.getPlayerManager().getPlayer(name);
+    private static ServerPlayer resolvePlayer(net.minecraft.server.MinecraftServer server, String name) {
+        return server.getPlayerList().getPlayerByName(name);
     }
 
     private static Skill resolveSkill(String name) {

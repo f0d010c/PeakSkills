@@ -1,19 +1,16 @@
 package com.peakskills.collection;
 
 import com.peakskills.stat.Stat;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.CropBlock;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.registry.tag.BlockTags;
-import net.minecraft.util.Identifier;
-
 import java.util.*;
+import net.minecraft.resources.Identifier;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.CropBlock;
+import net.minecraft.world.level.block.state.BlockState;
 
 /**
  * Defines every collection's tiers, thresholds, and rewards.
@@ -474,14 +471,14 @@ public class CollectionRegistry {
     public static Optional<CollectionType> fromBlock(BlockState state) {
         Block block = state.getBlock();
 
-        if (state.isIn(BlockTags.COAL_ORES))     return Optional.of(CollectionType.COAL);
-        if (state.isIn(BlockTags.IRON_ORES))     return Optional.of(CollectionType.IRON);
-        if (state.isIn(BlockTags.GOLD_ORES))     return Optional.of(CollectionType.GOLD);
-        if (state.isIn(BlockTags.DIAMOND_ORES))  return Optional.of(CollectionType.DIAMOND);
-        if (state.isIn(BlockTags.COPPER_ORES))   return Optional.of(CollectionType.COPPER);
-        if (state.isIn(BlockTags.LAPIS_ORES))    return Optional.of(CollectionType.LAPIS);
-        if (state.isIn(BlockTags.REDSTONE_ORES)) return Optional.of(CollectionType.REDSTONE);
-        if (state.isIn(BlockTags.EMERALD_ORES))  return Optional.of(CollectionType.EMERALD);
+        if (state.is(BlockTags.COAL_ORES))     return Optional.of(CollectionType.COAL);
+        if (state.is(BlockTags.IRON_ORES))     return Optional.of(CollectionType.IRON);
+        if (state.is(BlockTags.GOLD_ORES))     return Optional.of(CollectionType.GOLD);
+        if (state.is(BlockTags.DIAMOND_ORES))  return Optional.of(CollectionType.DIAMOND);
+        if (state.is(BlockTags.COPPER_ORES))   return Optional.of(CollectionType.COPPER);
+        if (state.is(BlockTags.LAPIS_ORES))    return Optional.of(CollectionType.LAPIS);
+        if (state.is(BlockTags.REDSTONE_ORES)) return Optional.of(CollectionType.REDSTONE);
+        if (state.is(BlockTags.EMERALD_ORES))  return Optional.of(CollectionType.EMERALD);
 
         if (block == Blocks.NETHER_QUARTZ_ORE)
             return Optional.of(CollectionType.NETHER_QUARTZ);
@@ -548,7 +545,7 @@ public class CollectionRegistry {
         if (block == Blocks.SOUL_SAND || block == Blocks.SOUL_SOIL)
             return Optional.of(CollectionType.SOUL_SAND);
 
-        if (block instanceof CropBlock crop && crop.isMature(state)) {
+        if (block instanceof CropBlock crop && crop.isMaxAge(state)) {
             if (block == Blocks.WHEAT)     return Optional.of(CollectionType.WHEAT);
             if (block == Blocks.CARROTS)   return Optional.of(CollectionType.CARROT);
             if (block == Blocks.POTATOES)  return Optional.of(CollectionType.POTATO);
@@ -559,13 +556,13 @@ public class CollectionRegistry {
         if (block == Blocks.PUMPKIN)       return Optional.of(CollectionType.PUMPKIN);
         if (block == Blocks.MELON)         return Optional.of(CollectionType.MELON);
         if (block == Blocks.NETHER_WART
-                && state.get(net.minecraft.block.NetherWartBlock.AGE) == 3)
+                && state.getValue(net.minecraft.world.level.block.NetherWartBlock.AGE) == 3)
             return Optional.of(CollectionType.NETHER_WART);
         if (block == Blocks.COCOA
-                && state.get(net.minecraft.block.CocoaBlock.AGE) == 2)
+                && state.getValue(net.minecraft.world.level.block.CocoaBlock.AGE) == 2)
             return Optional.of(CollectionType.COCOA_BEANS);
         if (block == Blocks.SWEET_BERRY_BUSH
-                && state.get(net.minecraft.block.SweetBerryBushBlock.AGE) == 3)
+                && state.getValue(net.minecraft.world.level.block.SweetBerryBushBlock.AGE) == 3)
             return Optional.of(CollectionType.SWEET_BERRY);
         if (block == Blocks.BAMBOO)
             return Optional.of(CollectionType.BAMBOO_WOOD);
@@ -624,6 +621,6 @@ public class CollectionRegistry {
 
     @SuppressWarnings("unused")
     private static CollectionReward recipe(String id) {
-        return new CollectionReward.RecipeUnlock(Identifier.of(id));
+        return new CollectionReward.RecipeUnlock(Identifier.parse(id));
     }
 }

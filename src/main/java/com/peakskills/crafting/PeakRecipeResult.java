@@ -2,18 +2,17 @@ package com.peakskills.crafting;
 
 import com.peakskills.enchantment.ReplenishEnchantment;
 import com.peakskills.player.PlayerDataManager;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.ItemEnchantmentsComponent;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
 import java.util.List;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.ItemLore;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
 
 /**
  * Builds result ItemStacks for custom recipes.
@@ -26,27 +25,27 @@ public class PeakRecipeResult {
 
     public static ItemStack replenishBook() {
         // Build a proper enchanted book with stored Replenish I enchantment
-        var registryManager = PlayerDataManager.getServer().getRegistryManager();
-        RegistryEntry<Enchantment> replenishEntry = registryManager
-            .getOrThrow(RegistryKeys.ENCHANTMENT)
+        var registryManager = PlayerDataManager.getServer().registryAccess();
+        Holder<Enchantment> replenishEntry = registryManager
+            .lookupOrThrow(Registries.ENCHANTMENT)
             .getOrThrow(ReplenishEnchantment.REPLENISH);
 
         ItemStack stack = new ItemStack(Items.ENCHANTED_BOOK);
-        ItemEnchantmentsComponent.Builder builder =
-            new ItemEnchantmentsComponent.Builder(ItemEnchantmentsComponent.DEFAULT);
-        builder.add(replenishEntry, 1);
-        stack.set(DataComponentTypes.STORED_ENCHANTMENTS, builder.build());
+        ItemEnchantments.Mutable builder =
+            new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
+        builder.upgrade(replenishEntry, 1);
+        stack.set(DataComponents.STORED_ENCHANTMENTS, builder.toImmutable());
 
-        stack.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal("Replenish I").formatted(Formatting.AQUA, Formatting.BOLD));
-        stack.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-            Text.literal("  Apply to a Hoe or Axe at an Anvil.").formatted(Formatting.GRAY),
-            Text.empty(),
-            Text.literal("  • Auto-replants harvested crops").formatted(Formatting.GREEN),
-            Text.literal("  • Magnet-collects crop drops nearby").formatted(Formatting.GREEN),
-            Text.empty(),
-            Text.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").formatted(Formatting.DARK_GRAY),
-            Text.literal("  ⚠ Requires Farming 30").formatted(Formatting.GOLD, Formatting.BOLD)
+        stack.set(DataComponents.CUSTOM_NAME,
+            Component.literal("Replenish I").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
+        stack.set(DataComponents.LORE, new ItemLore(List.of(
+            Component.literal("  Apply to a Hoe or Axe at an Anvil.").withStyle(ChatFormatting.GRAY),
+            Component.empty(),
+            Component.literal("  • Auto-replants harvested crops").withStyle(ChatFormatting.GREEN),
+            Component.literal("  • Magnet-collects crop drops nearby").withStyle(ChatFormatting.GREEN),
+            Component.empty(),
+            Component.literal("  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬").withStyle(ChatFormatting.DARK_GRAY),
+            Component.literal("  ⚠ Requires Farming 30").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD)
         )));
 
         return stack;

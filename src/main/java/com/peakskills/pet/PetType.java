@@ -1,8 +1,8 @@
 package com.peakskills.pet;
 
 import com.peakskills.skill.Skill;
-import net.minecraft.item.Item;
-import net.minecraft.item.Items;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 
 /**
  * All 18 pet types. Each has a primary skill affinity that earns a large XP bonus

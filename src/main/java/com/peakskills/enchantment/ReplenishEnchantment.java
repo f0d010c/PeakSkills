@@ -4,30 +4,32 @@ import com.peakskills.PeakSkills;
 import com.peakskills.player.PlayerDataManager;
 import com.peakskills.skill.Skill;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
-import net.minecraft.block.*;
-import net.minecraft.block.BlockState;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.RawFilteredPair;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.world.World;
-
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.ItemLore;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.CocoaBlock;
+import net.minecraft.world.level.block.CropBlock;
+import net.minecraft.world.level.block.NetherWartBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -38,9 +40,9 @@ public class ReplenishEnchantment {
     /** itemEntityUUID → playerUUID who broke the crop that spawned it. */
     private static final Map<UUID, UUID> TAGGED_DROPS = new ConcurrentHashMap<>();
 
-    public static final RegistryKey<Enchantment> REPLENISH = RegistryKey.of(
-        RegistryKeys.ENCHANTMENT,
-        Identifier.of(PeakSkills.MOD_ID, "replenish")
+    public static final ResourceKey<Enchantment> REPLENISH = ResourceKey.create(
+        Registries.ENCHANTMENT,
+        Identifier.fromNamespaceAndPath(PeakSkills.MOD_ID, "replenish")
     );
 
     private static final int MIN_FARMING_LEVEL = 30;
@@ -50,52 +52,52 @@ public class ReplenishEnchantment {
     }
 
     /** Called from XpManager when the Farming skill levels up. */
-    public static void onFarmingLevelUp(ServerPlayerEntity player, int from, int to) {
+    public static void onFarmingLevelUp(ServerPlayer player, int from, int to) {
         if (from < MIN_FARMING_LEVEL && to >= MIN_FARMING_LEVEL) {
             giveRecipeBook(player);
-            player.sendMessage(
-                Text.literal("  ✦ Recipe Unlocked: ").formatted(Formatting.GOLD)
-                    .append(Text.literal("Replenish I Book").formatted(Formatting.AQUA, Formatting.BOLD))
-                    .append(Text.literal(" — use /craft to make it. A recipe guide was added to your inventory.")
-                        .formatted(Formatting.GRAY)),
+            player.sendSystemMessage(
+                Component.literal("  ✦ Recipe Unlocked: ").withStyle(ChatFormatting.GOLD)
+                    .append(Component.literal("Replenish I Book").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
+                    .append(Component.literal(" — use /craft to make it. A recipe guide was added to your inventory.")
+                        .withStyle(ChatFormatting.GRAY)),
                 false);
         }
     }
 
-    private static void giveRecipeBook(ServerPlayerEntity player) {
+    private static void giveRecipeBook(ServerPlayer player) {
         ItemStack book = new ItemStack(Items.BOOK);
-        book.set(DataComponentTypes.CUSTOM_NAME,
-            Text.literal("Replenish I — Recipe Guide").formatted(Formatting.AQUA, Formatting.BOLD));
-        book.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-            Text.literal("  Craft via /craft").formatted(Formatting.GOLD),
-            Text.empty(),
-            Text.literal("  Ingredients (16× each):").formatted(Formatting.GRAY),
-            Text.literal("  • Wheat").formatted(Formatting.GREEN),
-            Text.literal("  • Carrot").formatted(Formatting.GREEN),
-            Text.literal("  • Potato").formatted(Formatting.GREEN),
-            Text.literal("  • Nether Wart").formatted(Formatting.GREEN),
-            Text.literal("  • Bone Meal").formatted(Formatting.GREEN),
-            Text.empty(),
-            Text.literal("  Apply to a Hoe or Axe at an Anvil").formatted(Formatting.DARK_GRAY)
+        book.set(DataComponents.CUSTOM_NAME,
+            Component.literal("Replenish I — Recipe Guide").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
+        book.set(DataComponents.LORE, new ItemLore(List.of(
+            Component.literal("  Craft via /craft").withStyle(ChatFormatting.GOLD),
+            Component.empty(),
+            Component.literal("  Ingredients (16× each):").withStyle(ChatFormatting.GRAY),
+            Component.literal("  • Wheat").withStyle(ChatFormatting.GREEN),
+            Component.literal("  • Carrot").withStyle(ChatFormatting.GREEN),
+            Component.literal("  • Potato").withStyle(ChatFormatting.GREEN),
+            Component.literal("  • Nether Wart").withStyle(ChatFormatting.GREEN),
+            Component.literal("  • Bone Meal").withStyle(ChatFormatting.GREEN),
+            Component.empty(),
+            Component.literal("  Apply to a Hoe or Axe at an Anvil").withStyle(ChatFormatting.DARK_GRAY)
         )));
-        player.getInventory().insertStack(book);
+        player.getInventory().add(book);
     }
 
-    private static void onBlockBreak(World world, PlayerEntity player, BlockPos pos,
-                                     BlockState state, net.minecraft.block.entity.BlockEntity be) {
-        if (!(world instanceof ServerWorld serverWorld)) return;
-        if (!(player instanceof ServerPlayerEntity serverPlayer)) return;
+    private static void onBlockBreak(Level world, Player player, BlockPos pos,
+                                     BlockState state, net.minecraft.world.level.block.entity.BlockEntity be) {
+        if (!(world instanceof ServerLevel serverWorld)) return;
+        if (!(player instanceof ServerPlayer serverPlayer)) return;
 
         // Must be holding a hoe with Replenish
-        ItemStack tool = serverPlayer.getMainHandStack();
+        ItemStack tool = serverPlayer.getMainHandItem();
         if (!hasReplenish(tool, serverWorld)) return;
 
         // Farming 30 required
-        if (PlayerDataManager.get(serverPlayer.getUuid()).getLevel(Skill.FARMING) < MIN_FARMING_LEVEL) return;
+        if (PlayerDataManager.get(serverPlayer.getUUID()).getLevel(Skill.FARMING) < MIN_FARMING_LEVEL) return;
 
         // Anti-desync: block must be within 8 blocks of the player
         // Prevents a client spoofing a break packet for a distant crop to trigger magnet collection
-        if (pos.getSquaredDistanceFromCenter(serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ()) > 64) return;
+        if (pos.distToCenterSqr(serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ()) > 64) return;
 
         // Works on any age — replants immediately
         Block block = state.getBlock();
@@ -107,31 +109,31 @@ public class ReplenishEnchantment {
         BlockState replantState = resetAge(block, state);
         serverWorld.getServer().execute(() -> {
             // Tag all crop item entities near the broken block as belonging to this player
-            UUID playerUuid = serverPlayer.getUuid();
-            Box tagBox = new Box(pos).expand(2.0);
-            serverWorld.getEntitiesByType(net.minecraft.entity.EntityType.ITEM, tagBox,
-                e -> isCropDrop(e.getStack().getItem()))
-                .forEach(e -> TAGGED_DROPS.put(e.getUuid(), playerUuid));
+            UUID playerUuid = serverPlayer.getUUID();
+            AABB tagBox = new AABB(pos).inflate(2.0);
+            serverWorld.getEntities(net.minecraft.world.entity.EntityType.ITEM, tagBox,
+                e -> isCropDrop(e.getItem().getItem()))
+                .forEach(e -> TAGGED_DROPS.put(e.getUUID(), playerUuid));
 
             // Consume seed from ground drops first, then player inventory as fallback
             if (consumeSeedDrop(serverWorld, pos, seed, serverPlayer)) {
-                serverWorld.setBlockState(pos, replantState);
+                serverWorld.setBlockAndUpdate(pos, replantState);
             }
             magnetCollect(serverWorld, serverPlayer);
         });
     }
 
-    private static boolean hasReplenish(ItemStack stack, ServerWorld world) {
+    private static boolean hasReplenish(ItemStack stack, ServerLevel world) {
         if (stack.isEmpty()) return false;
-        RegistryEntry.Reference<Enchantment> entry =
-            world.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT).getOrThrow(REPLENISH);
-        return EnchantmentHelper.getLevel(entry, stack) > 0;
+        Holder.Reference<Enchantment> entry =
+            world.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(REPLENISH);
+        return EnchantmentHelper.getItemEnchantmentLevel(entry, stack) > 0;
     }
 
     private static boolean isMatureCrop(Block block, BlockState state) {
-        if (block instanceof CropBlock crop) return crop.isMature(state);
-        if (block == Blocks.NETHER_WART) return state.get(NetherWartBlock.AGE) == 3;
-        if (block == Blocks.COCOA)       return state.get(CocoaBlock.AGE) == 2;
+        if (block instanceof CropBlock crop) return crop.isMaxAge(state);
+        if (block == Blocks.NETHER_WART) return state.getValue(NetherWartBlock.AGE) == 3;
+        if (block == Blocks.COCOA)       return state.getValue(CocoaBlock.AGE) == 2;
         return false;
     }
 
@@ -146,10 +148,10 @@ public class ReplenishEnchantment {
     }
 
     private static BlockState resetAge(Block block, BlockState state) {
-        if (block instanceof CropBlock)        return state.with(CropBlock.AGE, 0);
-        if (block == Blocks.NETHER_WART)       return state.with(NetherWartBlock.AGE, 0);
-        if (block == Blocks.COCOA)             return state.with(CocoaBlock.AGE, 0);
-        return block.getDefaultState();
+        if (block instanceof CropBlock)        return state.setValue(CropBlock.AGE, 0);
+        if (block == Blocks.NETHER_WART)       return state.setValue(NetherWartBlock.AGE, 0);
+        if (block == Blocks.COCOA)             return state.setValue(CocoaBlock.AGE, 0);
+        return block.defaultBlockState();
     }
 
     /**
@@ -163,22 +165,22 @@ public class ReplenishEnchantment {
      * Only pulls items that match a known crop drop (seeds, produce) to avoid vacuuming
      * unrelated items off the ground.
      */
-    private static void magnetCollect(ServerWorld world, ServerPlayerEntity player) {
-        UUID playerUuid = player.getUuid();
+    private static void magnetCollect(ServerLevel world, ServerPlayer player) {
+        UUID playerUuid = player.getUUID();
         double x = player.getX(), y = player.getY(), z = player.getZ();
-        Box box = new Box(x - 8, y - 2, z - 8, x + 8, y + 4, z + 8);
-        world.getEntitiesByType(net.minecraft.entity.EntityType.ITEM, box,
+        AABB box = new AABB(x - 8, y - 2, z - 8, x + 8, y + 4, z + 8);
+        world.getEntities(net.minecraft.world.entity.EntityType.ITEM, box,
             e -> !e.isRemoved()
-                && isCropDrop(e.getStack().getItem())
-                && playerUuid.equals(TAGGED_DROPS.get(e.getUuid())))
+                && isCropDrop(e.getItem().getItem())
+                && playerUuid.equals(TAGGED_DROPS.get(e.getUUID())))
             .forEach(entity -> {
-                TAGGED_DROPS.remove(entity.getUuid());
-                ItemStack stack = entity.getStack();
-                player.getInventory().insertStack(stack);
+                TAGGED_DROPS.remove(entity.getUUID());
+                ItemStack stack = entity.getItem();
+                player.getInventory().add(stack);
                 if (stack.isEmpty()) {
                     entity.discard();
                 } else {
-                    entity.setPickupDelay(0);
+                    entity.setPickUpDelay(0);
                 }
             });
     }
@@ -198,24 +200,24 @@ public class ReplenishEnchantment {
      * Priority: ground drops near the block first, then player inventory as fallback.
      * Returns true if a seed was successfully consumed.
      */
-    private static boolean consumeSeedDrop(ServerWorld world, BlockPos pos, Item seed, ServerPlayerEntity player) {
+    private static boolean consumeSeedDrop(ServerLevel world, BlockPos pos, Item seed, ServerPlayer player) {
         // 1. Try ground drops first (mature crop drops a seed itself)
-        Box box = new Box(pos).expand(2.0);
-        List<ItemEntity> nearby = world.getEntitiesByType(
-            net.minecraft.entity.EntityType.ITEM, box,
-            e -> e.getStack().isOf(seed));
+        AABB box = new AABB(pos).inflate(2.0);
+        List<ItemEntity> nearby = world.getEntities(
+            net.minecraft.world.entity.EntityType.ITEM, box,
+            e -> e.getItem().is(seed));
         if (!nearby.isEmpty()) {
             ItemEntity entity = nearby.get(0);
-            ItemStack stack = entity.getStack();
+            ItemStack stack = entity.getItem();
             if (stack.getCount() <= 1) entity.discard();
-            else stack.decrement(1);
+            else stack.shrink(1);
             return true;
         }
         // 2. Fallback: consume from player inventory (immature crops have no drop)
-        for (int i = 0; i < player.getInventory().size(); i++) {
-            ItemStack invStack = player.getInventory().getStack(i);
-            if (invStack.isOf(seed)) {
-                invStack.decrement(1);
+        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+            ItemStack invStack = player.getInventory().getItem(i);
+            if (invStack.is(seed)) {
+                invStack.shrink(1);
                 return true;
             }
         }

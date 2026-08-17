@@ -5,8 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.peakskills.PeakLog;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.WorldSavePath;
-
+import net.minecraft.world.level.storage.LevelResource;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
@@ -38,7 +37,7 @@ public class PeakConfig {
     }
 
     private static void load(MinecraftServer server) {
-        Path dir = server.getSavePath(WorldSavePath.ROOT).resolve("peakskills");
+        Path dir = server.getWorldPath(LevelResource.ROOT).resolve("peakskills");
         Path file = dir.resolve("config.json");
 
         try {
