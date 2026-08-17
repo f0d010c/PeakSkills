@@ -37,6 +37,8 @@ client, although the server must have Fabric and PeakSkills installed.
 - Replenish enchantment for harvesting and replanting crops.
 - In-game menus for skills, profiles, pets, collections, crafting, leaderboards, and
   player settings.
+- Secure server-driven inventory menus powered by SGui, plus native Minecraft
+  dialogs for settings and confirmations; vanilla clients require no installation.
 - Per-player settings, including a level-up ding guard for burst XP gains.
 
 ## Skills

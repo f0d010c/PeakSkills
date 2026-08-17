@@ -1,6 +1,5 @@
 package com.peakskills.crafting;
 
-import com.peakskills.gui.SkillsScreenHandler;
 import com.peakskills.skill.Skill;
 import com.peakskills.xp.XpManager;
 import java.util.ArrayList;
@@ -14,7 +13,6 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleContainer;
-import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -98,10 +96,9 @@ public class PeakCraftingGui {
             handlers.put(slot, () -> openDetail(player, recipe));
         }
 
-        player.openMenu(new SimpleMenuProvider(
-            (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers),
-            Component.literal("PeakSkills Recipes").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD)
-        ));
+        com.peakskills.gui.core.LegacyContainerGui.open(player,
+            Component.literal("PeakSkills Recipes").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD),
+            inv, handlers);
     }
 
     // ── Detail view ───────────────────────────────────────────────────────────
@@ -114,10 +111,9 @@ public class PeakCraftingGui {
         handlers.put(BACK_SLOT,  () -> openList(player));
         handlers.put(CRAFT_SLOT, () -> tryCraft(player, recipe, inv));
 
-        player.openMenu(new SimpleMenuProvider(
-            (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers),
-            Component.literal(recipe.displayName()).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)
-        ));
+        com.peakskills.gui.core.LegacyContainerGui.open(player,
+            Component.literal(recipe.displayName()).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD),
+            inv, handlers);
     }
 
     private static void populateDetail(SimpleContainer inv, ServerPlayer player, PeakRecipe recipe) {

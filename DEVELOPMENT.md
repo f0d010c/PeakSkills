@@ -55,3 +55,13 @@ failures open or update one `ci-failure` GitHub issue; a later successful run cl
 The wider ecosystem's invariants, ownership rules, definition of done, test strategy,
 backup expectations, and observability rules are recorded in
 [`docs/PEAKMOD_ENGINEERING_GUIDE.md`](docs/PEAKMOD_ENGINEERING_GUIDE.md).
+
+## Server-driven GUI foundation
+
+- Inventory grids use bundled SGui `2.0.0+26.1`; clients remain completely vanilla.
+- `LegacyContainerGui` adapts existing 54-slot renderers to locked virtual slots and
+  accepts only explicitly supported click types.
+- Native Minecraft dialogs use one-use, player-bound action tokens with a two-minute
+  expiry. Never place a privileged operation directly behind an unvalidated command.
+- Use `PeakDialogs.confirm` before irreversible GUI actions. Rewarding or consuming
+  actions still require their own cooldown, inventory recheck, and server-side bounds.

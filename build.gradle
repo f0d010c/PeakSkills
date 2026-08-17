@@ -12,6 +12,7 @@ base {
 
 repositories {
     mavenCentral()
+    maven { url = "https://maven.nucleoid.xyz" }
 }
 
 configurations {
@@ -24,6 +25,7 @@ dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    implementation include("eu.pb4:sgui:${project.sgui_version}")
     productionRuntimeMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
     testImplementation "net.fabricmc:fabric-loader-junit:${project.loader_version}"

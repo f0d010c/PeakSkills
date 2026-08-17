@@ -14,7 +14,6 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleContainer;
-import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -118,10 +117,8 @@ public class CollectionsGui {
         inv.setItem(49, refresh);
         handlers.put(49, () -> CollectionsGui.open(viewer, PlayerDataManager.get(viewer.getUUID())));
 
-        viewer.openMenu(new SimpleMenuProvider(
-            (syncId, playerInv, p) -> new SkillsScreenHandler(syncId, playerInv, inv, handlers),
-            Component.literal("✦ Collections").withStyle(ChatFormatting.GOLD)
-        ));
+        com.peakskills.gui.core.LegacyContainerGui.open(viewer,
+            Component.literal("✦ Collections").withStyle(ChatFormatting.GOLD), inv, handlers);
     }
 
     // ── Category icon ─────────────────────────────────────────────────────────
