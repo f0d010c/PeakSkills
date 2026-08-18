@@ -9,6 +9,7 @@ import com.peakskills.player.PlayerDataManager;
 import com.peakskills.skill.Skill;
 import com.peakskills.skill.SkillAbilityRegistry;
 import com.peakskills.skill.XPTable;
+import com.peakskills.guide.UnlockNotificationManager;
 import com.peakskills.stat.SkillStatSource;
 import com.peakskills.stat.StatManager;
 import com.peakskills.stat.StatRegistry;
@@ -277,6 +278,8 @@ public class XpManager {
                         .withStyle(ChatFormatting.DARK_GRAY)),
                 false);
         }
+
+        UnlockNotificationManager.announce(player, skill, from, to);
 
         // Replenish recipe unlock at Farming 30
         if (skill == Skill.FARMING) {

@@ -110,6 +110,13 @@ public class PetMenuGui {
         )));
         inv.setItem(8, title);
 
+        ItemStack guide = new ItemStack(Items.KNOWLEDGE_BOOK);
+        guide.set(DataComponents.CUSTOM_NAME,
+            Component.literal("Back to Peak Guide").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+        guide.set(DataComponents.LORE, new ItemLore(List.of(
+            Component.literal("Return to the main PeakMod menu").withStyle(ChatFormatting.GRAY))));
+        inv.setItem(49, guide);
+
         // Pet icons
         for (int i = 0; i < pets.size() && i < PET_SLOTS.length; i++) {
             inv.setItem(PET_SLOTS[i], petIcon(pets.get(i)));
@@ -129,6 +136,8 @@ public class PetMenuGui {
                                                              SimpleContainer inv, Category[] currentFilter,
                                                              boolean[] currentPetsVisible) {
         Map<Integer, Runnable> handlers = new HashMap<>();
+
+        handlers.put(49, () -> PeakGuideGui.open(player));
 
         // Filter tab handlers
         handlers.put(1, () -> refresh(inv, data, currentFilter, currentPetsVisible, Category.ALL));

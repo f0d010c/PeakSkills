@@ -39,7 +39,7 @@ upper blocks broken by the same action.
 
 When PeakGear is present, Watersense reads bounded vanilla `CUSTOM_DATA` from the
 held rod and carried accessories. It supports two rank I-X traits per rod, bait
-charges, rod-specific bonuses, and the following trait effects:
+prepared for a single cast, rod-specific bonuses, and the following trait effects:
 
 | Trait | Effect per rank |
 | --- | --- |
@@ -59,11 +59,19 @@ to normal loot at every rarity, including Totems and Nether Stars. It does not c
 the one-time Ocean's Memory journal reward. Future boss/creature drops and content
 containers must also remain excluded.
 
+PeakGear bait is consumed when a PeakGear rod is thrown, not when the catch is landed.
+Watersense stores the prepared effect as bounded active-cast data so that one thrown
+cast receives the bonus exactly once. A later unbaited cast clears stale active data,
+reeling does not consume a second bait, and vanilla rods remain unaffected.
+
 Every Watersense-only material has a stable, validated ID inside server-owned custom
 data. Recipes never identify a custom material from its vanilla carrier, display
 name, or lore, so ordinary vanilla items cannot impersonate it. The optional
 resource pack gives those carriers unique visuals; without it, all mechanics and
 identities remain correct and the items use their vanilla fallback appearance.
+Identifiable catches also carry non-italic lore that explains their present recipe or
+collection purpose. Carried older catches are refreshed to the current presentation;
+unused materials explicitly say that they are reserved for future content.
 
 ## Module boundary
 

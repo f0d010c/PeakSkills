@@ -70,6 +70,7 @@ public class SkillsGui {
         }
 
         // Bottom shortcut row.
+        handlers.put(37, () -> PeakGuideGui.open(viewer));
         handlers.put(38, () -> ProfileGui.open(viewer, PlayerDataManager.get(viewer.getUUID()), ownerName));
         handlers.put(39, () -> CollectionsGui.open(viewer, PlayerDataManager.get(viewer.getUUID())));
         handlers.put(40, () -> PetMenuGui.open(viewer));
@@ -111,6 +112,13 @@ public class SkillsGui {
             Component.literal("  Click a skill to view its leveling path").withStyle(ChatFormatting.DARK_GRAY)
         )));
         inv.setItem(4, header);
+
+        ItemStack guide = new ItemStack(Items.KNOWLEDGE_BOOK);
+        guide.set(DataComponents.CUSTOM_NAME,
+            Component.literal("Peak Guide").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+        guide.set(DataComponents.LORE, new ItemLore(List.of(
+            Component.literal("Return to the main hub").withStyle(ChatFormatting.GRAY))));
+        inv.setItem(37, guide);
 
         // Skill icons
         for (int i = 0; i < GATHERING.length; i++)

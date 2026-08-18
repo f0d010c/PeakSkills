@@ -72,6 +72,7 @@ public class ProfileGui {
 
         // Slot 49 — open full skills GUI
         handlers.put(49, () -> SkillsGui.open(viewer, data, ownerName));
+        handlers.put(48, () -> PeakGuideGui.open(viewer));
 
         com.peakskills.gui.core.LegacyContainerGui.open(viewer,
             Component.literal("✦ " + ownerName + "'s Profile").withStyle(ChatFormatting.GOLD), inv, handlers);
@@ -141,6 +142,11 @@ public class ProfileGui {
             Component.literal("  with XP progress and bonuses").withStyle(ChatFormatting.DARK_GRAY)
         )));
         inv.setItem(49, skillsBtn);
+
+        ItemStack guide = new ItemStack(Items.KNOWLEDGE_BOOK);
+        guide.set(DataComponents.CUSTOM_NAME,
+            Component.literal("Peak Guide").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+        inv.setItem(48, guide);
     }
 
     // ── Stat helpers ──────────────────────────────────────────────────────────

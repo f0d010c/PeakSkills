@@ -291,30 +291,16 @@ public class SkillDetailGui {
 
     /** Returns the icon item for the gear unlocked at this level, or null if none. */
     private static Item gearUnlockItem(Skill skill, int level) {
-        return switch (skill) {
-            case MINING      -> level == 20 ? Items.IRON_PICKAXE      : level == 50 ? Items.DIAMOND_PICKAXE      : level == 70 ? Items.NETHERITE_PICKAXE      : null;
-            case WOODCUTTING -> level == 20 ? Items.IRON_AXE          : level == 50 ? Items.DIAMOND_AXE          : level == 70 ? Items.NETHERITE_AXE          : null;
-            case EXCAVATING  -> level == 20 ? Items.IRON_SHOVEL       : level == 50 ? Items.DIAMOND_SHOVEL       : level == 70 ? Items.NETHERITE_SHOVEL       : null;
-            case FARMING     -> level == 20 ? Items.IRON_HOE          : level == 50 ? Items.DIAMOND_HOE          : level == 70 ? Items.NETHERITE_HOE          : null;
-            case SLAYING     -> level == 20 ? Items.IRON_SWORD        : level == 50 ? Items.DIAMOND_SWORD        : level == 70 ? Items.NETHERITE_SWORD        : null;
-            case DEFENSE     -> level == 20 ? Items.IRON_CHESTPLATE   : level == 50 ? Items.DIAMOND_CHESTPLATE   : level == 70 ? Items.NETHERITE_CHESTPLATE   : null;
-            default -> null;
-        };
+        com.peakskills.skill.SkillGearUnlockRegistry.GearUnlock unlock =
+            com.peakskills.skill.SkillGearUnlockRegistry.at(skill, level);
+        return unlock == null ? null : unlock.icon();
     }
 
     /** Returns the display name(s) of gear unlocked at this level. */
     private static List<String> gearUnlockNames(Skill skill, int level) {
-        List<String> r = new ArrayList<>();
-        switch (skill) {
-            case MINING      -> { if (level==20) r.add("Iron Pickaxe");    if (level==50) r.add("Diamond Pickaxe");    if (level==70) r.add("Netherite Pickaxe"); }
-            case WOODCUTTING -> { if (level==20) r.add("Iron Axe");        if (level==50) r.add("Diamond Axe");        if (level==70) r.add("Netherite Axe"); }
-            case EXCAVATING  -> { if (level==20) r.add("Iron Shovel");     if (level==50) r.add("Diamond Shovel");     if (level==70) r.add("Netherite Shovel"); }
-            case FARMING     -> { if (level==20) r.add("Iron Hoe");        if (level==50) r.add("Diamond Hoe");        if (level==70) r.add("Netherite Hoe"); }
-            case SLAYING     -> { if (level==20) r.add("Iron Sword");      if (level==50) r.add("Diamond Sword");      if (level==70) r.add("Netherite Sword"); }
-            case DEFENSE     -> { if (level==20) r.add("Iron Armor Set");  if (level==50) r.add("Diamond Armor Set");  if (level==70) r.add("Netherite Armor Set"); }
-            default -> {}
-        }
-        return r;
+        com.peakskills.skill.SkillGearUnlockRegistry.GearUnlock unlock =
+            com.peakskills.skill.SkillGearUnlockRegistry.at(skill, level);
+        return unlock == null ? List.of() : List.of(unlock.name());
     }
 
     // ── Ability names & flavour ───────────────────────────────────────────────

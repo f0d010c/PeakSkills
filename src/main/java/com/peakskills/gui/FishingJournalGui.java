@@ -69,12 +69,12 @@ public final class FishingJournalGui {
         inv.setItem(48, summary(Items.MAP, "Biomes", List.of(
             Component.literal(journal.getBiomes().size() + " discovered").withStyle(ChatFormatting.AQUA))));
 
-        ItemStack back = named(Items.ARROW, "Back to Skills", ChatFormatting.YELLOW);
+        ItemStack back = named(Items.ARROW, "Back to Peak Guide", ChatFormatting.YELLOW);
         inv.setItem(49, back);
         ItemStack refresh = named(Items.SUNFLOWER, "Refresh", ChatFormatting.GREEN);
         inv.setItem(50, refresh);
         Map<Integer, Runnable> handlers = new HashMap<>();
-        handlers.put(49, () -> SkillsGui.open(viewer));
+        handlers.put(49, () -> PeakGuideGui.open(viewer));
         handlers.put(50, () -> open(viewer));
         com.peakskills.gui.core.LegacyContainerGui.open(viewer,
             Component.literal("Watersense Journal").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD),

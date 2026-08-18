@@ -38,7 +38,8 @@ client, although the server must have Fabric and PeakSkills installed.
 - A permanent fishing journal for catches, item quantities, outcome categories,
   depth tiers, water moods, loot discoveries, and visited biomes.
 - Secure custom fishing materials with unique resource-pack visuals and vanilla
-  fallbacks; optional PeakGear rods can supply bounded traits, bait, and accessories.
+  fallbacks and self-explaining lore; optional PeakGear rods can supply bounded
+  traits, single-cast bait consumed on throw, and accessories.
 - Replenish enchantment for harvesting and replanting crops.
 - In-game menus for skills, profiles, pets, collections, crafting, leaderboards, and
   player settings.
@@ -70,6 +71,16 @@ PeakSkills currently includes:
 Each skill has its own XP sources, level rewards, and stat bonuses.
 
 ## Commands
+
+`/peak` is the primary player entry point. It opens a unified, self-explaining guide
+for profiles, skills, collections, Watersense fishing, pets, recipes, settings, and
+any installed PeakMod extensions. `/peak skills`, `/peak collections`, `/peak fishing`,
+`/peak pets`, `/peak recipes`, and `/peak settings` open those sections directly.
+Existing top-level player commands remain compatibility shortcuts.
+
+Skill level-ups announce newly crossed ability, equipment, fishing-catch, and optional
+module gates. Each announcement includes a clickable link to the relevant guide menu;
+collection tier rewards continue to announce at the moment they are earned.
 
 Player commands:
 

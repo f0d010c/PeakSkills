@@ -17,7 +17,7 @@ public final class FishingLootTable {
 
     static {
         add("cod", 1, FishingDepth.SHALLOW, 200, Items.COD, 1, 3,
-            "Raw Fish", Rarity.COMMON, FishingOutcomeCategory.FISH);
+            "Cod", Rarity.COMMON, FishingOutcomeCategory.FISH);
         add("salmon", 1, FishingDepth.SHALLOW, 180, Items.SALMON, 1, 2,
             "Raw Salmon", Rarity.COMMON, FishingOutcomeCategory.FISH);
         add("lily_pad", 1, FishingDepth.SHALLOW, 120, Items.LILY_PAD, 1, 3,
@@ -147,6 +147,16 @@ public final class FishingLootTable {
             .map(entry -> buildStack(entry, 1)).orElse(ItemStack.EMPTY);
     }
 
+    public static void refreshPresentation(ItemStack stack) {
+        String id = WatersenseItemData.getLootId(stack);
+        if (id == null) return;
+        Entry entry = POOL.stream().filter(candidate -> candidate.id.equals(id)).findFirst().orElse(null);
+        if (entry == null) return;
+        ItemStack canonical = buildStack(entry, 1);
+        stack.set(DataComponents.CUSTOM_NAME, canonical.get(DataComponents.CUSTOM_NAME));
+        stack.set(DataComponents.LORE, canonical.get(DataComponents.LORE));
+    }
+
     private static int adjustedWeight(Entry entry, FishingContext context, FishingModifiers modifiers) {
         double multiplier = 1.0;
         if (entry.rarity.ordinal() >= Rarity.RARE.ordinal()) {
@@ -254,14 +264,60 @@ public final class FishingLootTable {
     private static ItemStack buildStack(Entry entry, int count) {
         ItemStack stack = new ItemStack(entry.item, count);
         if (entry.modelId > 0) WatersenseItemData.mark(stack, entry.id, entry.modelId);
-        stack.set(DataComponents.CUSTOM_NAME, Component.literal(entry.displayName).withStyle(entry.rarity.color));
+        stack.set(DataComponents.CUSTOM_NAME, Component.literal(entry.displayName)
+            .withStyle(style -> style.withColor(entry.rarity.color).withBold(true).withItalic(false)));
         stack.set(DataComponents.LORE, new ItemLore(List.of(
-            Component.literal(entry.rarity.label).withStyle(entry.rarity.color, ChatFormatting.BOLD),
-            Component.literal(entry.category.name().replace('_', ' ')).withStyle(ChatFormatting.DARK_GRAY),
-            Component.literal("Requires " + entry.minDepth.displayName + " · Fishing " + entry.minLevel)
-                .withStyle(ChatFormatting.GRAY)
+            Component.literal(catchDescription(entry.id, entry.category))
+                .withStyle(style -> style.withColor(ChatFormatting.GRAY).withItalic(false)),
+            Component.empty(),
+            Component.literal("Found in " + entry.minDepth.displayName + " • Fishing " + entry.minLevel + "+")
+                .withStyle(style -> style.withColor(ChatFormatting.DARK_GRAY).withItalic(false)),
+            Component.literal("◆ " + entry.rarity.label + " • "
+                    + entry.category.name().replace('_', ' '))
+                .withStyle(style -> style.withColor(entry.rarity.color).withBold(true).withItalic(false))
         )));
         return stack;
+    }
+
+    private static String catchDescription(String id, FishingOutcomeCategory category) {
+        return switch (id) {
+            case "cod" -> "A common catch counted toward the Cod Collection.";
+            case "salmon" -> "A common catch counted toward the Salmon Collection.";
+            case "lily_pad" -> "A surface-water material recovered while fishing.";
+            case "ink_sac" -> "A common aquatic material recovered while fishing.";
+            case "seagrass" -> "A common plant swept up from shallow water.";
+            case "driftwood" -> "Weathered timber used to craft the Driftwood Rod.";
+            case "tropical_fish" -> "A colorful riverbed catch used in Creature Bait.";
+            case "pufferfish" -> "A volatile riverbed catch used in Frenzy Bait.";
+            case "fish_bones" -> "Cleaned remains used to craft Fish and Frenzy Bait.";
+            case "tangled_line" -> "Recovered line used in Riverweave Rods, bait, and satchels.";
+            case "waterlogged_hide" -> "Cured hide used in Riverweave Rods and Fisherman's Satchels.";
+            case "river_clay" -> "A future Watersense crafting material from the riverbed.";
+            case "tarnished_buckle" -> "A future accessory material recovered from the riverbed.";
+            case "murk_sac" -> "A future bait material gathered from murky water.";
+            case "river_pearl" -> "A rare river treasure reserved for future crafting.";
+            case "nautilus_shell" -> "A deep-water treasure used in the strongest rod recipes.";
+            case "prismarine_shard" -> "A deep-water material used to craft the Tideglass Rod.";
+            case "sunken_scrap" -> "Salvaged metal used to reinforce the Tideglass Rod.";
+            case "sea_crystal" -> "A charged crystal used throughout advanced fishing crafting.";
+            case "drowned_coin" -> "Lost currency used in relic gear, bait, and fusion crafting.";
+            case "broken_compass" -> "The damaged core required to craft a Relic Talisman.";
+            case "sealed_bottle" -> "A preserved relic used to craft the Relic Seeker's Rod.";
+            case "sea_diamond" -> "A valuable deep-water treasure with no current recipe.";
+            case "ancient_scale" -> "Abyssal armor used in rods, charms, and legendary crafting.";
+            case "abyss_ink" -> "Concentrated abyssal pigment used in advanced gear and bait.";
+            case "pearl_shard" -> "A potent fragment used across relic and legendary recipes.";
+            case "abyssal_membrane" -> "A strange membrane used to prepare Creature Bait.";
+            case "rusted_hook" -> "A future advanced-hook material recovered from the abyss.";
+            case "ancient_trident" -> "A legendary treasure with no current crafting use.";
+            case "heart_fragment" -> "A future legendary material from ancient water.";
+            case "totem_of_the_deep" -> "A legendary focus required for the Rod of the First Tide.";
+            case "abyssal_star" -> "A legendary catalyst required for the Rod of the First Tide.";
+            case "oceans_memory" -> "A unique journal capstone that can be discovered only once.";
+            default -> category == FishingOutcomeCategory.FISH
+                ? "A Watersense fish used for collections and recipes."
+                : "A recovered Watersense crafting material.";
+        };
     }
 
     private FishingLootTable() {}
