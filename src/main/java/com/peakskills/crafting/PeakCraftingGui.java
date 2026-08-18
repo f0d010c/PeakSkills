@@ -89,6 +89,12 @@ public class PeakCraftingGui {
 
         Map<Integer, Runnable> handlers = new HashMap<>();
 
+        ItemStack guide = new ItemStack(Items.KNOWLEDGE_BOOK);
+        guide.set(DataComponents.CUSTOM_NAME,
+            Component.literal("Back to Peak Guide").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+        inv.setItem(45, guide);
+        handlers.put(45, () -> com.peakskills.gui.PeakGuideGui.open(player));
+
         for (int i = 0; i < recipes.size() && i < LIST_RECIPE_SLOTS.length; i++) {
             PeakRecipe recipe = recipes.get(i);
             int slot = LIST_RECIPE_SLOTS[i];

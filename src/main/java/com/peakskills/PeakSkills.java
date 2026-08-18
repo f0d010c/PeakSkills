@@ -6,6 +6,7 @@ import com.peakskills.crafting.PeakCraftingCommand;
 import com.peakskills.crafting.PeakRecipeRegistry;
 import com.peakskills.enchantment.ReplenishEnchantment;
 import com.peakskills.command.PetsCommand;
+import com.peakskills.command.PeakGuideCommand;
 import com.peakskills.command.ProfileCommand;
 import com.peakskills.command.SettingsCommand;
 import com.peakskills.command.SkillsCommand;
@@ -41,6 +42,7 @@ public class PeakSkills implements ModInitializer {
         PeakCraftingCommand.register();
         PetEggHandler.register();
         PetDisplayManager.register();
+        PeakGuideCommand.register();
         SkillsCommand.register();
         PetsCommand.register();
         CollectionsCommand.register();

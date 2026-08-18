@@ -117,6 +117,12 @@ public class CollectionsGui {
         inv.setItem(49, refresh);
         handlers.put(49, () -> CollectionsGui.open(viewer, PlayerDataManager.get(viewer.getUUID())));
 
+        ItemStack guide = new ItemStack(Items.KNOWLEDGE_BOOK);
+        guide.set(DataComponents.CUSTOM_NAME,
+            Component.literal("Back to Peak Guide").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+        inv.setItem(45, guide);
+        handlers.put(45, () -> PeakGuideGui.open(viewer));
+
         com.peakskills.gui.core.LegacyContainerGui.open(viewer,
             Component.literal("✦ Collections").withStyle(ChatFormatting.GOLD), inv, handlers);
     }

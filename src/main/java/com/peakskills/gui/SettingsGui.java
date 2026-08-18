@@ -27,8 +27,7 @@ public final class SettingsGui {
             PlayerDataManager.saveAll();
             open(player);
         });
-        String skillsToken = PeakDialogActions.issue(player,
-            () -> SkillsGui.open(player, PlayerDataManager.get(player.getUUID()), player.getName().getString()));
+        String skillsToken = PeakDialogActions.issue(player, () -> PeakGuideGui.open(player));
 
         boolean enabled = data.shouldLimitBurstLevelUpSounds();
         ActionButton toggle = PeakDialogs.actionButton(
@@ -36,8 +35,8 @@ public final class SettingsGui {
                 .withStyle(enabled ? ChatFormatting.GREEN : ChatFormatting.RED),
             Component.literal("Limits repeated level-up dings after more than five levels in five minutes."),
             toggleToken);
-        ActionButton back = PeakDialogs.actionButton(Component.literal("Back to Skills"),
-            Component.literal("Return to the skills menu."), skillsToken);
+        ActionButton back = PeakDialogs.actionButton(Component.literal("Back to Peak Guide"),
+            Component.literal("Return to the main PeakMod menu."), skillsToken);
 
         CommonDialogData common = new CommonDialogData(
             Component.literal("PeakSkills Settings").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD),

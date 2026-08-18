@@ -71,6 +71,16 @@ Each skill has its own XP sources, level rewards, and stat bonuses.
 
 ## Commands
 
+`/peak` is the primary player entry point. It opens a unified, self-explaining guide
+for profiles, skills, collections, Watersense fishing, pets, recipes, settings, and
+any installed PeakMod extensions. `/peak skills`, `/peak collections`, `/peak fishing`,
+`/peak pets`, `/peak recipes`, and `/peak settings` open those sections directly.
+Existing top-level player commands remain compatibility shortcuts.
+
+Skill level-ups announce newly crossed ability, equipment, fishing-catch, and optional
+module gates. Each announcement includes a clickable link to the relevant guide menu;
+collection tier rewards continue to announce at the moment they are earned.
+
 Player commands:
 
 | Command | Description |
