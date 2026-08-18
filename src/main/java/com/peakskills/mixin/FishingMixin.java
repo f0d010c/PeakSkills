@@ -119,8 +119,6 @@ public class FishingMixin {
 
         boolean newDiscovery = !data.getFishingJournal().hasDiscovered(result.entryId());
         data.getFishingJournal().record(context, result);
-        FishingGearBridge.consumeBait(usedItem);
-
         CollectionType fishCol = fishCollection(loot);
         if (fishCol != null) {
             List<CollectionTier> newTiers = data.getCollections().increment(fishCol, result.totalQuantity());

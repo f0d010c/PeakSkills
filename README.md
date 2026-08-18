@@ -38,7 +38,8 @@ client, although the server must have Fabric and PeakSkills installed.
 - A permanent fishing journal for catches, item quantities, outcome categories,
   depth tiers, water moods, loot discoveries, and visited biomes.
 - Secure custom fishing materials with unique resource-pack visuals and vanilla
-  fallbacks; optional PeakGear rods can supply bounded traits, bait, and accessories.
+  fallbacks and self-explaining lore; optional PeakGear rods can supply bounded
+  traits, single-cast bait consumed on throw, and accessories.
 - Replenish enchantment for harvesting and replanting crops.
 - In-game menus for skills, profiles, pets, collections, crafting, leaderboards, and
   player settings.

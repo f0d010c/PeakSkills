@@ -12,6 +12,7 @@ import com.peakskills.command.SettingsCommand;
 import com.peakskills.command.SkillsCommand;
 import com.peakskills.config.PeakConfig;
 import com.peakskills.fishing.event.FishingCommunityEventManager;
+import com.peakskills.fishing.WatersenseLoreSync;
 import com.peakskills.gui.core.PeakDialogActions;
 import com.peakskills.pet.PetDisplayManager;
 import com.peakskills.pet.PetEggHandler;
@@ -34,6 +35,7 @@ public class PeakSkills implements ModInitializer {
         PeakConfig.register();
         PlayerDataManager.register();
         FishingCommunityEventManager.register();
+        WatersenseLoreSync.register();
         PlayerDataFailsafe.register();
         XpManager.register();
         SkillEvents.register();

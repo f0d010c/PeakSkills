@@ -20,8 +20,7 @@ public final class FishingGearBridge {
             CompoundTag item = peakGear(player.getInventory().getItem(slot));
             if (item != null) accessories.add(item.getString("id").orElse(""));
         }
-        int charges = peak == null ? 0 : clamp(peak.getInt("bait_charges").orElse(0), 0, 20);
-        String bait = charges > 0 && peak != null ? peak.getString("bait").orElse("") : "";
+        String bait = peak == null ? "" : peak.getString("cast_bait").orElse("");
         return new FishingModifiers(
             peak == null ? "" : peak.getString("id").orElse(""),
             trait(traits, "double_hook"), trait(traits, "treasure_hunter"),
@@ -40,20 +39,6 @@ public final class FishingGearBridge {
         double base = level * 0.04;
         if (raining && "stormwake_rod".equals(peak.getString("id").orElse(""))) base += 0.10;
         return Math.min(0.55, base);
-    }
-
-    public static void consumeBait(ItemStack rod) {
-        CustomData custom = rod.get(DataComponents.CUSTOM_DATA);
-        if (custom == null) return;
-        CompoundTag root = custom.copyTag();
-        CompoundTag peak = root.getCompound("peakgear").orElse(null);
-        if (peak == null) return;
-        int charges = clamp(peak.getInt("bait_charges").orElse(0), 0, 20);
-        if (charges <= 0) return;
-        if (--charges == 0) peak.remove("bait");
-        peak.putInt("bait_charges", charges);
-        root.put("peakgear", peak);
-        rod.set(DataComponents.CUSTOM_DATA, CustomData.of(root));
     }
 
     private static int trait(CompoundTag traits, String id) {
