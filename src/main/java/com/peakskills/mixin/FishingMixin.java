@@ -7,6 +7,8 @@ import com.peakskills.config.PeakConfig;
 import com.peakskills.fishing.FishingLootTable;
 import com.peakskills.fishing.FishingContext;
 import com.peakskills.fishing.FishingEnvironment;
+import com.peakskills.fishing.FishingGearBridge;
+import com.peakskills.fishing.FishingModifiers;
 import com.peakskills.fishing.event.FishingCommunityEventManager;
 import com.peakskills.player.PlayerData;
 import com.peakskills.player.PlayerDataManager;
@@ -41,6 +43,27 @@ public class FishingMixin {
 
     @Shadow
     private boolean biting;
+
+    @Shadow
+    private int timeUntilLured;
+
+    private boolean peakskills$swiftReelApplied;
+
+    @Inject(method = "catchingFish", at = @At("TAIL"))
+    private void peakskills$applySwiftReel(BlockPos pos, org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+        FishingHook self = (FishingHook)(Object) this;
+        if (!(self.getPlayerOwner() instanceof ServerPlayer player)) return;
+        if (timeUntilLured <= 0) {
+            peakskills$swiftReelApplied = false;
+            return;
+        }
+        if (peakskills$swiftReelApplied) return;
+        boolean raining = self.level().isRaining();
+        double reduction = Math.max(FishingGearBridge.swiftReelReduction(player.getMainHandItem(), raining),
+            FishingGearBridge.swiftReelReduction(player.getOffhandItem(), raining));
+        if (reduction > 0) timeUntilLured = Math.max(20, (int) Math.ceil(timeUntilLured * (1.0 - reduction)));
+        peakskills$swiftReelApplied = true;
+    }
 
     @Inject(method = "retrieve", at = @At("HEAD"), cancellable = true)
     private void onReel(ItemStack usedItem, CallbackInfoReturnable<Integer> cir) {
@@ -81,7 +104,8 @@ public class FishingMixin {
             environment.raining(), environment.night(),
             environment.waterDepth(), environment.sampledWaterBlocks()
         );
-        FishingLootTable.RollResult result = FishingLootTable.roll(context, sw.getRandom());
+        FishingModifiers modifiers = FishingGearBridge.read(player, usedItem, data);
+        FishingLootTable.RollResult result = FishingLootTable.roll(context, modifiers, sw.getRandom());
         if (result == null || result.stack().isEmpty()) return;
 
         ItemStack loot = result.stack();
@@ -89,35 +113,41 @@ public class FishingMixin {
         double abilityMult = SkillAbilityRegistry.getFlatXpMultiplier(Skill.FISHING, fishingLevel);
         double configMult = PeakConfig.get().fishingXpMultiplier;
         long fishingXp = configMult <= 0 ? 0L
-            : Math.max(1L, Math.round(result.xp() * abilityMult * configMult));
+            : Math.max(1L, Math.round(result.xp() * abilityMult * configMult * modifiers.xpMultiplier()));
         if (fishingXp > 0) XpManager.addXp(player, Skill.FISHING, fishingXp);
         FishingCommunityEventManager.recordCatch(player, eventContribution);
 
         boolean newDiscovery = !data.getFishingJournal().hasDiscovered(result.entryId());
         data.getFishingJournal().record(context, result);
+        FishingGearBridge.consumeBait(usedItem);
 
         CollectionType fishCol = fishCollection(loot);
         if (fishCol != null) {
-            List<CollectionTier> newTiers = data.getCollections().increment(fishCol, loot.getCount());
+            List<CollectionTier> newTiers = data.getCollections().increment(fishCol, result.totalQuantity());
             CollectionRewardHandler.apply(player, fishCol, newTiers, mcServer);
         }
 
         double x = self.getX();
         double y = self.getY();
         double z = self.getZ();
-        ItemEntity ie = new ItemEntity(sw, x, y, z, loot);
         double dx = player.getX() - x;
         double dy = player.getY() - y + 0.5;
         double dz = player.getZ() - z;
         double speed = 0.1;
-        ie.setDeltaMovement(
-            dx * speed,
-            dy * speed + Math.sqrt(Math.sqrt(dx * dx + dy * dy + dz * dz)) * 0.08,
-            dz * speed
-        );
-        sw.addFreshEntity(ie);
+        List<ItemStack> awardedStacks = new java.util.ArrayList<>(result.copies());
+        for (int copy = 0; copy < result.copies(); copy++) {
+            ItemStack awarded = loot.copy();
+            awardedStacks.add(awarded.copy());
+            ItemEntity ie = new ItemEntity(sw, x, y, z, awarded);
+            ie.setDeltaMovement(
+                dx * speed,
+                dy * speed + Math.sqrt(Math.sqrt(dx * dx + dy * dy + dz * dz)) * 0.08,
+                dz * speed
+            );
+            sw.addFreshEntity(ie);
+        }
 
-        CriteriaTriggers.FISHING_ROD_HOOKED.trigger(player, usedItem, self, List.of(loot));
+        CriteriaTriggers.FISHING_ROD_HOOKED.trigger(player, usedItem, self, awardedStacks);
         player.awardStat(Stats.CUSTOM.get(Stats.FISH_CAUGHT), 1);
         ExperienceOrb.award(sw, player.position(), sw.getRandom().nextInt(1, 7));
 
@@ -125,7 +155,7 @@ public class FishingMixin {
             Component.literal("* ").withStyle(ChatFormatting.GOLD)
                 .append(Component.literal("Caught: ").withStyle(ChatFormatting.GRAY))
                 .append(loot.getHoverName())
-                .append(Component.literal(" x" + loot.getCount()).withStyle(ChatFormatting.WHITE))
+                .append(Component.literal(" x" + result.totalQuantity()).withStyle(ChatFormatting.WHITE))
                 .append(Component.literal(" · " + environment.depth().displayName
                     + " · " + environment.mood().displayName).withStyle(ChatFormatting.DARK_AQUA))
                 .append(newDiscovery

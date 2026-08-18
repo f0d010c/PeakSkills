@@ -26,7 +26,7 @@ class FishingLootTableTest {
             assertNotNull(result);
             assertFalse(result.stack().isEmpty());
             assertTrue(result.stack().getCount() >= 1);
-            assertTrue(result.stack().getCount() <= 4);
+            assertTrue(result.stack().getCount() <= 5);
             assertTrue(result.xp() == FishingLootTable.Rarity.COMMON.xp);
         }
     }
