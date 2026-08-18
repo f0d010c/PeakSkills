@@ -21,7 +21,7 @@ public final class FishingJournal {
 
     public void record(FishingContext context, FishingLootTable.RollResult result) {
         totalCatches = saturatingAdd(totalCatches, 1);
-        totalItems = saturatingAdd(totalItems, result.stack().getCount());
+        totalItems = saturatingAdd(totalItems, result.totalQuantity());
         categoryCatches.merge(result.category(), 1L, FishingJournal::saturatingAdd);
         depths.add(context.depth());
         moods.add(context.mood());

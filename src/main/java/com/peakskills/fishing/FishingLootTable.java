@@ -26,54 +26,81 @@ public final class FishingLootTable {
             "Ink Sac", Rarity.COMMON, FishingOutcomeCategory.MATERIAL);
         add("seagrass", 1, FishingDepth.SHALLOW, 90, Items.SEAGRASS, 1, 3,
             "Seagrass", Rarity.COMMON, FishingOutcomeCategory.MATERIAL);
+        addCustom("driftwood", 1, FishingDepth.SHALLOW, 50, Items.STICK, 2, 5,
+            "Driftwood", Rarity.COMMON, FishingOutcomeCategory.MATERIAL, 1001);
 
         add("tropical_fish", 10, FishingDepth.RIVERBED, 80, Items.TROPICAL_FISH, 1, 1,
             "Tropical Fish", Rarity.UNCOMMON, FishingOutcomeCategory.FISH);
         add("pufferfish", 10, FishingDepth.RIVERBED, 70, Items.PUFFERFISH, 1, 1,
             "Pufferfish", Rarity.UNCOMMON, FishingOutcomeCategory.FISH);
-        add("fish_bones", 10, FishingDepth.SHALLOW, 55, Items.BONE, 1, 3,
-            "Fish Bones", Rarity.UNCOMMON, FishingOutcomeCategory.MATERIAL);
-        add("tangled_line", 15, FishingDepth.RIVERBED, 50, Items.STRING, 1, 4,
-            "Tangled Line", Rarity.UNCOMMON, FishingOutcomeCategory.MATERIAL);
-        add("waterlogged_hide", 20, FishingDepth.RIVERBED, 45, Items.LEATHER, 1, 2,
-            "Waterlogged Hide", Rarity.UNCOMMON, FishingOutcomeCategory.MATERIAL);
+        addCustom("fish_bones", 10, FishingDepth.SHALLOW, 55, Items.BONE, 1, 3,
+            "Fish Bones", Rarity.UNCOMMON, FishingOutcomeCategory.MATERIAL, 1003);
+        addCustom("tangled_line", 15, FishingDepth.RIVERBED, 50, Items.STRING, 1, 4,
+            "Tangled Line", Rarity.UNCOMMON, FishingOutcomeCategory.MATERIAL, 1002);
+        addCustom("waterlogged_hide", 20, FishingDepth.RIVERBED, 45, Items.LEATHER, 1, 2,
+            "Waterlogged Hide", Rarity.UNCOMMON, FishingOutcomeCategory.MATERIAL, 1004);
+        addCustom("river_clay", 12, FishingDepth.RIVERBED, 50, Items.CLAY_BALL, 2, 5,
+            "River Clay", Rarity.UNCOMMON, FishingOutcomeCategory.MATERIAL, 1005);
+        addCustom("tarnished_buckle", 15, FishingDepth.RIVERBED, 35, Items.IRON_NUGGET, 1, 3,
+            "Tarnished Buckle", Rarity.UNCOMMON, FishingOutcomeCategory.MATERIAL, 1006);
+        addCustom("murk_sac", 18, FishingDepth.RIVERBED, 25, Items.SLIME_BALL, 1, 2,
+            "Murk Sac", Rarity.UNCOMMON, FishingOutcomeCategory.MATERIAL, 1007);
+        addCustom("river_pearl", 20, FishingDepth.RIVERBED, 10, Items.ENDER_PEARL, 1, 1,
+            "River Pearl", Rarity.RARE, FishingOutcomeCategory.TREASURE, 1008);
 
         add("nautilus_shell", 25, FishingDepth.DEEP_WATER, 35, Items.NAUTILUS_SHELL, 1, 1,
             "Nautilus Shell", Rarity.RARE, FishingOutcomeCategory.TREASURE);
         add("prismarine_shard", 25, FishingDepth.DEEP_WATER, 30, Items.PRISMARINE_SHARD, 2, 5,
             "Prismarine Shard", Rarity.RARE, FishingOutcomeCategory.MATERIAL);
-        add("sunken_scrap", 30, FishingDepth.DEEP_WATER, 25, Items.IRON_INGOT, 1, 3,
-            "Sunken Scrap", Rarity.RARE, FishingOutcomeCategory.MATERIAL);
-        add("sea_crystal", 35, FishingDepth.DEEP_WATER, 22, Items.PRISMARINE_CRYSTALS, 1, 3,
-            "Sea Crystal", Rarity.RARE, FishingOutcomeCategory.TREASURE);
-        add("drowned_coin", 40, FishingDepth.DEEP_WATER, 18, Items.GOLD_NUGGET, 2, 6,
-            "Drowned Coin", Rarity.RARE, FishingOutcomeCategory.RELIC);
+        addCustom("sunken_scrap", 30, FishingDepth.DEEP_WATER, 25, Items.IRON_INGOT, 1, 3,
+            "Sunken Scrap", Rarity.RARE, FishingOutcomeCategory.MATERIAL, 1009);
+        addCustom("sea_crystal", 35, FishingDepth.DEEP_WATER, 22, Items.PRISMARINE_CRYSTALS, 1, 3,
+            "Sea Crystal", Rarity.RARE, FishingOutcomeCategory.TREASURE, 1010);
+        addCustom("drowned_coin", 40, FishingDepth.DEEP_WATER, 18, Items.GOLD_NUGGET, 2, 6,
+            "Drowned Coin", Rarity.RARE, FishingOutcomeCategory.RELIC, 1011);
+        addCustom("broken_compass", 38, FishingDepth.DEEP_WATER, 12, Items.COMPASS, 1, 1,
+            "Broken Compass", Rarity.RARE, FishingOutcomeCategory.RELIC, 1012);
+        addCustom("sealed_bottle", 40, FishingDepth.DEEP_WATER, 8, Items.GLASS_BOTTLE, 1, 1,
+            "Sealed Bottle", Rarity.RARE, FishingOutcomeCategory.RELIC, 1013);
 
-        add("sea_diamond", 50, FishingDepth.DEEP_WATER, 10, Items.DIAMOND, 1, 1,
-            "Sea Diamond", Rarity.EPIC, FishingOutcomeCategory.TREASURE);
-        add("ancient_scale", 55, FishingDepth.ABYSSAL, 8, Items.TURTLE_SCUTE, 1, 1,
-            "Ancient Scale", Rarity.EPIC, FishingOutcomeCategory.RELIC);
-        add("abyss_ink", 60, FishingDepth.ABYSSAL, 7, Items.GLOW_INK_SAC, 1, 2,
-            "Abyss Ink", Rarity.EPIC, FishingOutcomeCategory.RELIC);
-        add("pearl_shard", 65, FishingDepth.ABYSSAL, 5, Items.PRISMARINE_CRYSTALS, 1, 1,
-            "Pearl Shard", Rarity.EPIC, FishingOutcomeCategory.RELIC);
+        addCustom("sea_diamond", 50, FishingDepth.DEEP_WATER, 10, Items.DIAMOND, 1, 1,
+            "Sea Diamond", Rarity.EPIC, FishingOutcomeCategory.TREASURE, 1014);
+        addCustom("ancient_scale", 55, FishingDepth.ABYSSAL, 8, Items.TURTLE_SCUTE, 1, 1,
+            "Ancient Scale", Rarity.EPIC, FishingOutcomeCategory.RELIC, 1015);
+        addCustom("abyss_ink", 60, FishingDepth.ABYSSAL, 7, Items.GLOW_INK_SAC, 1, 2,
+            "Abyss Ink", Rarity.EPIC, FishingOutcomeCategory.RELIC, 1016);
+        addCustom("pearl_shard", 65, FishingDepth.ABYSSAL, 5, Items.PRISMARINE_CRYSTALS, 1, 1,
+            "Pearl Shard", Rarity.EPIC, FishingOutcomeCategory.RELIC, 1017);
+        addCustom("abyssal_membrane", 65, FishingDepth.ABYSSAL, 5, Items.PHANTOM_MEMBRANE, 1, 1,
+            "Abyssal Membrane", Rarity.EPIC, FishingOutcomeCategory.RELIC, 1018);
+        addCustom("rusted_hook", 70, FishingDepth.ABYSSAL, 4, Items.TRIPWIRE_HOOK, 1, 1,
+            "Rusted Hook", Rarity.EPIC, FishingOutcomeCategory.RELIC, 1019);
 
-        add("ancient_trident", 75, FishingDepth.ABYSSAL, 3, Items.TRIDENT, 1, 1,
-            "Ancient Trident", Rarity.LEGENDARY, FishingOutcomeCategory.TREASURE);
-        add("totem_of_the_deep", 80, FishingDepth.ANCIENT, 2, Items.TOTEM_OF_UNDYING, 1, 1,
-            "Totem of the Deep", Rarity.LEGENDARY, FishingOutcomeCategory.TREASURE);
-        add("abyssal_star", 90, FishingDepth.ANCIENT, 1, Items.NETHER_STAR, 1, 1,
-            "Abyssal Star", Rarity.LEGENDARY, FishingOutcomeCategory.RELIC);
+        addCustom("ancient_trident", 75, FishingDepth.ABYSSAL, 3, Items.TRIDENT, 1, 1,
+            "Ancient Trident", Rarity.LEGENDARY, FishingOutcomeCategory.TREASURE, 1020);
+        addCustom("heart_fragment", 75, FishingDepth.ANCIENT, 4, Items.HEART_OF_THE_SEA, 1, 1,
+            "Heart Fragment", Rarity.LEGENDARY, FishingOutcomeCategory.RELIC, 1021);
+        addCustom("totem_of_the_deep", 80, FishingDepth.ANCIENT, 2, Items.TOTEM_OF_UNDYING, 1, 1,
+            "Totem of the Deep", Rarity.LEGENDARY, FishingOutcomeCategory.TREASURE, 1022);
+        addCustom("abyssal_star", 90, FishingDepth.ANCIENT, 1, Items.NETHER_STAR, 1, 1,
+            "Abyssal Star", Rarity.LEGENDARY, FishingOutcomeCategory.RELIC, 1023);
+        addCustom("oceans_memory", 99, FishingDepth.ANCIENT, 1, Items.WRITTEN_BOOK, 1, 1,
+            "Ocean's Memory", Rarity.LEGENDARY, FishingOutcomeCategory.RELIC, 1024);
     }
 
     public static RollResult roll(FishingContext context, RandomSource random) {
+        return roll(context, FishingModifiers.NONE, random);
+    }
+
+    public static RollResult roll(FishingContext context, FishingModifiers modifiers, RandomSource random) {
         List<WeightedEntry> eligible = new ArrayList<>();
         long totalWeight = 0;
         for (Entry entry : POOL) {
+            if (entry.id.equals("oceans_memory") && modifiers.discoveries().contains(entry.id)) continue;
             if (context.fishingLevel() < entry.minLevel || context.depth().ordinal() < entry.minDepth.ordinal()) {
                 continue;
             }
-            int weight = adjustedWeight(entry, context);
+            int weight = adjustedWeight(entry, context, modifiers);
             if (weight <= 0) continue;
             eligible.add(new WeightedEntry(entry, weight));
             totalWeight += weight;
@@ -92,8 +119,13 @@ public final class FishingLootTable {
                     && entry.category == FishingOutcomeCategory.FISH && count < entry.item.getDefaultMaxStackSize()) {
                     count++;
                 }
+                if (entry.category == FishingOutcomeCategory.MATERIAL
+                        && random.nextDouble() < modifiers.satchelChance()
+                        && count < entry.item.getDefaultMaxStackSize()) count++;
+                int copies = !entry.id.equals("oceans_memory")
+                    && random.nextDouble() < modifiers.doubleHookChance() ? 2 : 1;
                 return new RollResult(entry.id, buildStack(entry, count), entry.rarity.xp,
-                    entry.rarity, entry.category);
+                    entry.rarity, entry.category, copies);
             }
         }
         return null;
@@ -115,14 +147,15 @@ public final class FishingLootTable {
             .map(entry -> buildStack(entry, 1)).orElse(ItemStack.EMPTY);
     }
 
-    private static int adjustedWeight(Entry entry, FishingContext context) {
+    private static int adjustedWeight(Entry entry, FishingContext context, FishingModifiers modifiers) {
         double multiplier = 1.0;
         if (entry.rarity.ordinal() >= Rarity.RARE.ordinal()) {
             multiplier *= 1.0 + context.rareWeightBonus();
         }
         if (context.raining() && entry.category == FishingOutcomeCategory.FISH) multiplier *= 1.20;
         if (context.night() && entry.category == FishingOutcomeCategory.RELIC) multiplier *= 1.25;
-        multiplier *= biomeMultiplier(entry, context.biome());
+        double biomeMultiplier = biomeMultiplier(entry, context.biome());
+        multiplier *= biomeMultiplier;
         multiplier *= switch (context.mood()) {
             case FEEDING_FRENZY -> entry.category == FishingOutcomeCategory.FISH ? 1.75 : 0.85;
             case TREASURE_RIPPLE -> entry.category == FishingOutcomeCategory.TREASURE
@@ -132,6 +165,8 @@ public final class FishingLootTable {
             case ABYSS_STIR -> entry.rarity.ordinal() >= Rarity.EPIC.ordinal() ? 2.25 : 0.80;
             case CALM_WATERS -> 1.0;
         };
+        multiplier *= modifiers.weightMultiplier(entry.id, entry.category, entry.rarity,
+            context, biomeMultiplier);
         return Math.max(1, (int) Math.round(entry.weight * multiplier * 100.0));
     }
 
@@ -179,25 +214,46 @@ public final class FishingLootTable {
     }
 
     public record RollResult(String entryId, ItemStack stack, long xp, Rarity rarity,
-                             FishingOutcomeCategory category) {}
+                             FishingOutcomeCategory category, int copies) {
+        public RollResult(String entryId, ItemStack stack, long xp, Rarity rarity,
+                          FishingOutcomeCategory category) {
+            this(entryId, stack, xp, rarity, category, 1);
+        }
+
+        public RollResult {
+            copies = Math.max(1, Math.min(2, copies));
+        }
+
+        public int totalQuantity() {
+            return Math.min(128, stack.getCount() * copies);
+        }
+    }
 
     public record EntryView(String id, String displayName, Item icon, Rarity rarity,
                             FishingOutcomeCategory category, int minLevel, FishingDepth minDepth) {}
 
     private record Entry(String id, int minLevel, FishingDepth minDepth, int weight, Item item,
                          int minCount, int maxCount, String displayName, Rarity rarity,
-                         FishingOutcomeCategory category) {}
+                         FishingOutcomeCategory category, int modelId) {}
     private record WeightedEntry(Entry entry, int weight) {}
 
     private static void add(String id, int minLevel, FishingDepth minDepth, int weight, Item item,
                             int minCount, int maxCount, String displayName, Rarity rarity,
                             FishingOutcomeCategory category) {
         POOL.add(new Entry(id, minLevel, minDepth, weight, item, minCount, maxCount,
-            displayName, rarity, category));
+            displayName, rarity, category, 0));
+    }
+
+    private static void addCustom(String id, int minLevel, FishingDepth minDepth, int weight, Item item,
+                                  int minCount, int maxCount, String displayName, Rarity rarity,
+                                  FishingOutcomeCategory category, int modelId) {
+        POOL.add(new Entry(id, minLevel, minDepth, weight, item, minCount, maxCount,
+            displayName, rarity, category, modelId));
     }
 
     private static ItemStack buildStack(Entry entry, int count) {
         ItemStack stack = new ItemStack(entry.item, count);
+        if (entry.modelId > 0) WatersenseItemData.mark(stack, entry.id, entry.modelId);
         stack.set(DataComponents.CUSTOM_NAME, Component.literal(entry.displayName).withStyle(entry.rarity.color));
         stack.set(DataComponents.LORE, new ItemLore(List.of(
             Component.literal(entry.rarity.label).withStyle(entry.rarity.color, ChatFormatting.BOLD),
